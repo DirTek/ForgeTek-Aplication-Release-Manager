@@ -1,0 +1,12 @@
+namespace ForgeTekUpdatePackager.Models;
+
+public class AppEntry
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; } = string.Empty;
+    public string FolderPath { get; set; } = string.Empty;
+    public string InitialVersion { get; set; } = string.Empty;
+    public List<AppVersion> Versions { get; set; } = [];
+
+    public AppVersion? LatestVersion => Versions.Count > 0 ? Versions[^1] : null;
+}
