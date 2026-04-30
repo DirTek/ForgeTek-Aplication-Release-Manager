@@ -17,19 +17,28 @@ Your application will poll the update catalog, download new packages, verify the
 The update catalog is a JSON file hosted at a public URL. The standard path pattern is:
 `{baseUrl}/{appKey}/{appKey}.json` (e.g., `https://example.com/releases/stlorganizer/stlorganizer.json`)
 
+Note: The extension of the catalog file can be customized. While `.ftu` is the default, packager supports custom extensions (e.g., `.stlo`). Update your catalog URL parsing to match.
+Note 2: STLOrganizer is used as an example app name/key in this documentation. It will be replaced with your actual app name/key in your implementation.
+
 ### Catalog Structure
 ```json
 {
-  "stlorganizer": "0.1.1",
+  "stlorganizer": "0.1.2",
   "url": {
-    "stlorganizer": "https://usas.forgeTek.ro/aplicatii/testorganizer/stlorganizer/0.1.1/STLOrganizer-0.1.1.stlo"
+    "stlorganizer": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo"
   },
   "versions": {
     "0.1.1": {
-      "url": "https://usas.forgeTek.ro/aplicatii/testorganizer/stlorganizer/0.1.1/STLOrganizer-0.1.1.stlo",
+      "url": "https://example.com/releases/stlorganizer/0.1.1/STLOrganizer-0.1.1.stlo",
       "date": "2026-04-30",
       "type": "incremental",
-      "checksum": "9961793b01bb216793dc2dbedca61f7e82092597c8bd6307729642b18f8f569a"
+      "checksum": "0412bca9d0d375ad5d95a9429326cd997c5df9eff4f30fe10b1f3fc214a9baf9"
+    },
+    "0.1.2": {
+      "url": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo",
+      "date": "2026-04-30",
+      "type": "incremental",
+      "checksum": "64babf2a746b9dbc234fa0bbdbd1dc3b25e1914fdbe1f05f626d8fcf499a80af"
     }
   }
 }
@@ -66,17 +75,35 @@ The update catalog is a JSON file hosted at a public URL. The standard path patt
 The header is embedded in the package and contains metadata:
 ```json
 {
-  "App": "STLOrganizer",
-  "Version": "0.1.1",
-  "PackageType": "incremental",
-  "CreatedAt": "2026-04-30T08:05:43.8526929+00:00",
-  "FileCount": 5,
-  "Files": [
+  "version": "0.1.2",
+  "app": "STLOrganizer",
+  "createdAt": "2026-04-30T11:27:00.7854434+00:00",
+  "files": [
     {
-      "Path": "STLOrganizer.exe",
-      "Checksum": "56441a556dde7cb06103eeecdc21c4799c93b9ceb974c98f08722141dcd0d5d1"
+      "path": "STLOrganizer.dll",
+      "hash": "sha256-90ec0ff137c65d222094cf20539f338e7553732263c1aa06b4350ead457a21bd",
+      "size": 2021744
+    },
+    {
+      "path": "STLOrganizer.exe",
+      "hash": "sha256-92b573252aa76a50d8a687d14010197dc455ce6066a53e28bf41026ce69cd62f",
+      "size": 294768
+    },
+    {
+      "path": "STLOrganizer.pdb",
+      "hash": "sha256-9a9ccc8d758dee10dba437996faa1ac8975b03c0ea6a267ed7053b59715a8868",
+      "size": 921588
+    },
+    {
+      "path": "STLOrganizer.staticwebassets.endpoints.json",
+      "hash": "sha256-02bdae549ea227de42bf50e7d894753d9a7a8f78c98c751b3dafb47749eb9c05",
+      "size": 24903
     }
-  ]
+  ],
+  "totals": {
+    "fileCount": 4,
+    "totalSize": 3263003
+  }
 }
 ```
 
@@ -97,19 +124,34 @@ The header is embedded in the package and contains metadata:
 Each package includes a `manifest.json` (either embedded in the ZIP or hosted alongside the package) with file-level details:
 ```json
 {
-  "version": "0.1.1",
+  "version": "0.1.2",
   "app": "STLOrganizer",
-  "createdAt": "2026-04-30T08:05:43.8526929+00:00",
+  "createdAt": "2026-04-30T11:27:00.7854434+00:00",
   "files": [
     {
+      "path": "STLOrganizer.dll",
+      "hash": "sha256-90ec0ff137c65d222094cf20539f338e7553732263c1aa06b4350ead457a21bd",
+      "size": 2021744
+    },
+    {
       "path": "STLOrganizer.exe",
-      "hash": "sha256-56441a556dde7cb06103eeecdc21c4799c93b9ceb974c98f08722141dcd0d5d1",
+      "hash": "sha256-92b573252aa76a50d8a687d14010197dc455ce6066a53e28bf41026ce69cd62f",
       "size": 294768
+    },
+    {
+      "path": "STLOrganizer.pdb",
+      "hash": "sha256-9a9ccc8d758dee10dba437996faa1ac8975b03c0ea6a267ed7053b59715a8868",
+      "size": 921588
+    },
+    {
+      "path": "STLOrganizer.staticwebassets.endpoints.json",
+      "hash": "sha256-02bdae549ea227de42bf50e7d894753d9a7a8f78c98c751b3dafb47749eb9c05",
+      "size": 24903
     }
   ],
   "totals": {
-    "fileCount": 5,
-    "totalSize": 3266848
+    "fileCount": 4,
+    "totalSize": 3263003
   }
 }
 ```
@@ -266,4 +308,4 @@ public async Task ApplyUpdate(string packagePath, string installDir, string curr
 
 ## Support
 
-For issues with the update packager or this documentation, report to: https://github.com/anomalyco/opencode/issues
+For issues with the update packager or this documentation, report to: dirtek@gmail.com
