@@ -1,11 +1,47 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace ForgeTekUpdatePackager.Models;
 
-public class AppVersion
+public enum PackageStep { Sign, Manifest, Package, Json, Ftp }
+
+public enum VersionStatus { Review, Signed, Packed, Published, Retracted, Scrapped }
+
+/// <summary>Whether the package contains all non-debug files or only the diff (added+modified).</summary>
+public enum PackageType { Incremental, Full }
+
+public partial class AppVersion : ObservableObject
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string VersionNumber { get; set; } = string.Empty;
     public DateTime ScanDate { get; set; }
     public List<FileRecord> Files { get; set; } = [];
+
+    /// <summary>True for the very first version — no diff, no packing needed.</summary>
+    // Observable so the status badge DataTrigger on IsInitial refreshes in the DataGrid.
+    [ObservableProperty] private bool _isInitial;
+
+    // Observable so the status badge DataTrigger refreshes whenever Status changes
+    // (e.g. after a retract resets Published → Packed).
+    [ObservableProperty] private VersionStatus _status = VersionStatus.Review;
+
+    public bool HasManifest { get; set; }
+    public bool HasPackage { get; set; }
+    public string? PackagePath { get; set; }
+    public string? PackageChecksum { get; set; }
+    public PackageType PackageType { get; set; } = PackageType.Incremental;
+
+    /// <summary>Tracks the last completed pipeline step so packaging can resume.</summary>
+    public PackageStep? PipelineStep { get; set; }
+
+    /// <summary>FTP remote path of the uploaded .ftu package file — set after a successful upload.</summary>
+    public string? FtpPackageRemotePath { get; set; }
+    /// <summary>FTP remote path of the uploaded catalog JSON — set after a successful upload.</summary>
+    public string? FtpCatalogRemotePath { get; set; }
+    /// <summary>FTP host used for the upload — needed to delete files on retract.</summary>
+    public string? FtpHost { get; set; }
+    public int FtpPort { get; set; }
+    public string? FtpUsername { get; set; }
+    public string? FtpPassword { get; set; }
 
     public bool HasDiff { get; set; }
     public int AddedCount { get; set; }

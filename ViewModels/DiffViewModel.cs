@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -78,8 +80,8 @@ public partial class DiffViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(VersionNumber))
         {
-            System.Windows.MessageBox.Show("Please enter a version number.", "Missing Version",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            new AlertDialog("Missing Version", "Please enter a version number.")
+                { Owner = Application.Current.MainWindow }.ShowDialog();
             return;
         }
 
@@ -92,7 +94,7 @@ public partial class DiffViewModel : ObservableObject
             return f;
         }).ToList();
 
-        _entry.Versions.Add(new AppVersion
+        var version = new AppVersion
         {
             VersionNumber = VersionNumber.Trim(),
             ScanDate = DateTime.Now,
@@ -101,8 +103,8 @@ public partial class DiffViewModel : ObservableObject
             AddedCount = Added.Count,
             ModifiedCount = Modified.Count,
             RemovedCount = Removed.Count,
-        });
-
+        };
+        _entry.Versions.Add(version);
         _main.NavigateToDetail(_entry);
     }
 

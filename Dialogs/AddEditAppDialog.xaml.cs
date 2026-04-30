@@ -36,25 +36,17 @@ public partial class AddEditAppDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(AppName))
-        {
-            MessageBox.Show("Please enter an application name.", "Missing Field",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-        if (string.IsNullOrWhiteSpace(AppPath))
-        {
-            MessageBox.Show("Please select a folder.", "Missing Field",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(AppName))        { ShowError("Please enter an application name."); return; }
+        if (string.IsNullOrWhiteSpace(AppPath))         { ShowError("Please select a folder."); return; }
         if (IsNewApp && string.IsNullOrWhiteSpace(InitialVersion))
-        {
-            MessageBox.Show("Please enter an initial version number.", "Missing Field",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
+                                                        { ShowError("Please enter an initial version number."); return; }
         DialogResult = true;
+    }
+
+    private void ShowError(string message)
+    {
+        ErrorText.Text       = message;
+        ErrorText.Visibility = Visibility.Visible;
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;

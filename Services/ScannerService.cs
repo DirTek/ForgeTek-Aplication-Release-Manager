@@ -31,7 +31,7 @@ public class ScannerService
         return records;
     }
 
-    private static string ComputeChecksum(string path)
+    public static string ComputeChecksum(string path)
     {
         using var sha256 = SHA256.Create();
         using var stream = File.OpenRead(path);
@@ -40,8 +40,15 @@ public class ScannerService
 
     public DiffResult DiffVersions(AppVersion baseVersion, IReadOnlyList<FileRecord> newFiles)
     {
-        var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path);
-        var newMap = newFiles.ToDictionary(f => f.Path);
+        var baseDebugPaths = baseVersion.Files
+            .Where(f => f.IsDebug)
+            .Select(f => f.Path)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
+        var newMap = newFiles
+            .Where(f => !f.IsDebug && !baseDebugPaths.Contains(f.Path))
+            .ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
 
         return new DiffResult
         {

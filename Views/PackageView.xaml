@@ -1,0 +1,692 @@
+<UserControl x:Class="ForgeTekUpdatePackager.Views.PackageView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{StaticResource BackgroundBrush}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: Header -->
+        <Border Grid.Row="0" Padding="28,24,28,16"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextBrush}">
+                    <Run Text="Package — "/><Run Text="{Binding AppName, Mode=OneWay}"/>
+                </TextBlock>
+                <TextBlock Text="{Binding VersionLabel}" FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 1: Step strip -->
+        <Border Grid.Row="1" Padding="28,14,28,14"
+                Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+
+                <!-- 1 Sign -->
+                <Border CornerRadius="6" Padding="14,7" BorderThickness="2" Margin="0,0,6,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSignCurrent}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsSignDone}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12">
+                        <Run Text="1  Sign"/>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSignCurrent}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsSignDone}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Text="›" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"
+                           Foreground="{StaticResource TextSecondaryBrush}" Opacity="0.5"/>
+
+                <!-- 2 Manifest -->
+                <Border CornerRadius="6" Padding="14,7" BorderThickness="2" Margin="0,0,6,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsManifestCurrent}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsManifestDone}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12">
+                        <Run Text="2  Manifest"/>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsManifestCurrent}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsManifestDone}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Text="›" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"
+                           Foreground="{StaticResource TextSecondaryBrush}" Opacity="0.5"/>
+
+                <!-- 3 Package -->
+                <Border CornerRadius="6" Padding="14,7" BorderThickness="2" Margin="0,0,6,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPackageCurrent}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsPackageDone}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12">
+                        <Run Text="3  Package"/>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPackageCurrent}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsPackageDone}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Text="›" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"
+                           Foreground="{StaticResource TextSecondaryBrush}" Opacity="0.5"/>
+
+                <!-- 4 JSON -->
+                <Border CornerRadius="6" Padding="14,7" BorderThickness="2" Margin="0,0,6,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsJsonCurrent}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsJsonDone}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12">
+                        <Run Text="4  JSON"/>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsJsonCurrent}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsJsonDone}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Text="›" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"
+                           Foreground="{StaticResource TextSecondaryBrush}" Opacity="0.5"/>
+
+                <!-- 5 FTP -->
+                <Border CornerRadius="6" Padding="14,7" BorderThickness="2">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFtpCurrent}" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12">
+                        <Run Text="5  FTP"/>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFtpCurrent}" Value="True">
+                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+            </StackPanel>
+        </Border>
+
+        <!-- Row 2: Step content -->
+        <Grid Grid.Row="2">
+
+            <!-- Sign step content -->
+            <StackPanel Margin="28,20,28,0"
+                        Visibility="{Binding IsSignCurrent, Converter={StaticResource BoolToVisibility}}">
+
+                <!-- Global cert active banner -->
+                <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                        Background="#1A0A84FF" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                        Visibility="{Binding IsGlobalCertActive, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="Global certificate active" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}"/>
+                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,3,0,0">
+                            <Run Text="Using "/>
+                            <Run Text="{Binding GlobalCertFileName, Mode=OneWay}"
+                                 Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                            <Run Text=" from Options. Fields below are read-only."/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <!-- Cert fields — always visible, disabled when global cert overrides -->
+                <TextBlock Text="CERTIFICATE" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,16" IsEnabled="{Binding IsGlobalCertInactive}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding PfxPath, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Command="{Binding BrowsePfxCommand}"/>
+                </Grid>
+
+                <TextBlock Text="PASSWORD" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <PasswordBox x:Name="PfxPasswordBox" Height="36" Margin="0,0,0,16"
+                             IsEnabled="{Binding IsGlobalCertInactive}"
+                             PasswordChanged="PfxPasswordBox_PasswordChanged"/>
+
+                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid Grid.Row="0" Margin="14,10,14,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="FILES TO SIGN" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding FilesLabel}" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="  ·  " Foreground="{StaticResource BorderBrush}"
+                                           FontSize="11" VerticalAlignment="Center"/>
+                                <Button Content="All" Style="{StaticResource SecondaryButton}"
+                                        Padding="8,3" FontSize="11" Margin="0,0,4,0"
+                                        Command="{Binding SelectAllCommand}"/>
+                                <Button Content="None" Style="{StaticResource SecondaryButton}"
+                                        Padding="8,3" FontSize="11"
+                                        Command="{Binding DeselectAllCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                      MaxHeight="180" Margin="0,0,0,10">
+                            <ItemsControl ItemsSource="{Binding SignableFiles}" Margin="8,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="6,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="26"/>
+                                                <ColumnDefinition Width="20"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}"
+                                                      VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding BadgeText}"
+                                                       FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource AddedBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding BadgeText}" Value="~">
+                                                                <Setter Property="Foreground" Value="{StaticResource ModifiedBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding BadgeText}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Grid.Column="2" Text="{Binding RelativePath}"
+                                                       FontSize="12" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="False">
+                                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                                <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <!-- Manifest step content -->
+            <StackPanel Margin="28,20,28,0"
+                        Visibility="{Binding IsManifestCurrent, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="OUTPUT PATH" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding ManifestOutputPath, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Command="{Binding BrowseManifestOutputCommand}"/>
+                </Grid>
+            </StackPanel>
+
+            <!-- Package step content -->
+            <StackPanel Margin="28,20,28,0"
+                        Visibility="{Binding IsPackageCurrent, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="PACKAGE TYPE" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border CornerRadius="6" Padding="14,8" Margin="0,0,8,0" Cursor="Hand">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="2"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsIncrementalSelected}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsIncrementalAvailable}" Value="False">
+                                        <Setter Property="Opacity" Value="0.4"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton IsChecked="{Binding IsIncrementalSelected}"
+                                         IsEnabled="{Binding IsIncrementalAvailable}"
+                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Incremental" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="Added and modified files only" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border CornerRadius="6" Padding="14,8" Cursor="Hand">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="2"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFullSelected}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton IsChecked="{Binding IsFullSelected}"
+                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Full" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="All non-debug files" FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <TextBlock Text="{Binding PackageFilesLabel}" FontSize="11"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,18"/>
+
+                <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,16"
+                        Background="{StaticResource SurfaceBrush}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasManifest}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                        <Run Text="⚠  Manifest not generated."/>
+                        <Run Text=" Go back to Step 2 to build the manifest before packaging."/>
+                    </TextBlock>
+                </Border>
+
+                <TextBlock Text="OUTPUT PATH" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding PackageOutputPath, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,8,0"/>
+                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Command="{Binding BrowsePackageOutputCommand}"/>
+                </Grid>
+            </StackPanel>
+
+            <!-- JSON step content -->
+            <StackPanel Margin="28,20,28,0"
+                        Visibility="{Binding IsJsonCurrent, Converter={StaticResource BoolToVisibility}}">
+
+                <TextBlock Text="UPDATE CATALOG" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           TextWrapping="Wrap" Margin="0,0,0,16">
+                    Generates the <Run Text="{Binding AppName, Mode=OneWay}" Foreground="{StaticResource TextBrush}"/>
+                    update catalog JSON with the version list. Any existing catalog will be downloaded
+                    from FTP and merged so all previous versions are preserved.
+                </TextBlock>
+
+                <!-- Info grid -->
+                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6" Padding="14,12" Margin="0,0,0,0">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Local catalog" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding CatalogLocalPath}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="FTP catalog path" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding CatalogRemotePath}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Package URL" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding PackageDownloadUrl}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+
+            <!-- FTP step content -->
+            <StackPanel Margin="28,20,28,0"
+                        Visibility="{Binding IsFtpCurrent, Converter={StaticResource BoolToVisibility}}">
+
+                <TextBlock Text="UPLOAD TO FTP" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                <!-- No FTP warning -->
+                <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                        Background="{StaticResource SurfaceBrush}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasFtpSettings}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap">
+                        <Run Text="⚠  No FTP credentials configured."/>
+                        <Run Text=" Go to App Settings to add FTP host, username, password, and remote path, then come back."/>
+                        <LineBreak/>
+                        <Run Text="You can also Skip → to finish without uploading."/>
+                    </TextBlock>
+                </Border>
+
+                <!-- FTP summary -->
+                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6" Padding="14,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Server" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding FtpSummary}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Package → FTP" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding PackageRemotePath}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Catalog → FTP" FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="{Binding CatalogRemotePath}" FontSize="11"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+
+        </Grid>
+
+        <!-- Row 3: Log area -->
+        <Border Grid.Row="3" Margin="28,16,28,0" Background="{StaticResource SurfaceBrush}"
+                CornerRadius="6">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="OUTPUT" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="14,10,14,6"/>
+                <ScrollViewer x:Name="LogScrollViewer" Grid.Row="1"
+                              VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                    <ItemsControl ItemsSource="{Binding Log}" Margin="14,0,14,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontSize="12" FontFamily="Consolas"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           Margin="0,1" TextWrapping="Wrap"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Row 4: Footer -->
+        <Border Grid.Row="4" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                Padding="28,14">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Progress labels -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="Signing in progress…" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding IsSigning, Converter={StaticResource BoolToVisibility}}"/>
+                    <TextBlock Text="Generating manifest…" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibility}}"/>
+                    <TextBlock Text="Building package…" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding IsPackaging, Converter={StaticResource BoolToVisibility}}"/>
+                    <TextBlock Text="Generating update catalog…" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding IsGeneratingJson, Converter={StaticResource BoolToVisibility}}"/>
+                    <TextBlock Text="Uploading to FTP…" FontSize="13"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding IsUploading, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+
+                <!-- Action buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+
+                    <!-- Sign Files -->
+                    <Button Content="Sign Files" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding SignCommand}"
+                            Visibility="{Binding IsSignStepIdle, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Generate Manifest -->
+                    <Button Content="Generate Manifest" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding GenerateManifestCommand}"
+                            Visibility="{Binding IsManifestStepIdle, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Build Package -->
+                    <Button Content="Build Package" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding BuildPackageCommand}"
+                            Visibility="{Binding IsPackageStepIdle, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Generate JSON -->
+                    <Button Content="Generate JSON" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding GenerateUpdateJsonCommand}"
+                            Visibility="{Binding IsJsonStepIdle, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Upload to FTP -->
+                    <Button Content="Upload to FTP" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding UploadToFtpCommand}"
+                            Visibility="{Binding IsFtpStepIdle, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Next → / Finish ✔ -->
+                    <Button Content="{Binding AdvanceLabel}" Style="{StaticResource PrimaryButton}"
+                            Padding="18,8" Margin="0,0,8,0"
+                            Command="{Binding AdvanceCommand}"
+                            Visibility="{Binding IsReadyToAdvance, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Stop -->
+                    <Button Content="Stop" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Margin="0,0,8,0"
+                            Command="{Binding StopOperationCommand}"
+                            Visibility="{Binding IsOperationInProgress, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Skip → (Sign or FTP) -->
+                    <Button Content="Skip →" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Margin="0,0,8,0"
+                            Command="{Binding SkipCommand}"
+                            Visibility="{Binding IsSkipVisible, Converter={StaticResource BoolToVisibility}}"/>
+
+                    <!-- Cancel -->
+                    <Button Content="Cancel" Style="{StaticResource DangerButton}"
+                            Padding="14,8"
+                            Command="{Binding CancelPipelineCommand}"/>
+
+                </StackPanel>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

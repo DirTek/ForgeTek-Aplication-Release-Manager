@@ -10,6 +10,9 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly StorageService _storage;
     private readonly ScannerService _scanner;
+    private readonly SigningService _signing;
+    private readonly SettingsService _settings;
+    private readonly LogService _log;
     private bool _suppressNav;
 
     [ObservableProperty] private object _currentView = new WelcomeViewModel();
@@ -17,10 +20,13 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<AppEntryViewModel> Apps { get; } = [];
 
-    public MainViewModel(StorageService storage, ScannerService scanner)
+    public MainViewModel(StorageService storage, ScannerService scanner, SigningService signing, SettingsService settings, LogService log)
     {
-        _storage = storage;
-        _scanner = scanner;
+        _storage  = storage;
+        _scanner  = scanner;
+        _signing  = signing;
+        _settings = settings;
+        _log      = log;
         ReloadApps();
     }
 
@@ -53,9 +59,21 @@ public partial class MainViewModel : ObservableObject
     public void NavigateToDiff(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff)
         => CurrentView = new DiffViewModel(entry, files, diff, this, _storage);
 
+    public void NavigateToPackage(AppEntry entry, AppVersion version, PackageStep? startFrom = null)
+    {
+        _storage.Update(entry);
+        CurrentView = new PackageViewModel(entry, version, this, _storage, _signing, _scanner, _settings, _log, startFrom);
+    }
+
     public void NavigateToVersionDiff(AppEntry entry, AppVersion version, DiffResult diff)
         => CurrentView = new DiffViewModel(entry, version.Files, diff, this, _storage,
                isReadOnly: true, viewingVersion: version);
+
+    public void NavigateToAppSettings(AppEntry entry)
+        => CurrentView = new AppSettingsViewModel(entry, this, _settings);
+
+    public void NavigateToOptions()
+        => CurrentView = new GlobalOptionsViewModel(this, _settings);
 
     public void NavigateToWelcome()
     {

@@ -32,6 +32,11 @@
                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>
         <TextBox x:Name="VersionBox" Height="36" Margin="0,6,0,0" Text="1.0.0"/>
 
+        <!-- Inline validation error -->
+        <TextBlock x:Name="ErrorText" Foreground="{StaticResource RemovedBrush}"
+                   FontSize="12" TextWrapping="Wrap"
+                   Margin="0,14,0,-6" Visibility="Collapsed"/>
+
         <!-- Buttons -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Cancel" Style="{StaticResource SecondaryButton}"

@@ -1,0 +1,60 @@
+<Window x:Class="ForgeTekUpdatePackager.Dialogs.BackupDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Backup &amp; Migrate" Width="580"
+        SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        WindowStyle="ToolWindow" ShowInTaskbar="False"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}">
+    <StackPanel Margin="24,20,24,24">
+
+        <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                   TextWrapping="Wrap" Margin="0,0,0,18">
+            Creates a ZIP archive containing all app data, certificates, and logs.
+            DPAPI-encrypted values are included as-is and will need to be re-entered on a new machine.
+        </TextBlock>
+
+        <!-- Output path -->
+        <TextBlock Text="OUTPUT FILE" FontSize="10" FontWeight="SemiBold"
+                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+        <Grid Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" x:Name="OutputPathBox" Height="36" IsReadOnly="True"/>
+            <Button  Grid.Column="2" x:Name="BrowseBtn" Content="Browse…" Height="36" Padding="14,0"
+                     Style="{StaticResource SecondaryButton}" Click="Browse_Click"/>
+        </Grid>
+
+        <!-- Create button -->
+        <Button x:Name="CreateBackupBtn" Content="Create Backup"
+                Style="{StaticResource PrimaryButton}"
+                Padding="20,10" HorizontalAlignment="Left" Margin="0,0,0,16"
+                Click="CreateBackup_Click"/>
+
+        <!-- Progress log -->
+        <Border x:Name="LogBorder" Background="{StaticResource SurfaceBrush}"
+                CornerRadius="6" Padding="12,10" MaxHeight="320"
+                Margin="0,0,0,16" Visibility="Collapsed">
+            <ScrollViewer x:Name="LogScroller" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="LogItems">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="12"
+                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Close -->
+        <Button Content="Close" Style="{StaticResource SecondaryButton}"
+                Padding="20,9" HorizontalAlignment="Right"
+                Click="Close_Click"/>
+
+    </StackPanel>
+</Window>

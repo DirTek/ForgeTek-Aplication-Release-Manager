@@ -9,9 +9,12 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        var storage = new StorageService();
-        var scanner = new ScannerService();
-        var vm = new MainViewModel(storage, scanner);
+        var settings = new SettingsService();
+        var storage  = new StorageService(settings);
+        var scanner  = new ScannerService();
+        var signing  = new SigningService();
+        var log      = new LogService(settings);
+        var vm       = new MainViewModel(storage, scanner, signing, settings, log);
         new MainWindow(vm).Show();
     }
 }

@@ -28,6 +28,9 @@
                     <Button Content="Scan Now" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding ScanNowCommand}"/>
+                    <Button Content="Settings" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Margin="0,0,8,0"
+                            Command="{Binding OpenAppSettingsCommand}"/>
                     <Button Content="Edit" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
                             Command="{Binding EditAppCommand}"/>
@@ -61,10 +64,25 @@
                        FontSize="11" FontWeight="SemiBold"
                        Foreground="{StaticResource TextSecondaryBrush}"
                        VerticalAlignment="Center"/>
-            <Button Grid.Column="1" Content="View Changes"
-                    Style="{StaticResource SecondaryButton}"
-                    Padding="14,6" FontSize="12"
-                    Command="{Binding ViewVersionDiffCommand}"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Start Packing" Style="{StaticResource PrimaryButton}"
+                        Padding="14,6" FontSize="12" Margin="0,0,8,0"
+                        Command="{Binding StartPackingCommand}"/>
+                <Button Content="View Changes" Style="{StaticResource SecondaryButton}"
+                        Padding="14,6" FontSize="12" Margin="0,0,8,0"
+                        Command="{Binding ViewVersionDiffCommand}"/>
+                <Button Content="Retract" Style="{StaticResource DangerButton}"
+                        Padding="14,6" FontSize="12" Margin="0,0,8,0"
+                        Command="{Binding RetractVersionCommand}"
+                        ToolTip="Delete uploaded FTP files and un-publish this version"/>
+                <Button Content="Scrap" Style="{StaticResource DangerButton}"
+                        Padding="14,6" FontSize="12" Margin="0,0,8,0"
+                        Command="{Binding ScrapVersionCommand}"
+                        ToolTip="Permanently discard this retracted version"/>
+                <Button Content="Delete Version" Style="{StaticResource DangerButton}"
+                        Padding="14,6" FontSize="12"
+                        Command="{Binding DeleteVersionCommand}"/>
+            </StackPanel>
         </Grid>
 
         <!-- Version history DataGrid -->
@@ -79,10 +97,55 @@
                   VerticalScrollBarVisibility="Auto">
             <DataGrid.Columns>
 
-                <DataGridTextColumn Header="Version"       Width="100"
+                <DataGridTextColumn Header="Version"   Width="90"
                                     Binding="{Binding VersionNumber, StringFormat='v\{0\}'}"/>
 
-                <DataGridTextColumn Header="Scan Date"     Width="150"
+                <!-- Status badge -->
+                <DataGridTemplateColumn Header="Status" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border x:Name="badge" CornerRadius="4" Padding="8,3"
+                                    Margin="8,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    Background="{StaticResource SurfaceBrush}">
+                                <TextBlock x:Name="badgeText" Text="{Binding Status}"
+                                           FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <!-- Status-based colours (evaluated first, may be overridden by IsInitial below) -->
+                                <DataTrigger Binding="{Binding Status}" Value="Signed">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource AccentBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Packed">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource ModifiedBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Published">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource AddedBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Retracted">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource RemovedBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Status}" Value="Scrapped">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                    <Setter TargetName="badgeText" Property="TextDecorations" Value="Strikethrough"/>
+                                </DataTrigger>
+                                <!-- Initial version overrides everything above -->
+                                <DataTrigger Binding="{Binding IsInitial}" Value="True">
+                                    <Setter TargetName="badge"     Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                    <Setter TargetName="badgeText" Property="Text"       Value="Initial"/>
+                                    <Setter TargetName="badgeText" Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="Scan Date" Width="150"
                                     Binding="{Binding ScanDate, StringFormat='yyyy-MM-dd  HH:mm'}"/>
 
                 <DataGridTextColumn Header="Files"         Width="70"
@@ -138,7 +201,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Removed -->
-                <DataGridTemplateColumn Header="Removed" Width="*">
+                <DataGridTemplateColumn Header="Removed" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -151,6 +214,50 @@
                                                 <Setter Property="Text"       Value="—"/>
                                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                                 <Setter Property="FontWeight" Value="Normal"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Manifest -->
+                <DataGridTemplateColumn Header="Manifest" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text"       Value="No"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasManifest}" Value="True">
+                                                <Setter Property="Text"       Value="Yes"/>
+                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Package -->
+                <DataGridTemplateColumn Header="Package" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text"       Value="No"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPackage}" Value="True">
+                                                <Setter Property="Text"       Value="Yes"/>
+                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

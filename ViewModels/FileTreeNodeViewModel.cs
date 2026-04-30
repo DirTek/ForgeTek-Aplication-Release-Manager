@@ -6,6 +6,7 @@ using ForgeTekUpdatePackager.Models;
 namespace ForgeTekUpdatePackager.ViewModels;
 
 public enum DiffChange { None, Added, Modified, Removed, Unchanged }
+public enum SortMode  { Name, Date }
 
 public partial class FileTreeNodeViewModel : ObservableObject
 {
@@ -17,6 +18,8 @@ public partial class FileTreeNodeViewModel : ObservableObject
     public DateTime? DateModified => Record?.DateModified;
 
     [ObservableProperty] private bool _isIncluded = true;
+    [ObservableProperty] private bool _isExpanded = false;
+    [ObservableProperty] private bool _isVisible  = true;
 
     public ObservableCollection<FileTreeNodeViewModel> Children { get; } = [];
 
@@ -52,11 +55,14 @@ public partial class FileTreeNodeViewModel : ObservableObject
             child.IsIncluded = value;
     }
 
-    public static ObservableCollection<FileTreeNodeViewModel> BuildScanTree(IReadOnlyList<FileRecord> files)
+    // ── Build ─────────────────────────────────────────────────────────────
+
+    public static ObservableCollection<FileTreeNodeViewModel> BuildScanTree(
+        IReadOnlyList<FileRecord> files, SortMode sortMode = SortMode.Name)
     {
         var roots = new ObservableCollection<FileTreeNodeViewModel>();
         PopulateTree(roots, files, f => new FileTreeNodeViewModel(f));
-        SortNodes(roots);
+        SortNodes(roots, sortMode);
         return roots;
     }
 
@@ -66,9 +72,61 @@ public partial class FileTreeNodeViewModel : ObservableObject
         var list = files.ToList();
         var roots = new ObservableCollection<FileTreeNodeViewModel>();
         PopulateTree(roots, list, f => new FileTreeNodeViewModel(f, change));
-        SortNodes(roots);
+        SortNodes(roots, SortMode.Name);
         return roots;
     }
+
+    // ── Search filter ──────────────────────────────────────────────────────
+
+    // Call with empty/null search to clear the filter (all visible, folders collapsed).
+    public static void ApplySearch(IEnumerable<FileTreeNodeViewModel> nodes, string search)
+    {
+        bool active = !string.IsNullOrEmpty(search);
+        ApplySearchRecursive(nodes, search, active);
+    }
+
+    private static bool ApplySearchRecursive(IEnumerable<FileTreeNodeViewModel> nodes, string search, bool active)
+    {
+        bool anyVisible = false;
+        foreach (var node in nodes)
+        {
+            if (node.IsFolder)
+            {
+                bool childHit = ApplySearchRecursive(node.Children, search, active);
+                node.IsVisible  = !active || childHit;
+                node.IsExpanded = active && childHit;
+                anyVisible |= node.IsVisible;
+            }
+            else
+            {
+                node.IsVisible = !active ||
+                    node.RelativePath.Contains(search, StringComparison.OrdinalIgnoreCase);
+                anyVisible |= node.IsVisible;
+            }
+        }
+        return anyVisible;
+    }
+
+    // ── Collect for save ───────────────────────────────────────────────────
+
+    public static IEnumerable<FileRecord> CollectFiles(IEnumerable<FileTreeNodeViewModel> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.IsFolder)
+            {
+                foreach (var f in CollectFiles(node.Children))
+                    yield return f;
+            }
+            else if (node.Record is not null)
+            {
+                node.Record.IsDebug = !node.IsIncluded;
+                yield return node.Record;
+            }
+        }
+    }
+
+    // ── Internals ──────────────────────────────────────────────────────────
 
     private static void PopulateTree(
         ObservableCollection<FileTreeNodeViewModel> roots,
@@ -98,34 +156,30 @@ public partial class FileTreeNodeViewModel : ObservableObject
         }
     }
 
-    private static void SortNodes(ObservableCollection<FileTreeNodeViewModel> nodes)
+    private static void SortNodes(ObservableCollection<FileTreeNodeViewModel> nodes, SortMode sortMode)
     {
-        var sorted = nodes
-            .OrderBy(n => n.IsFolder ? 0 : 1)
-            .ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        List<FileTreeNodeViewModel> sorted;
+        if (sortMode == SortMode.Date)
+        {
+            sorted = nodes
+                .OrderBy(n => n.IsFolder ? 0 : 1)
+                .ThenBy(n => n.IsFolder ? n.Name : string.Empty, StringComparer.OrdinalIgnoreCase)
+                .ThenByDescending(n => n.DateModified ?? DateTime.MinValue)
+                .ToList();
+        }
+        else
+        {
+            sorted = nodes
+                .OrderBy(n => n.IsFolder ? 0 : 1)
+                .ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         nodes.Clear();
         foreach (var node in sorted)
         {
-            SortNodes(node.Children);
+            SortNodes(node.Children, sortMode);
             nodes.Add(node);
-        }
-    }
-
-    public static IEnumerable<FileRecord> CollectFiles(IEnumerable<FileTreeNodeViewModel> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            if (node.IsFolder)
-            {
-                foreach (var f in CollectFiles(node.Children))
-                    yield return f;
-            }
-            else if (node.Record is not null)
-            {
-                node.Record.IsDebug = !node.IsIncluded;
-                yield return node.Record;
-            }
         }
     }
 }
