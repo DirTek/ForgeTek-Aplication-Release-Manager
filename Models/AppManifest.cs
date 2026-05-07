@@ -6,6 +6,7 @@ public class AppManifest
     public string App { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
     public List<ManifestFileEntry> Files { get; set; } = [];
+    public List<string> RemovedFiles { get; set; } = [];
     public ManifestTotals Totals { get; set; } = new();
 }
 

@@ -570,6 +570,7 @@ public partial class PackageViewModel : ObservableObject
             Log.Add(string.Empty);
             Log.Add("✔  Signing complete.");
             IsSigningComplete = true;
+            _main.RefreshSidebar(_entry);
         }
         catch (OperationCanceledException) { Log.Add("Signing stopped."); }
         catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); }
@@ -632,7 +633,7 @@ public partial class PackageViewModel : ObservableObject
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
-            var json = await _manifest.GenerateAsync(_entry, _version, _incrementalFiles, progress, _cts.Token);
+            var json = await _manifest.GenerateAsync(_entry, _version, _incrementalFiles, _version.RemovedFiles, progress, _cts.Token);
             Directory.CreateDirectory(Path.GetDirectoryName(ManifestOutputPath)!);
             await File.WriteAllTextAsync(ManifestOutputPath, json, _cts.Token);
             Log.Add(string.Empty);
@@ -643,6 +644,7 @@ public partial class PackageViewModel : ObservableObject
             OnPropertyChanged(nameof(HasManifest));
             BuildPackageCommand.NotifyCanExecuteChanged();
             IsManifestComplete = true;
+            _main.RefreshSidebar(_entry);
         }
         catch (OperationCanceledException) { Log.Add("Manifest generation stopped."); }
         catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); }
@@ -685,9 +687,10 @@ public partial class PackageViewModel : ObservableObject
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
+            var removedFiles = SelectedPackageType == PackageType.Incremental ? _version.RemovedFiles : null;
             var sha256 = await _packaging.BuildAsync(
                 _entry, _version, files, SelectedPackageType,
-                PackageOutputPath, ManifestOutputPath, progress, _cts.Token);
+                PackageOutputPath, ManifestOutputPath, removedFiles, progress, _cts.Token);
 
             Log.Add(string.Empty);
             Log.Add($"Package SHA-256: {sha256}");
@@ -704,6 +707,7 @@ public partial class PackageViewModel : ObservableObject
             _version.PipelineStep = PackageStep.Package;
             _storage.Update(_entry);
             IsPackagingComplete = true;
+            _main.RefreshSidebar(_entry);
         }
         catch (OperationCanceledException) { Log.Add("Packaging stopped."); }
         catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); }
@@ -771,6 +775,7 @@ public partial class PackageViewModel : ObservableObject
             _version.PipelineStep = PackageStep.Json;
             _storage.Update(_entry);
             IsJsonComplete = true;
+            _main.RefreshSidebar(_entry);
         }
         catch (OperationCanceledException) { Log.Add("Catalog generation stopped."); }
         catch (Exception ex)              { Log.Add($"✗  {ex.Message}"); }
@@ -822,6 +827,7 @@ public partial class PackageViewModel : ObservableObject
             _storage.Update(_entry);
 
             IsFtpComplete = true;
+            _main.RefreshSidebar(_entry);
         }
         catch (OperationCanceledException) { Log.Add("Upload stopped."); }
         catch (Exception ex)              { Log.Add($"✗  {ex.Message}"); }

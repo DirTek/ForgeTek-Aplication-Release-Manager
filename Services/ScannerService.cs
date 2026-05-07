@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using ForgeTekUpdatePackager.Models;
@@ -6,28 +7,44 @@ namespace ForgeTekUpdatePackager.Services;
 
 public class ScannerService
 {
-    public IReadOnlyList<FileRecord> ScanDirectory(string folderPath)
+    public IReadOnlyList<FileRecord> ScanDirectory(
+        string folderPath,
+        IProgress<ScanProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         var folder = new DirectoryInfo(folderPath);
         if (!folder.Exists)
             throw new DirectoryNotFoundException($"Folder not found: {folderPath}");
 
-        var records = new List<FileRecord>();
-        foreach (var file in folder.EnumerateFiles("*", SearchOption.AllDirectories)
-                                   .OrderBy(f => f.FullName))
+        // Materialise up-front so we have a total count for the progress bar.
+        var allFiles = folder.EnumerateFiles("*", SearchOption.AllDirectories)
+                             .OrderBy(f => f.FullName)
+                             .ToList();
+
+        int total     = allFiles.Count;
+        int processed = 0;
+        var records   = new List<FileRecord>(total);
+
+        foreach (var file in allFiles)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var relativePath = Path.GetRelativePath(folderPath, file.FullName);
             try
             {
                 records.Add(new FileRecord
                 {
-                    Path = Path.GetRelativePath(folderPath, file.FullName),
-                    Checksum = ComputeChecksum(file.FullName),
+                    Path         = relativePath,
+                    Checksum     = ComputeChecksum(file.FullName),
                     DateModified = file.LastWriteTime,
                 });
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
+
+            progress?.Report(new ScanProgress(total, ++processed, relativePath));
         }
+
         return records;
     }
 
@@ -38,19 +55,73 @@ public class ScannerService
         return Convert.ToHexString(sha256.ComputeHash(stream)).ToLowerInvariant();
     }
 
-    public DiffResult DiffVersions(AppVersion baseVersion, IReadOnlyList<FileRecord> newFiles)
+    /// <summary>
+    /// Tries to read a 3-component file version (major.minor.build) from an .exe in
+    /// <paramref name="folderPath"/>. Prefers an exe whose name matches <paramref name="appName"/>;
+    /// falls back to the only exe if exactly one exists.
+    /// Returns null when no unambiguous exe is found or the version cannot be read.
+    /// Call <see cref="FindRootExeFiles"/> first when you need to handle the multi-exe ambiguous case.
+    /// </summary>
+    public static string? DetectExeVersion(string folderPath, string appName)
     {
+        string[] exes;
+        try { exes = Directory.GetFiles(folderPath, "*.exe", SearchOption.TopDirectoryOnly); }
+        catch { return null; }
+
+        if (exes.Length == 0) return null;
+
+        var appKey = appName.Replace(" ", "").ToLowerInvariant();
+        var match  = exes.FirstOrDefault(e =>
+            Path.GetFileNameWithoutExtension(e).Replace(" ", "").ToLowerInvariant() == appKey);
+
+        var target = match ?? (exes.Length == 1 ? exes[0] : null);
+        return target is null ? null : ReadExeVersion(target);
+    }
+
+    public static string? ReadExeVersion(string fullPath)
+    {
+        try
+        {
+            var fvi = FileVersionInfo.GetVersionInfo(fullPath);
+            if (string.IsNullOrWhiteSpace(fvi.FileVersion)) return null;
+            var parts = fvi.FileVersion.Split('.');
+            return string.Join('.', parts.Take(3).Select(p => p.Trim()));
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Returns filenames (not full paths) of all .exe files in the root of the folder.</summary>
+    public static IReadOnlyList<string> FindRootExeFiles(string folderPath)
+    {
+        try
+        {
+            return Directory.GetFiles(folderPath, "*.exe", SearchOption.TopDirectoryOnly)
+                            .Select(Path.GetFileName).OfType<string>().ToList();
+        }
+        catch { return []; }
+    }
+
+    public DiffResult DiffVersions(
+        AppVersion baseVersion,
+        IReadOnlyList<FileRecord> newFiles,
+        IProgress<DiffProgress>? progress = null)
+    {
+        progress?.Report(new DiffProgress("Building debug path set…", 0));
         var baseDebugPaths = baseVersion.Files
             .Where(f => f.IsDebug)
             .Select(f => f.Path)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        progress?.Report(new DiffProgress("Building base file map…", 25));
         var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
+
+        progress?.Report(new DiffProgress("Building new file map…", 50));
         var newMap = newFiles
             .Where(f => !f.IsDebug && !baseDebugPaths.Contains(f.Path))
             .ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
 
-        return new DiffResult
+        progress?.Report(new DiffProgress("Comparing files…", 75));
+        var result = new DiffResult
         {
             Added    = [.. newMap.Where(kv => !baseMap.ContainsKey(kv.Key)).Select(kv => kv.Value)],
             Removed  = [.. baseMap.Where(kv => !newMap.ContainsKey(kv.Key)).Select(kv => kv.Value)],
@@ -59,6 +130,9 @@ public class ScannerService
             Unchanged= [.. newMap.Where(kv => baseMap.TryGetValue(kv.Key, out var b)
                             && b.Checksum == kv.Value.Checksum).Select(kv => kv.Value)],
         };
+
+        progress?.Report(new DiffProgress("Done.", 100));
+        return result;
     }
 }
 
@@ -69,3 +143,10 @@ public record DiffResult
     public List<FileRecord> Modified { get; init; } = [];
     public List<FileRecord> Unchanged { get; init; } = [];
 }
+
+public record ScanProgress(int TotalFiles, int ProcessedFiles, string CurrentFile)
+{
+    public double Percentage => TotalFiles == 0 ? 0d : (double)ProcessedFiles / TotalFiles * 100d;
+}
+
+public record DiffProgress(string CurrentPhase, double Percentage);

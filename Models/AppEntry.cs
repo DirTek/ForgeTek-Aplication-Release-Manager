@@ -8,5 +8,7 @@ public class AppEntry
     public string InitialVersion { get; set; } = string.Empty;
     public List<AppVersion> Versions { get; set; } = [];
 
-    public AppVersion? LatestVersion => Versions.Count > 0 ? Versions[^1] : null;
+    public AppVersion? LatestVersion => Versions
+        .Where(v => v.Status != VersionStatus.Retracted && v.Status != VersionStatus.Scrapped)
+        .LastOrDefault();
 }

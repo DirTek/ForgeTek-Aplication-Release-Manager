@@ -1,10 +1,109 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
-public class AppEntryViewModel(AppEntry entry)
+public enum VersionDisplayMode { None, Published, InProgress, Retracted }
+
+public class AppEntryViewModel(AppEntry entry) : ObservableObject
 {
-    public AppEntry Entry { get; } = entry;
+    public AppEntry Entry { get; private set; } = entry;
     public string Name => Entry.Name;
-    public string VersionText => Entry.LatestVersion is { } v ? $"v{v.VersionNumber}" : "No versions";
+
+    internal void SetEntry(AppEntry newEntry)
+    {
+        Entry = newEntry;
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(DisplayMode));
+        OnPropertyChanged(nameof(CurrentVersionText));
+        OnPropertyChanged(nameof(HasCurrentVersion));
+        OnPropertyChanged(nameof(NextVersionText));
+        OnPropertyChanged(nameof(NextVersionStatus));
+        OnPropertyChanged(nameof(RetractedVersionText));
+        OnPropertyChanged(nameof(PreviousVersionText));
+        OnPropertyChanged(nameof(HasPreviousVersion));
+    }
+
+    public VersionDisplayMode DisplayMode
+    {
+        get
+        {
+            if (Entry.Versions.Count == 0) return VersionDisplayMode.None;
+            var lastAny = Entry.Versions[^1];
+            if (lastAny.Status is VersionStatus.Retracted or VersionStatus.Scrapped)
+                return VersionDisplayMode.Retracted;
+            if (lastAny.Status != VersionStatus.Published)
+                return VersionDisplayMode.InProgress;
+            return VersionDisplayMode.Published;
+        }
+    }
+
+    // Latest published version — used as the "current" base in Published and InProgress modes
+    public string? CurrentVersionText
+    {
+        get
+        {
+            var v = Entry.Versions.LastOrDefault(v => v.Status == VersionStatus.Published);
+            return v is not null ? $"v{v.VersionNumber}" : null;
+        }
+    }
+
+    public bool HasCurrentVersion => CurrentVersionText is not null;
+
+    // In-progress version (InProgress mode)
+    public string? NextVersionText
+    {
+        get
+        {
+            var latest = Entry.LatestVersion;
+            if (latest is null) return null;
+            if (latest.Status is VersionStatus.Published or VersionStatus.Retracted or VersionStatus.Scrapped) return null;
+            return $"v{latest.VersionNumber}";
+        }
+    }
+
+    public VersionStatus? NextVersionStatus
+    {
+        get
+        {
+            var latest = Entry.LatestVersion;
+            if (latest is null) return null;
+            if (latest.Status is VersionStatus.Published or VersionStatus.Retracted or VersionStatus.Scrapped) return null;
+            return latest.Status;
+        }
+    }
+
+    // Retracted / scrapped version (Retracted mode)
+    public string? RetractedVersionText
+    {
+        get
+        {
+            if (Entry.Versions.Count == 0) return null;
+            var last = Entry.Versions[^1];
+            return last.Status is VersionStatus.Retracted or VersionStatus.Scrapped
+                ? $"v{last.VersionNumber}" : null;
+        }
+    }
+
+    // Last published version before the retracted one (Retracted mode, shown after →)
+    public string? PreviousVersionText
+    {
+        get
+        {
+            if (Entry.Versions.Count < 2) return null;
+            var last = Entry.Versions[^1];
+            if (last.Status is not (VersionStatus.Retracted or VersionStatus.Scrapped)) return null;
+            var prev = Entry.Versions
+                .Take(Entry.Versions.Count - 1)
+                .LastOrDefault(v => v.Status == VersionStatus.Published);
+            return prev is not null ? $"v{prev.VersionNumber}" : null;
+        }
+    }
+
+    public bool HasPreviousVersion => PreviousVersionText is not null;
 }

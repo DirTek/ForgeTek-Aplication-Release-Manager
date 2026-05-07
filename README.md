@@ -100,6 +100,7 @@ The header is embedded in the package and contains metadata:
       "size": 24903
     }
   ],
+  "removedFiles": ["deprecated/config.json", "oldplugin.dll"],
   "totals": {
     "fileCount": 4,
     "totalSize": 3263003
@@ -116,6 +117,7 @@ The header is embedded in the package and contains metadata:
 | `CreatedAt` | string | ISO 8601 timestamp of package creation |
 | `FileCount` | int | Number of files in the ZIP payload |
 | `Files` | array | List of files with their relative paths and SHA-256 checksums |
+| `RemovedFiles` | array | Relative paths of files deleted in this version — client should delete these after extraction (incremental packages only; empty for full packages) |
 
 ---
 
@@ -149,12 +151,24 @@ Each package includes a `manifest.json` (either embedded in the ZIP or hosted al
       "size": 24903
     }
   ],
+  "removedFiles": ["deprecated/config.json", "oldplugin.dll"],
   "totals": {
     "fileCount": 4,
     "totalSize": 3263003
   }
 }
 ```
+
+### Manifest Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| `version` | string | Version number this manifest was generated for |
+| `app` | string | Application name |
+| `createdAt` | string | ISO 8601 timestamp of manifest creation |
+| `files` | array | Files included in this update with path, SHA-256 hash, and size |
+| `removedFiles` | array | Relative paths of files deleted in this version — client should delete these after extraction |
+| `totals.fileCount` | int | Number of files in the `files` array |
+| `totals.totalSize` | long | Sum of all file sizes in bytes |
 
 ---
 
@@ -225,6 +239,7 @@ public class PackageHeader
     public DateTimeOffset CreatedAt { get; set; }
     public int FileCount { get; set; }
     public List<PackageHeaderFile> Files { get; set; } = [];
+    public List<string> RemovedFiles { get; set; } = [];
 }
 
 public class PackageHeaderFile
@@ -266,22 +281,30 @@ public async Task ExtractPackageAsync(string packagePath, string installDir)
 ### 5. Apply Update
 Handle incremental vs full packages appropriately:
 
-- **Incremental packages**: Overwrite existing files in your installation directory. The package only contains added/modified files.
-- **Full packages**: Can safely replace all files in your installation directory (contains all non-debug application files).
+- **Incremental packages**: Overwrite existing files in your installation directory. The package only contains added/modified files. After extraction, delete any files listed in `header.RemovedFiles` to prevent stale file bloat.
+- **Full packages**: Can safely replace all files in your installation directory (contains all non-debug application files). `RemovedFiles` will be empty for full packages.
 
 ```csharp
 public async Task ApplyUpdate(string packagePath, string installDir, string currentVersion)
 {
     PackageHeader header = await VerifyPackageAsync(packagePath);
     await ExtractPackageAsync(packagePath, installDir);
+
+    // Delete files removed in this version (incremental packages only)
+    if (header.RemovedFiles != null)
+    {
+        foreach (var relativePath in header.RemovedFiles)
+        {
+            var fullPath = Path.Combine(installDir, relativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
+        }
+    }
+
     if (header.PackageType == "incremental")
-    {
         Console.WriteLine($"Applied incremental update {header.Version}");
-    }
     else
-    {
         Console.WriteLine($"Applied full update {header.Version}");
-    }
 }
 ```
 

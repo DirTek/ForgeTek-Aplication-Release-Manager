@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ForgeTekUpdatePackager.Models;
@@ -43,10 +44,16 @@ public partial class AppVersion : ObservableObject
     public string? FtpUsername { get; set; }
     public string? FtpPassword { get; set; }
 
+    [JsonIgnore]
+    public bool HasChangelog { get; set; }
+
     public bool HasDiff { get; set; }
     public int AddedCount { get; set; }
     public int ModifiedCount { get; set; }
     public int RemovedCount { get; set; }
+
+    /// <summary>Relative paths of files deleted in this version's diff — used by incremental packages to signal clients to remove obsolete files.</summary>
+    public List<string> RemovedFiles { get; set; } = [];
 
     public IEnumerable<FileRecord> NonDebugFiles => Files.Where(f => !f.IsDebug);
     public int TotalFiles => Files.Count;

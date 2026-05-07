@@ -5,8 +5,9 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
-public enum DiffChange { None, Added, Modified, Removed, Unchanged }
-public enum SortMode  { Name, Date }
+public enum DiffChange  { None, Added, Modified, Removed, Unchanged }
+public enum SortMode   { Name, Date }
+public enum DebugFilter { All, NonDebug, DebugOnly }
 
 public partial class FileTreeNodeViewModel : ObservableObject
 {
@@ -18,6 +19,7 @@ public partial class FileTreeNodeViewModel : ObservableObject
     public DateTime? DateModified => Record?.DateModified;
 
     [ObservableProperty] private bool _isIncluded = true;
+    [ObservableProperty] private bool _isDebug    = false;
     [ObservableProperty] private bool _isExpanded = false;
     [ObservableProperty] private bool _isVisible  = true;
 
@@ -41,6 +43,7 @@ public partial class FileTreeNodeViewModel : ObservableObject
         IsFolder = false;
         Record = record;
         _isIncluded = !record.IsDebug;
+        _isDebug    = record.IsDebug;
     }
 
     // File node for diff view
@@ -53,6 +56,12 @@ public partial class FileTreeNodeViewModel : ObservableObject
     {
         foreach (var child in Children)
             child.IsIncluded = value;
+    }
+
+    partial void OnIsDebugChanged(bool value)
+    {
+        if (value) IsIncluded = false;
+        if (Record is not null) Record.IsDebug = value;
     }
 
     // ── Build ─────────────────────────────────────────────────────────────
@@ -76,31 +85,53 @@ public partial class FileTreeNodeViewModel : ObservableObject
         return roots;
     }
 
-    // ── Search filter ──────────────────────────────────────────────────────
+    // ── Search + debug filter ─────────────────────────────────────────────
 
-    // Call with empty/null search to clear the filter (all visible, folders collapsed).
-    public static void ApplySearch(IEnumerable<FileTreeNodeViewModel> nodes, string search)
+    // Combines a text search with a DebugFilter in a single tree traversal.
+    // Call with empty search and DebugFilter.All to reset visibility (all visible, folders collapsed).
+    public static void ApplyFilters(
+        IEnumerable<FileTreeNodeViewModel> nodes,
+        string search,
+        DebugFilter debugFilter = DebugFilter.All)
     {
-        bool active = !string.IsNullOrEmpty(search);
-        ApplySearchRecursive(nodes, search, active);
+        bool searchActive = !string.IsNullOrEmpty(search);
+        bool filterActive = debugFilter != DebugFilter.All;
+        ApplyFiltersRecursive(nodes, search, searchActive, debugFilter, searchActive || filterActive);
     }
 
-    private static bool ApplySearchRecursive(IEnumerable<FileTreeNodeViewModel> nodes, string search, bool active)
+    // Backward-compat wrapper for callers that only need text search.
+    public static void ApplySearch(IEnumerable<FileTreeNodeViewModel> nodes, string search)
+        => ApplyFilters(nodes, search, DebugFilter.All);
+
+    private static bool ApplyFiltersRecursive(
+        IEnumerable<FileTreeNodeViewModel> nodes,
+        string search,
+        bool searchActive,
+        DebugFilter debugFilter,
+        bool anyActive)
     {
         bool anyVisible = false;
         foreach (var node in nodes)
         {
             if (node.IsFolder)
             {
-                bool childHit = ApplySearchRecursive(node.Children, search, active);
-                node.IsVisible  = !active || childHit;
-                node.IsExpanded = active && childHit;
+                bool childHit = ApplyFiltersRecursive(node.Children, search, searchActive, debugFilter, anyActive);
+                node.IsVisible  = !anyActive || childHit;
+                node.IsExpanded = anyActive && childHit;
                 anyVisible |= node.IsVisible;
             }
             else
             {
-                node.IsVisible = !active ||
+                bool passesDebug = debugFilter switch
+                {
+                    DebugFilter.NonDebug  => !node.IsDebug,
+                    DebugFilter.DebugOnly =>  node.IsDebug,
+                    _                     =>  true,
+                };
+                bool passesSearch = !searchActive ||
                     node.RelativePath.Contains(search, StringComparison.OrdinalIgnoreCase);
+
+                node.IsVisible = passesDebug && passesSearch;
                 anyVisible |= node.IsVisible;
             }
         }
@@ -120,7 +151,7 @@ public partial class FileTreeNodeViewModel : ObservableObject
             }
             else if (node.Record is not null)
             {
-                node.Record.IsDebug = !node.IsIncluded;
+                node.Record.IsDebug = node.IsDebug;
                 yield return node.Record;
             }
         }

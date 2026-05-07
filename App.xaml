@@ -24,9 +24,10 @@
 
         <!-- ══ CONVERTERS ════════════════════════════════════════════ -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
-        <conv:ZeroToVisibleConverter  x:Key="ZeroToVisible"/>
-        <conv:FolderBoldConverter x:Key="FolderBoldConverter"/>
-        <conv:IncludedToBrushConverter x:Key="IncludedToBrushConverter"/>
+        <conv:ZeroToVisibleConverter       x:Key="ZeroToVisible"/>
+        <conv:FolderBoldConverter          x:Key="FolderBoldConverter"/>
+        <conv:IncludedToBrushConverter     x:Key="IncludedToBrushConverter"/>
+        <conv:ProgressBarWidthConverter    x:Key="ProgressBarWidthConverter"/>
 
         <!-- ══ BUTTON BASE ══════════════════════════════════════════ -->
         <Style x:Key="BaseButton" TargetType="Button">
@@ -162,6 +163,33 @@
                                 <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ══ PROGRESSBAR ══════════════════════════════════════════ -->
+        <Style TargetType="ProgressBar">
+            <Setter Property="Background"      Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground"      Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height"          Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="3"
+                                Height="{TemplateBinding Height}">
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}"
+                                    CornerRadius="3">
+                                <Border.Width>
+                                    <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Value"/>
+                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="ActualWidth"/>
+                                    </MultiBinding>
+                                </Border.Width>
+                            </Border>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -433,6 +461,9 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:GlobalOptionsViewModel}">
             <views:GlobalOptionsView/>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ReviseViewModel}">
+            <views:ReviseView/>
         </DataTemplate>
 
         <!-- ══ TREE VIEW ITEM STYLE ═══════════════════════════════════ -->

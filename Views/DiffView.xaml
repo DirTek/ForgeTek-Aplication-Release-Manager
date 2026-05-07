@@ -19,6 +19,11 @@
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                 <TextBlock Text="{Binding SummaryText}" FontSize="13"
                            Foreground="{StaticResource AccentBrush}" Margin="0,8,0,0" FontWeight="SemiBold"/>
+                <TextBlock FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0">
+                    <Run Text="💡 In Added/Modified tabs, check "/>
+                    <Run Text="Debug" FontWeight="SemiBold"/>
+                    <Run Text=" to exclude files from packaging."/>
+                </TextBlock>
             </StackPanel>
         </Border>
 
@@ -35,15 +40,19 @@
                                     <Grid Margin="0,2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="24"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="160"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="+" FontWeight="Bold"
                                                    Foreground="{StaticResource AddedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Path}" FontSize="13"
+                                        <CheckBox Grid.Column="1" IsChecked="{Binding IsDebug}"
+                                                  VerticalAlignment="Center"
+                                                  ToolTip="Mark as debug file (excluded from packaging)"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Path}" FontSize="13"
                                                    Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Grid.Column="2" FontSize="12"
+                                        <TextBlock Grid.Column="3" FontSize="12"
                                                    Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
                                                    Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}"/>
                                     </Grid>
@@ -67,15 +76,19 @@
                                     <Grid Margin="0,2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="24"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="160"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="~" FontWeight="Bold"
                                                    Foreground="{StaticResource ModifiedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Path}" FontSize="13"
+                                        <CheckBox Grid.Column="1" IsChecked="{Binding IsDebug}"
+                                                  VerticalAlignment="Center"
+                                                  ToolTip="Mark as debug file (excluded from packaging)"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Path}" FontSize="13"
                                                    Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Grid.Column="2" FontSize="12"
+                                        <TextBlock Grid.Column="3" FontSize="12"
                                                    Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"
                                                    Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}"/>
                                     </Grid>
@@ -170,6 +183,10 @@
                            FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0"/>
                 <TextBox Grid.Column="1" Text="{Binding VersionNumber, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" FontSize="14"/>
+                <TextBlock Grid.Column="2" Text="{Binding VersionMismatchText}"
+                           FontSize="11" Foreground="{StaticResource ModifiedBrush}"
+                           VerticalAlignment="Center" Margin="14,0,0,0"
+                           Visibility="{Binding HasVersionMismatch, Converter={StaticResource BoolToVisibility}}"/>
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
                     <Button Content="Approve &amp; Save Version" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"

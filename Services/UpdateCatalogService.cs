@@ -53,4 +53,44 @@ public class UpdateCatalogService
 
         return root.ToJsonString(_writeOptions);
     }
+
+    /// <summary>
+    /// Removes a version from the catalog and rolls the current pointer back to
+    /// <paramref name="rollbackToVersion"/> when specified, or the last remaining
+    /// version otherwise. Returns null if no versions remain (caller should delete
+    /// the catalog file rather than uploading an empty one).
+    /// </summary>
+    public string? RemoveVersion(string appKey, string versionNumber, string existingJson, string? rollbackToVersion = null)
+    {
+        JsonObject root;
+        try { root = JsonNode.Parse(existingJson)!.AsObject(); }
+        catch { return null; }
+
+        if (root["versions"] is not JsonObject versionsObj)
+            return null;
+
+        versionsObj.Remove(versionNumber);
+
+        if (versionsObj.Count == 0)
+            return null;
+
+        // Prefer the explicitly supplied rollback target; fall back to insertion-order last.
+        var remainingKeys = versionsObj.Select(kv => kv.Key).ToList();
+        var latestKey = rollbackToVersion is not null && remainingKeys.Contains(rollbackToVersion)
+            ? rollbackToVersion
+            : remainingKeys.Last();
+        var latestEntry = versionsObj[latestKey]!.AsObject();
+        var latestUrl   = latestEntry["url"]?.GetValue<string>() ?? string.Empty;
+
+        root[appKey] = latestKey;
+
+        if (root["url"] is not JsonObject urlObj)
+        {
+            urlObj = new JsonObject();
+            root["url"] = urlObj;
+        }
+        urlObj[appKey] = latestUrl;
+
+        return root.ToJsonString(_writeOptions);
+    }
 }

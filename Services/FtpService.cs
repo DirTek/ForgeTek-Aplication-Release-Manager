@@ -204,6 +204,43 @@ public class FtpService
         }
     }
 
+    public async Task DeleteDirectoryAsync(
+        string remotePath,
+        string host, int port, string username, string password,
+        CancellationToken ct = default)
+    {
+        var client = CreateClient(host, port, username, password);
+        try
+        {
+            await client.AutoConnect(ct);
+            if (await client.DirectoryExists(remotePath, ct))
+                await client.DeleteDirectory(remotePath, ct);
+        }
+        finally
+        {
+            _ = Task.Run(() => { try { client.Dispose(); } catch { } });
+        }
+    }
+
+    public async Task UploadStringAsync(
+        string content, string remotePath,
+        string host, int port, string username, string password,
+        CancellationToken ct = default)
+    {
+        var bytes  = Encoding.UTF8.GetBytes(content);
+        var client = CreateClient(host, port, username, password);
+        try
+        {
+            await client.AutoConnect(ct);
+            await client.UploadBytes(bytes, remotePath,
+                FtpRemoteExists.Overwrite, createRemoteDir: true, token: ct);
+        }
+        finally
+        {
+            _ = Task.Run(() => { try { client.Dispose(); } catch { } });
+        }
+    }
+
     public async Task<string?> TryDownloadStringAsync(
         string remotePath, string host, int port, string username, string password,
         CancellationToken ct = default)

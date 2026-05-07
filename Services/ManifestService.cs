@@ -16,6 +16,7 @@ public class ManifestService
         AppEntry entry,
         AppVersion version,
         IReadOnlyList<FileRecord> records,
+        IReadOnlyList<string>? removedFiles,
         IProgress<string> progress,
         CancellationToken ct = default)
     {
@@ -50,6 +51,7 @@ public class ManifestService
             App = entry.Name,
             CreatedAt = DateTimeOffset.UtcNow,
             Files = files,
+            RemovedFiles = removedFiles?.Select(p => p.Replace('\\', '/')).ToList() ?? [],
             Totals = new ManifestTotals
             {
                 FileCount = files.Count,

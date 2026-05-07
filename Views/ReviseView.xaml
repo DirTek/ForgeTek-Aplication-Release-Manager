@@ -1,10 +1,11 @@
-<UserControl x:Class="ForgeTekUpdatePackager.Views.ScanView"
+<UserControl x:Class="ForgeTekUpdatePackager.Views.ReviseView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
              Background="{StaticResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -16,25 +17,28 @@
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextBrush}">
-                    <Run Text="Initial Scan — "/>
+                    <Run Text="Revise Files — "/>
                     <Run Text="{Binding AppName, Mode=OneWay}"/>
                 </TextBlock>
-                <TextBlock Text="{Binding AppPath}" FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
-                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,6,0,0">
-                    <Run Text="{Binding FileCount, Mode=OneWay}"/>
-                    <Run Text=" files found — uncheck folders or files to exclude from versioning"/>
-                </TextBlock>
-                <TextBlock FontSize="11" Foreground="{StaticResource AccentBrush}" Margin="0,4,0,0">
-                    <Run Text="💡 Checking "/>
-                    <Run Text="Debug" FontWeight="SemiBold"/>
-                    <Run Text=" marks a file as debug — it will be excluded from packaged builds."/>
+                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0">
+                    <Run Text="v"/>
+                    <Run Text="{Binding VersionNumber, Mode=OneWay}"/>
+                    <Run Text=" — toggle Debug to exclude files from packaging"/>
                 </TextBlock>
             </StackPanel>
         </Border>
 
+        <!-- Packaging warning banner -->
+        <Border Grid.Row="1" Padding="28,10" Background="{StaticResource ModifiedBrush}"
+                Visibility="{Binding HasPackagingWarning, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap">
+                <Run FontWeight="SemiBold" Text="Warning: "/>
+                <Run Text="This version has already started packaging. Saving will reset it to Review status and require repackaging."/>
+            </TextBlock>
+        </Border>
+
         <!-- Search + sort toolbar -->
-        <Border Grid.Row="1" Padding="28,10"
+        <Border Grid.Row="2" Padding="28,10"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -43,7 +47,6 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Search box with placeholder -->
                 <Grid Grid.Column="0" Margin="0,0,16,0">
                     <TextBox Height="32"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
@@ -137,8 +140,8 @@
             </Grid>
         </Border>
 
-        <!-- File tree — sits directly in the starred row so its built-in scroll activates -->
-        <TreeView Grid.Row="2" Margin="28,8,28,0"
+        <!-- File tree -->
+        <TreeView Grid.Row="3" Margin="28,8,28,0"
                   ItemsSource="{Binding FileTree}"
                   Background="Transparent" BorderThickness="0"
                   AlternationCount="2">
@@ -166,7 +169,6 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Chevron expander -->
                                             <ToggleButton x:Name="expander" Grid.Column="0"
                                                           IsChecked="{Binding IsExpanded, Mode=TwoWay,
                                                               RelativeSource={RelativeSource TemplatedParent}}"
@@ -231,15 +233,12 @@
                     <Grid Margin="0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="24"/>
-                            <ColumnDefinition Width="24"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="140"/>
                         </Grid.ColumnDefinitions>
 
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsIncluded}"
-                                  VerticalAlignment="Center"/>
-
-                        <CheckBox Grid.Column="1" IsChecked="{Binding IsDebug}"
+                        <!-- Debug toggle (files only) -->
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsDebug}"
                                   VerticalAlignment="Center"
                                   ToolTip="Mark as debug file (excluded from packaging)">
                             <CheckBox.Style>
@@ -253,7 +252,7 @@
                             </CheckBox.Style>
                         </CheckBox>
 
-                        <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13"
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -262,7 +261,7 @@
                                         <DataTrigger Binding="{Binding IsFolder}" Value="True">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                         </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsIncluded}" Value="False">
+                                        <DataTrigger Binding="{Binding IsDebug}" Value="True">
                                             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                             <Setter Property="TextDecorations" Value="Strikethrough"/>
                                         </DataTrigger>
@@ -271,7 +270,7 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <TextBlock Grid.Column="3" FontSize="12"
+                        <TextBlock Grid.Column="2" FontSize="12"
                                    Foreground="{StaticResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
                                    Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}">
@@ -290,29 +289,24 @@
             </TreeView.Resources>
         </TreeView>
 
-        <!-- Footer: approve bar -->
-        <Border Grid.Row="3" Background="{StaticResource SidebarBrush}"
+        <!-- Footer -->
+        <Border Grid.Row="4" Background="{StaticResource SidebarBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="160"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Version:" VerticalAlignment="Center"
-                           FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" Margin="0,0,10,0"/>
-                <TextBox Grid.Column="1" Text="{Binding VersionNumber, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" FontSize="14"/>
-                <TextBlock Grid.Column="2" Text="{Binding VersionMismatchText}"
-                           FontSize="11" Foreground="{StaticResource ModifiedBrush}"
-                           VerticalAlignment="Center" Margin="14,0,0,0"
-                           Visibility="{Binding HasVersionMismatch, Converter={StaticResource BoolToVisibility}}"/>
-                <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="Approve &amp; Save" Style="{StaticResource PrimaryButton}"
+                <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="13"
+                           Foreground="{StaticResource TextSecondaryBrush}">
+                    <Run Text="Editing debug flags for v"/>
+                    <Run Text="{Binding VersionNumber, Mode=OneWay}"/>
+                </TextBlock>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Save Changes" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
-                            Command="{Binding ApproveCommand}"/>
+                            Command="{Binding SaveCommand}"/>
                     <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Command="{Binding CancelCommand}"/>
                 </StackPanel>

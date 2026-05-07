@@ -49,6 +49,7 @@ public class PackagingService
         PackageType packageType,
         string outputPath,
         string? manifestPath,
+        IReadOnlyList<string>? removedFiles,
         IProgress<string> progress,
         CancellationToken ct = default)
     {
@@ -71,16 +72,17 @@ public class PackagingService
         // 2. Build the JSON header
         var header = new PackageHeader
         {
-            App         = entry.Name,
-            Version     = version.VersionNumber,
-            PackageType = packageType.ToString().ToLower(),
-            CreatedAt   = DateTimeOffset.UtcNow,
-            FileCount   = totalFiles,
-            Files       = files.Select(f => new PackageHeaderFile
+            App          = entry.Name,
+            Version      = version.VersionNumber,
+            PackageType  = packageType.ToString().ToLower(),
+            CreatedAt    = DateTimeOffset.UtcNow,
+            FileCount    = totalFiles,
+            Files        = files.Select(f => new PackageHeaderFile
             {
                 Path     = f.Path.Replace('\\', '/'),
                 Checksum = f.Checksum,
             }).ToList(),
+            RemovedFiles = removedFiles?.Select(p => p.Replace('\\', '/')).ToList() ?? [],
         };
 
         var headerJson  = JsonSerializer.Serialize(header, JsonOptions);
@@ -393,6 +395,7 @@ internal sealed class PackageHeader
     public DateTimeOffset CreatedAt { get; set; }
     public int FileCount     { get; set; }
     public List<PackageHeaderFile> Files { get; set; } = [];
+    public List<string> RemovedFiles { get; set; } = [];
 }
 
 internal sealed class PackageHeaderFile
