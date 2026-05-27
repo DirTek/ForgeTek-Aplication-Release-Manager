@@ -21,7 +21,7 @@ namespace ForgeTekUpdatePackager.Services;
 ///
 /// The JSON header is a <see cref="PackageHeader"/> object.
 /// </summary>
-public class PackagingService
+public class PackagingService : IPackagingService
 {
     private static readonly byte[] Magic = "FTUP"u8.ToArray();
 
@@ -65,9 +65,10 @@ public class PackagingService
 
         using var zipStream = new MemoryStream();
         await BuildZipAsync(entry, files, hasManifest ? manifestPath : null, zipStream, progress, ct);
-        var zipBytes = zipStream.ToArray();
+        var zipLength = (int)zipStream.Length;
+        var zipBuffer = zipStream.GetBuffer();
 
-        progress.Report($"  ZIP payload: {FormatSize(zipBytes.Length)}");
+        progress.Report($"  ZIP payload: {FormatSize(zipLength)}");
 
         // 2. Build the JSON header
         var header = new PackageHeader
@@ -95,7 +96,7 @@ public class PackagingService
         progress.Report(string.Empty);
         progress.Report("Writing container…");
 
-        Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? ".");
 
         // Write to a temp file so we can compute a streaming SHA-256 as we go,
         // then append the hash at the end.
@@ -122,8 +123,8 @@ public class PackagingService
                 sha.AppendData(headerBytes);
 
                 // ZIP payload
-                await fsTmp.WriteAsync(zipBytes, ct);
-                sha.AppendData(zipBytes);
+                await fsTmp.WriteAsync(zipBuffer.AsMemory(0, zipLength), ct);
+                sha.AppendData(zipBuffer.AsSpan(0, zipLength));
 
                 // SHA-256 footer
                 var hash = sha.GetCurrentHash();

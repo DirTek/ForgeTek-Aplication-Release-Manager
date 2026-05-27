@@ -24,9 +24,10 @@
 
         <!-- ══ CONVERTERS ════════════════════════════════════════════ -->
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+        <conv:InvertBoolConverter x:Key="InvertBool"/>
+        <conv:InvertBoolToVisibilityConverter x:Key="InvertVisibility"/>
         <conv:ZeroToVisibleConverter       x:Key="ZeroToVisible"/>
-        <conv:FolderBoldConverter          x:Key="FolderBoldConverter"/>
-        <conv:IncludedToBrushConverter     x:Key="IncludedToBrushConverter"/>
+
         <conv:ProgressBarWidthConverter    x:Key="ProgressBarWidthConverter"/>
 
         <!-- ══ BUTTON BASE ══════════════════════════════════════════ -->

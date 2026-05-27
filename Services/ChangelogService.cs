@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class ChangelogService
+public class ChangelogService : IChangelogService
 {
     public string? FindChangelogFile(string appFolder)
     {

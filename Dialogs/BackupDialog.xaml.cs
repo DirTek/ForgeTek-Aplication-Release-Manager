@@ -7,13 +7,13 @@ namespace ForgeTekUpdatePackager.Dialogs;
 
 public partial class BackupDialog : Window
 {
-    private readonly BackupService _backup;
+    private readonly IBackupService _backup;
     private readonly string _rootFolder;
     private readonly string _globalSettingsFilePath;
     private readonly ObservableCollection<string> _log = [];
     private CancellationTokenSource? _cts;
 
-    public BackupDialog(BackupService backup, string rootFolder, string globalSettingsFilePath)
+    public BackupDialog(IBackupService backup, string rootFolder, string globalSettingsFilePath)
     {
         _backup = backup;
         _rootFolder = rootFolder;

@@ -6,4 +6,9 @@ public class GlobalSettings
     public bool    UseGlobalCert       { get; set; } = false;
     public string? GlobalCertPath      { get; set; }
     public string? GlobalCertPassword  { get; set; }
+
+    // Windows Certificate Store
+    public bool    UseStoreCert        { get; set; } = false;
+    public string? StoreCertThumbprint { get; set; }
+    public bool    KeepInCertStore     { get; set; } = false;
 }

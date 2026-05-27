@@ -2,11 +2,11 @@ using System.IO;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class LogService
+public class LogService : ILogService
 {
     private readonly string _logFolder;
 
-    public LogService(SettingsService settings)
+    public LogService(ISettingsService settings)
     {
         _logFolder = Path.Combine(settings.RootFolder, "logs");
     }

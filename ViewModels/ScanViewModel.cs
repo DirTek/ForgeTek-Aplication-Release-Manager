@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeTekUpdatePackager.Dialogs;
@@ -10,16 +9,17 @@ namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class ScanViewModel : ObservableObject
 {
-    private readonly AppEntry _entry;
-    private readonly MainViewModel _main;
-    private readonly StorageService _storage;
-    private readonly IReadOnlyList<FileRecord> _allFiles;
+    private MainViewModel _main = null!;
+    private readonly IStorageService _storage;
+    private readonly IDialogService _dialog;
+    private AppEntry _entry = null!;
+    private IReadOnlyList<FileRecord> _allFiles = [];
 
-    private readonly string? _detectedExeVersion;
+    private string? _detectedExeVersion;
 
     public string AppName => _entry.Name;
     public string AppPath => _entry.FolderPath;
-    public int FileCount { get; }
+    public int FileCount { get; private set; }
 
     public bool HasVersionMismatch =>
         _detectedExeVersion is not null &&
@@ -52,16 +52,20 @@ public partial class ScanViewModel : ObservableObject
     public bool IsFilterNonDebug => DebugFilter == DebugFilter.NonDebug;
     public bool IsFilterDebugOnly => DebugFilter == DebugFilter.DebugOnly;
 
-    public ScanViewModel(AppEntry entry, IReadOnlyList<FileRecord> files,
-        MainViewModel main, StorageService storage,
-        string initialVersion = "", string? detectedVersion = null)
+    public ScanViewModel(IStorageService storage, IDialogService dialog)
+    {
+        _storage = storage;
+        _dialog = dialog;
+    }
+
+    public void Initialize(AppEntry entry, IReadOnlyList<FileRecord> files,
+        MainViewModel main, string initialVersion = "", string? detectedVersion = null)
     {
         _entry = entry;
         _main = main;
-        _storage = storage;
         _allFiles = files;
-        FileCount = files.Count;
         _detectedExeVersion = detectedVersion;
+        FileCount = files.Count;
         VersionNumber = detectedVersion ?? initialVersion;
 
         foreach (var node in FileTreeNodeViewModel.BuildScanTree(_allFiles, SortMode))
@@ -84,7 +88,6 @@ public partial class ScanViewModel : ObservableObject
 
     private void RebuildTree()
     {
-        // Preserve per-file inclusion state across sort changes
         var saved = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         SaveInclusion(FileTree, saved);
 
@@ -124,8 +127,7 @@ public partial class ScanViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(VersionNumber))
         {
-            new AlertDialog("Missing Version", "Please enter a version number.")
-                { Owner = Application.Current.MainWindow }.ShowDialog();
+            _dialog.Alert("Missing Version", "Please enter a version number.");
             return;
         }
 
@@ -133,12 +135,9 @@ public partial class ScanViewModel : ObservableObject
 
         if (_entry.Versions.Any(v => v.VersionNumber == trimmed))
         {
-            var warn = new ConfirmDialog(
-                "Duplicate Version",
-                $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
-                "Save Anyway")
-            { Owner = Application.Current.MainWindow };
-            if (warn.ShowDialog() != true) return;
+            if (!_dialog.Confirm("Duplicate Version",
+                    $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
+                    "Save Anyway")) return;
         }
 
         if (_detectedExeVersion is not null &&
@@ -146,14 +145,11 @@ public partial class ScanViewModel : ObservableObject
             Version.TryParse(_detectedExeVersion, out var exeVer) &&
             typedVer > exeVer)
         {
-            var warn = new ConfirmDialog(
-                "Update Loop Risk",
-                $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
-                $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
-                $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
-                "Save Anyway")
-            { Owner = Application.Current.MainWindow };
-            if (warn.ShowDialog() != true) return;
+            if (!_dialog.Confirm("Update Loop Risk",
+                    $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
+                    $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
+                    $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
+                    "Save Anyway")) return;
         }
 
         var version = new AppVersion

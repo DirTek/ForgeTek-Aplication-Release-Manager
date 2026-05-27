@@ -3,7 +3,7 @@ using System.IO.Compression;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class BackupService
+public class BackupService : IBackupService
 {
     public async Task CreateBackupAsync(
         string rootFolder,

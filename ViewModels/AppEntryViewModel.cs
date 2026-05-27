@@ -1,3 +1,4 @@
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ForgeTekUpdatePackager.Models;
 
@@ -9,6 +10,8 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
 {
     public AppEntry Entry { get; private set; } = entry;
     public string Name => Entry.Name;
+    public string AccentColor => Entry.AccentColor;
+    public SolidColorBrush AccentBrush => ParseColor(AccentColor);
 
     internal void SetEntry(AppEntry newEntry)
     {
@@ -19,6 +22,8 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
     public void Refresh()
     {
         OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(AccentColor));
+        OnPropertyChanged(nameof(AccentBrush));
         OnPropertyChanged(nameof(DisplayMode));
         OnPropertyChanged(nameof(CurrentVersionText));
         OnPropertyChanged(nameof(HasCurrentVersion));
@@ -106,4 +111,15 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
     }
 
     public bool HasPreviousVersion => PreviousVersionText is not null;
+
+    private static SolidColorBrush ParseColor(string hex)
+    {
+        if (string.IsNullOrEmpty(hex)) hex = "#0A84FF";
+        hex = hex.TrimStart('#');
+        if (hex.Length >= 6 && byte.TryParse(hex[..2], System.Globalization.NumberStyles.HexNumber, null, out var r)
+                           && byte.TryParse(hex[2..4], System.Globalization.NumberStyles.HexNumber, null, out var g)
+                           && byte.TryParse(hex[4..6], System.Globalization.NumberStyles.HexNumber, null, out var b))
+            return new SolidColorBrush(Color.FromRgb(r, g, b));
+        return new SolidColorBrush(Color.FromRgb(0x0A, 0x84, 0xFF));
+    }
 }

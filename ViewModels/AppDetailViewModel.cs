@@ -1,30 +1,29 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows;
-using Microsoft.Win32;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Views;
+using ForgeTekUpdatePackager.Dialogs;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class AppDetailViewModel : ObservableObject
 {
-    private readonly MainViewModel _main;
-    private readonly StorageService _storage;
-    private readonly ScannerService _scanner;
-    private readonly LogService _log;
-    private readonly FtpService _ftp = new();
-    private readonly UpdateCatalogService _catalog = new();
-    private readonly ChangelogService _changelog = new();
+    private MainViewModel _main = null!;
+    private readonly IStorageService _storage;
+    private readonly IScannerService _scanner;
+    private readonly ILogService _log;
+    private readonly IFtpService _ftp;
+    private readonly IUpdateCatalogService _catalog;
+    private readonly IChangelogService _changelog;
+    private readonly IDialogService _dialog;
+    private AppEntry _entry = null!;
 
-    public AppEntry Entry { get; }
-    public string AppName => Entry.Name;
-    public string AppPath => Entry.FolderPath;
-    public ObservableCollection<AppVersion> Versions { get; }
+    public AppEntry Entry => _entry;
+    public string AppName => _entry.Name;
+    public string AppPath => _entry.FolderPath;
+    public ObservableCollection<AppVersion> Versions { get; private set; } = [];
 
     [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private bool _isDiffing;
@@ -46,53 +45,62 @@ public partial class AppDetailViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(ReviseVersionCommand))]
     private AppVersion? _selectedVersion;
 
-    public AppDetailViewModel(AppEntry entry, MainViewModel main, StorageService storage, ScannerService scanner, LogService log)
+    public AppDetailViewModel(IStorageService storage, IScannerService scanner, ILogService log,
+        IFtpService ftp, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog)
     {
-        Entry = entry;
-        _main = main;
         _storage = storage;
-        _log = log;
         _scanner = scanner;
+        _log = log;
+        _ftp = ftp;
+        _catalog = catalog;
+        _changelog = changelog;
+        _dialog = dialog;
+    }
+
+    public void Initialize(AppEntry entry, MainViewModel main)
+    {
+        _entry = entry;
+        _main = main;
         Versions = new ObservableCollection<AppVersion>(entry.Versions.AsEnumerable().Reverse());
         CheckChangelogEntries();
     }
 
     private void CheckChangelogEntries()
     {
-        var changelogPath = _changelog.FindChangelogFile(Entry.FolderPath);
+        var changelogPath = _changelog.FindChangelogFile(_entry.FolderPath);
         if (changelogPath is null) return;
-        foreach (var version in Entry.Versions)
+        foreach (var version in _entry.Versions)
             version.HasChangelog = _changelog.HasChangelogEntry(changelogPath, version.VersionNumber);
     }
 
     private bool CanViewDiff()
     {
         if (SelectedVersion is null) return false;
-        var idx = Entry.Versions.IndexOf(SelectedVersion);
-        return idx > 0; // has a previous version to diff against
+        var idx = _entry.Versions.IndexOf(SelectedVersion);
+        return idx > 0;
     }
 
     [RelayCommand(CanExecute = nameof(CanDeleteVersion))]
     private void DeleteVersion()
     {
-        if (!Confirm("Delete Version",
+        if (!_dialog.Confirm("Delete Version",
                 $"Delete v{SelectedVersion!.VersionNumber}? This cannot be undone.",
                 "Delete Version")) return;
 
-        Entry.Versions.Remove(SelectedVersion!);
+        _entry.Versions.Remove(SelectedVersion!);
         Versions.Remove(SelectedVersion!);
         SelectedVersion = null;
-        _storage.Update(Entry);
+        _storage.Update(_entry);
         StartPackingCommand.NotifyCanExecuteChanged();
         RetractVersionCommand.NotifyCanExecuteChanged();
         ScrapVersionCommand.NotifyCanExecuteChanged();
-        _main.RefreshSidebar(Entry);
+        _main.RefreshSidebar(_entry);
     }
 
     private bool CanDeleteVersion()
     {
         if (SelectedVersion is null) return false;
-        if (SelectedVersion != Entry.Versions.LastOrDefault()) return false;
+        if (SelectedVersion != _entry.Versions.LastOrDefault()) return false;
         return SelectedVersion.Status != VersionStatus.Published;
     }
 
@@ -111,22 +119,18 @@ public partial class AppDetailViewModel : ObservableObject
 
         if (stepLabel is not null)
         {
-            var dlg = new ResumePackagingDialog(v.VersionNumber, stepLabel)
-            {
-                Owner = System.Windows.Application.Current.MainWindow,
-            };
+            var resumeData = _dialog.ShowResumePackagingDialog(v.VersionNumber, stepLabel);
+            if (resumeData is null) return;
 
-            if (dlg.ShowDialog() != true) return;
-
-            var startStep = dlg.Choice == ResumePackagingDialog.ResumeChoice.StartOver
+            var startStep = resumeData.StartOver
                 ? PackageStep.Sign
                 : v.PipelineStep!.Value + 1;
 
-            _main.NavigateToPackage(Entry, v, startFrom: startStep);
+            _main.NavigateToPackage(_entry, v, startFrom: startStep);
         }
         else
         {
-            _main.NavigateToPackage(Entry, v);
+            _main.NavigateToPackage(_entry, v);
         }
     }
 
@@ -139,33 +143,28 @@ public partial class AppDetailViewModel : ObservableObject
         return true;
     }
 
-    // ── Retract ────────────────────────────────────────────────────────────
-
     [RelayCommand(CanExecute = nameof(CanRetractVersion))]
     private async Task RetractVersionAsync()
     {
         var v = SelectedVersion!;
 
-        // Determine retract mode before asking the user
-        var idx          = Entry.Versions.IndexOf(v);
-        var prevVersion  = idx > 1 ? Entry.Versions[idx - 1] : null; // idx-1 is initial when idx==1
+        var idx          = _entry.Versions.IndexOf(v);
+        var prevVersion  = idx > 1 ? _entry.Versions[idx - 1] : null;
         var hasPrevUpdate = prevVersion is not null && !prevVersion.IsInitial;
 
         var modeText = hasPrevUpdate
             ? $"This will delete the uploaded files from FTP and mark v{v.VersionNumber} as retracted. The previous version (v{prevVersion!.VersionNumber}) will become the current release."
             : $"This will delete the uploaded files from FTP and mark v{v.VersionNumber} as retracted. You can repack it later.";
 
-        if (!Confirm("Retract Version",
+        if (!_dialog.Confirm("Retract Version",
                 $"Retract published version v{v.VersionNumber}?\n\n{modeText}\n\nThis cannot be undone.",
                 "Retract")) return;
 
-        _log.Write("Retract", $"Retraction started — {Entry.Name} v{v.VersionNumber}");
+        _log.Write("Retract", $"Retraction started — {_entry.Name} v{v.VersionNumber}");
 
         IsRetracting = true;
         try
         {
-            // Task.Run keeps FTP continuations on pool threads, preventing
-            // synchronous Dispose() from blocking the UI thread via WPF's SynchronizationContext.
             await Task.Run(() => RetractFtpAsync(v, hasPrevUpdate ? prevVersion!.VersionNumber : null));
         }
         finally
@@ -173,7 +172,6 @@ public partial class AppDetailViewModel : ObservableObject
             IsRetracting = false;
         }
 
-        // Delete local version folder
         if (!string.IsNullOrWhiteSpace(v.PackagePath))
         {
             var dir = Path.GetDirectoryName(v.PackagePath);
@@ -186,9 +184,8 @@ public partial class AppDetailViewModel : ObservableObject
                 catch (Exception ex) { _log.Write("Retract", $"Local folder deletion failed: {ex.Message}"); }
         }
 
-        _log.Write("Retract", $"Retraction complete — {Entry.Name} v{v.VersionNumber}");
+        _log.Write("Retract", $"Retraction complete — {_entry.Name} v{v.VersionNumber}");
 
-        // Mark as retracted and clear publish data — version stays in the list.
         v.Status               = VersionStatus.Retracted;
         v.HasManifest          = false;
         v.HasPackage           = false;
@@ -201,14 +198,13 @@ public partial class AppDetailViewModel : ObservableObject
         v.FtpUsername          = null;
         v.FtpPassword          = null;
 
-        _storage.Update(Entry);
+        _storage.Update(_entry);
 
-        // Force in-place refresh — AppVersion isn't observable so the row won't update otherwise
         var vIdx = Versions.IndexOf(v);
         if (vIdx >= 0) { Versions.RemoveAt(vIdx); Versions.Insert(vIdx, v); }
 
-        _main.RefreshSidebar(Entry);
-        SelectedVersion = null; // triggers NotifyCanExecuteChanged for all version commands
+        _main.RefreshSidebar(_entry);
+        SelectedVersion = null;
     }
 
     private async Task RetractFtpAsync(AppVersion v, string? rollbackToVersion)
@@ -225,12 +221,11 @@ public partial class AppDetailViewModel : ObservableObject
         var pass     = v.FtpPassword ?? string.Empty;
         var progress = new Progress<string>(_ => { });
 
-        // Roll back the catalog to point at the previous version (or delete it if none remain)
         if (!string.IsNullOrWhiteSpace(v.FtpCatalogRemotePath))
         {
             _log.Write("Retract", $"Downloading catalog: {v.FtpCatalogRemotePath}");
             var existingJson = await _ftp.TryDownloadStringAsync(v.FtpCatalogRemotePath, host, port, user, pass);
-            var appKey       = Entry.Name.ToLowerInvariant().Replace(" ", "");
+            var appKey       = _entry.Name.ToLowerInvariant().Replace(" ", "");
             var updatedJson  = existingJson is not null
                 ? _catalog.RemoveVersion(appKey, v.VersionNumber, existingJson, rollbackToVersion)
                 : null;
@@ -250,7 +245,6 @@ public partial class AppDetailViewModel : ObservableObject
             catch (Exception ex) { _log.Write("Retract", $"Catalog operation failed: {ex.Message}"); }
         }
 
-        // Delete the package file and its remote version folder from FTP
         if (!string.IsNullOrWhiteSpace(v.FtpPackageRemotePath))
         {
             try
@@ -276,7 +270,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     [RelayCommand(CanExecute = nameof(CanReviseVersion))]
     private void ReviseVersion()
-        => _main.NavigateToRevise(Entry, SelectedVersion!);
+        => _main.NavigateToRevise(_entry, SelectedVersion!);
 
     private bool CanReviseVersion()
         => SelectedVersion is not null
@@ -288,17 +282,17 @@ public partial class AppDetailViewModel : ObservableObject
     private void ScrapVersion()
     {
         var v = SelectedVersion!;
-        if (!Confirm("Scrap Version",
+        if (!_dialog.Confirm("Scrap Version",
                 $"Permanently scrap v{v.VersionNumber}? This cannot be undone.",
                 "Scrap")) return;
 
         v.Status = VersionStatus.Scrapped;
-        _storage.Update(Entry);
+        _storage.Update(_entry);
 
         var vIdx = Versions.IndexOf(v);
         if (vIdx >= 0) { Versions.RemoveAt(vIdx); Versions.Insert(vIdx, v); }
 
-        _main.RefreshSidebar(Entry);
+        _main.RefreshSidebar(_entry);
         SelectedVersion = null;
     }
 
@@ -313,18 +307,18 @@ public partial class AppDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanViewDiff))]
     private void ViewVersionDiff()
     {
-        var idx = Entry.Versions.IndexOf(SelectedVersion!);
-        var baseVersion = Entry.Versions[idx - 1];
+        var idx = _entry.Versions.IndexOf(SelectedVersion!);
+        var baseVersion = _entry.Versions[idx - 1];
         var diff = _scanner.DiffVersions(baseVersion, SelectedVersion!.Files);
-        _main.NavigateToVersionDiff(Entry, SelectedVersion!, diff);
+        _main.NavigateToVersionDiff(_entry, SelectedVersion!, diff);
     }
 
     [RelayCommand]
     private async Task ScanNow()
     {
-        if (!System.IO.Directory.Exists(Entry.FolderPath))
+        if (!System.IO.Directory.Exists(_entry.FolderPath))
         {
-            Alert("Scan Error", $"Folder not found:\n{Entry.FolderPath}");
+            _dialog.Alert("Scan Error", $"Folder not found:\n{_entry.FolderPath}");
             return;
         }
 
@@ -337,7 +331,7 @@ public partial class AppDetailViewModel : ObservableObject
         {
             var scanProgress = new Progress<ScanProgress>(p => ScanProgress = p);
             files = await Task.Run(
-                () => _scanner.ScanDirectory(Entry.FolderPath, scanProgress, _scanCts.Token),
+                () => _scanner.ScanDirectory(_entry.FolderPath, scanProgress, _scanCts.Token),
                 _scanCts.Token);
         }
         catch (OperationCanceledException)
@@ -346,7 +340,7 @@ public partial class AppDetailViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            Alert("Scan Error", ex.Message);
+            _dialog.Alert("Scan Error", ex.Message);
             return;
         }
         finally
@@ -357,35 +351,29 @@ public partial class AppDetailViewModel : ObservableObject
             _scanCts = null;
         }
 
-        // ── EXE version detection ─────────────────────────────────────────
-        string? detectedVersion = ScannerService.DetectExeVersion(Entry.FolderPath, Entry.Name);
+        string? detectedVersion = _scanner.DetectExeVersion(_entry.FolderPath, _entry.Name);
 
         if (detectedVersion is null)
         {
-            // Multiple EXEs exist but none matched the app name — ask the user to pick one.
-            var exes = ScannerService.FindRootExeFiles(Entry.FolderPath);
+            var exes = _scanner.FindRootExeFiles(_entry.FolderPath);
             if (exes.Count > 1)
             {
-                var ofd = new OpenFileDialog
-                {
-                    Title            = $"Select the main executable for '{Entry.Name}'",
-                    Filter           = "Executable files (*.exe)|*.exe",
-                    InitialDirectory = Entry.FolderPath,
-                };
-                if (ofd.ShowDialog() == true)
-                    detectedVersion = ScannerService.ReadExeVersion(ofd.FileName);
+                var selectedPath = _dialog.OpenFile(
+                    $"Select the main executable for '{_entry.Name}'",
+                    "Executable files (*.exe)|*.exe");
+                if (selectedPath is not null)
+                    detectedVersion = _scanner.ReadExeVersion(selectedPath);
             }
         }
 
-        // Warn if the detected EXE version is already saved (would create a duplicate)
         if (detectedVersion is not null &&
-            Entry.Versions.Any(v => string.Equals(v.VersionNumber, detectedVersion, StringComparison.OrdinalIgnoreCase)))
+            _entry.Versions.Any(v => string.Equals(v.VersionNumber, detectedVersion, StringComparison.OrdinalIgnoreCase)))
         {
-            Alert("EXE Version Already Saved",
+            _dialog.Alert("EXE Version Already Saved",
                 $"The EXE reports v{detectedVersion}, which matches an already-saved version for this app.\n\nVerify the version number before approving.");
         }
 
-        if (Entry.LatestVersion is { } latest)
+        if (_entry.LatestVersion is { } latest)
         {
             DiffProgress = new DiffProgress("Preparing…", 0);
             IsDiffing    = true;
@@ -403,25 +391,30 @@ public partial class AppDetailViewModel : ObservableObject
 
             if (diff.Added.Count == 0 && diff.Modified.Count == 0)
             {
-                var dlg = new Window
-                {
-                    Title = "No Changes Detected",
-                    SizeToContent = SizeToContent.WidthAndHeight,
-                    ResizeMode = ResizeMode.NoResize,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    WindowStyle = WindowStyle.ToolWindow,
-                    ShowInTaskbar = false,
-                    Content = new NoChangesDialog(),
-                    Owner = System.Windows.Application.Current.MainWindow,
-                };
-                dlg.ShowDialog();
+                NoChanges();
                 return;
             }
 
-            _main.NavigateToDiff(Entry, files, diff, detectedVersion);
+            _main.NavigateToDiff(_entry, files, diff, detectedVersion);
         }
         else
-            _main.NavigateToScan(Entry, files, detectedVersion);
+            _main.NavigateToScan(_entry, files, detectedVersion);
+    }
+
+    private void NoChanges()
+    {
+        var dlg = new System.Windows.Window
+        {
+            Title = "No Changes Detected",
+            SizeToContent = System.Windows.SizeToContent.WidthAndHeight,
+            ResizeMode = System.Windows.ResizeMode.NoResize,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            WindowStyle = System.Windows.WindowStyle.ToolWindow,
+            ShowInTaskbar = false,
+            Content = new NoChangesDialog(),
+            Owner = System.Windows.Application.Current.MainWindow,
+        };
+        dlg.ShowDialog();
     }
 
     [RelayCommand]
@@ -430,55 +423,43 @@ public partial class AppDetailViewModel : ObservableObject
     [RelayCommand]
     private void EditApp()
     {
-        var dlg = new AddEditAppDialog(Entry.Name, Entry.FolderPath)
-        {
-            Owner = System.Windows.Application.Current.MainWindow
-        };
-        if (dlg.ShowDialog() != true) return;
-        Entry.Name = dlg.AppName;
-        Entry.FolderPath = dlg.AppPath;
-        _main.NavigateToDetail(Entry);
+        var result = _dialog.ShowAddEditApp(_entry.Name, _entry.FolderPath, _entry.AccentColor);
+        if (result is null) return;
+        _entry.Name = result.Name;
+        _entry.FolderPath = result.Path;
+        _entry.AccentColor = result.AccentColor;
+        _main.NavigateToDetail(_entry);
     }
 
     [RelayCommand]
-    private void OpenAppSettings() => _main.NavigateToAppSettings(Entry);
+    private void OpenAppSettings() => _main.NavigateToAppSettings(_entry);
 
     [RelayCommand]
     private void ViewChangelog(AppVersion? version)
     {
         if (version is null) return;
-        var changelogPath = _changelog.FindChangelogFile(Entry.FolderPath);
+        var changelogPath = _changelog.FindChangelogFile(_entry.FolderPath);
         if (changelogPath is null)
         {
-            Alert("Changelog Not Found", $"No changelog.md found in:\n{Entry.FolderPath}");
+            _dialog.Alert("Changelog Not Found", $"No changelog.md found in:\n{_entry.FolderPath}");
             return;
         }
         var content = _changelog.ExtractVersionContent(changelogPath, version.VersionNumber);
         if (content is null)
         {
-            Alert("Not Found", $"No changelog entry for v{version.VersionNumber}.");
+            _dialog.Alert("Not Found", $"No changelog entry for v{version.VersionNumber}.");
             return;
         }
-        new ChangelogView(new ChangelogViewModel(version.VersionNumber, content)).ShowDialog();
+        _dialog.ShowChangelogWindow(version.VersionNumber, content);
     }
-
-    private static bool Confirm(string title, string message, string confirmLabel)
-        => new ConfirmDialog(title, message, confirmLabel)
-               { Owner = System.Windows.Application.Current.MainWindow }
-               .ShowDialog() == true;
-
-    private static void Alert(string title, string message)
-        => new AlertDialog(title, message)
-               { Owner = System.Windows.Application.Current.MainWindow }
-               .ShowDialog();
 
     [RelayCommand]
     private void DeleteApp()
     {
-        if (!Confirm("Delete Application",
-                $"Delete '{Entry.Name}' and all its version history? This cannot be undone.",
+        if (!_dialog.Confirm("Delete Application",
+                $"Delete '{_entry.Name}' and all its version history? This cannot be undone.",
                 "Delete App")) return;
-        _storage.Delete(Entry.Id);
+        _storage.Delete(_entry.Id);
         _main.NavigateToWelcome();
     }
 }

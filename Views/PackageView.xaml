@@ -247,12 +247,22 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0"
                              Text="{Binding PfxPath, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36" Margin="0,0,8,0"/>
+                             Height="36" Margin="0,0,8,0"
+                             Visibility="{Binding UseStoreCert, Converter={StaticResource InvertVisibility}}"/>
+                    <TextBox Grid.Column="0"
+                             Text="{Binding StoreThumbprint, Mode=OneWay}"
+                             Height="36" Margin="0,0,8,0" IsReadOnly="True"
+                             Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}"/>
                     <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Command="{Binding BrowsePfxCommand}"/>
+                            Padding="14,8" Margin="0,0,8,0"
+                            Command="{Binding BrowsePfxCommand}"/>
+                    <Button Grid.Column="2" Content="From Store…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8"
+                            Command="{Binding BrowseStoreCertCommand}"/>
                 </Grid>
 
                 <TextBlock Text="PASSWORD" FontSize="10" FontWeight="SemiBold"

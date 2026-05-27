@@ -27,6 +27,35 @@
                      Style="{StaticResource SecondaryButton}" Click="Browse_Click"/>
         </Grid>
 
+        <!-- Main Executable (Add mode only) -->
+        <TextBlock x:Name="ExeLabel" Text="Main Executable"
+                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>
+        <Grid Margin="0,6,0,0">
+            <ProgressBar x:Name="ScanProgress" IsIndeterminate="True" Height="36"
+                         Visibility="Collapsed"/>
+            <ComboBox x:Name="ExeBox" Height="36" IsEnabled="False"
+                      SelectionChanged="ExeBox_SelectionChanged"/>
+            <TextBlock x:Name="ScanErrorText" Foreground="{StaticResource RemovedBrush}"
+                       FontSize="12" VerticalAlignment="Center"
+                       Visibility="Collapsed"/>
+        </Grid>
+
+        <!-- Accent Color -->
+        <TextBlock x:Name="ColorLabel" Text="Accent Color"
+                   Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>
+        <Grid x:Name="ColorGrid" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="36"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" x:Name="ColorPreview" Width="36" Height="30"
+                    CornerRadius="4" Background="#0A84FF"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"/>
+            <Button Grid.Column="2" Content="Choose Color…" Height="36" Padding="14,0"
+                    Style="{StaticResource SecondaryButton}" Click="ChooseColor_Click"/>
+        </Grid>
+
         <!-- Initial Version (Add mode only) -->
         <TextBlock x:Name="VersionLabel" Text="Initial Version"
                    Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>

@@ -4,7 +4,7 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class SettingsService
+public class SettingsService : ISettingsService
 {
     private static readonly string GlobalSettingsPath = Path.Combine(
         AppContext.BaseDirectory, "settings", "global.json");
@@ -40,13 +40,16 @@ public class SettingsService
 
     public void SaveGlobal()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(GlobalSettingsPath)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(GlobalSettingsPath) ?? ".");
         var storable = new GlobalSettings
         {
             RootFolder         = Global.RootFolder,
             UseGlobalCert      = Global.UseGlobalCert,
             GlobalCertPath     = Global.GlobalCertPath,
             GlobalCertPassword = DpapiService.Protect(Global.GlobalCertPassword),
+            UseStoreCert       = Global.UseStoreCert,
+            StoreCertThumbprint = Global.StoreCertThumbprint,
+            KeepInCertStore    = Global.KeepInCertStore,
         };
         File.WriteAllText(GlobalSettingsPath, JsonSerializer.Serialize(storable, JsonOptions));
     }
@@ -76,7 +79,7 @@ public class SettingsService
     public void SaveAppSettings(string appName, AppSettings settings)
     {
         var path = AppSettingsFilePath(appName);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
         var storable = new AppSettings
         {
             OutputFolder        = settings.OutputFolder,
@@ -89,6 +92,8 @@ public class SettingsService
             FtpPassword         = DpapiService.Protect(settings.FtpPassword),
             FtpRemotePath       = DpapiService.Protect(settings.FtpRemotePath),
             BaseDownloadUrl     = DpapiService.Protect(settings.BaseDownloadUrl),
+            UseStoreCert        = settings.UseStoreCert,
+            StoreCertThumbprint = settings.StoreCertThumbprint,
         };
         File.WriteAllText(path, JsonSerializer.Serialize(storable, JsonOptions));
     }

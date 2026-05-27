@@ -1,6 +1,10 @@
+using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeTekUpdatePackager.Helpers;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -8,15 +12,14 @@ namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class AppSettingsViewModel : ObservableObject
 {
-    private readonly AppEntry _entry;
-    private readonly MainViewModel _main;
-    private readonly SettingsService _settings;
-    private readonly FtpService _ftp = new();
+    private MainViewModel _main = null!;
+    private AppEntry _entry = null!;
+    private readonly ISettingsService _settings;
+    private readonly IFtpService _ftp;
 
     public string AppName => _entry.Name;
     public string DefaultOutputBase => _settings.GetDefaultOutputBase(_entry.Name);
 
-    // ── Global cert override ──────────────────────────────────────────────
     public bool   GlobalCertOverrideActive   => _settings.Global.UseGlobalCert
                                              && !string.IsNullOrWhiteSpace(_settings.Global.GlobalCertPath)
                                              && File.Exists(_settings.Global.GlobalCertPath);
@@ -28,12 +31,17 @@ public partial class AppSettingsViewModel : ObservableObject
     [ObservableProperty] private string _outputFolder = string.Empty;
     [ObservableProperty] private string _defaultCertPath = string.Empty;
 
-    // PasswordBox handled via code-behind
     public string DefaultCertPassword { get; set; } = string.Empty;
 
-    [ObservableProperty] private string _packageExtension = string.Empty;
+    [ObservableProperty] private bool _useStoreCert;
 
-    // ── FTP ──────────────────────────────────────────────────────────────────
+    [ObservableProperty] private string? _selectedStoreThumbprint;
+
+    public ObservableCollection<StoreCertInfo> StoreCertificates { get; } = [];
+
+    public bool HasStoreCert => !string.IsNullOrWhiteSpace(SelectedStoreThumbprint);
+
+    [ObservableProperty] private string _packageExtension = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(TestConnectionCommand))]
@@ -42,7 +50,6 @@ public partial class AppSettingsViewModel : ObservableObject
     [ObservableProperty] private int _ftpPort = 21;
     [ObservableProperty] private string _ftpUsername = string.Empty;
 
-    // PasswordBox handled via code-behind
     public string FtpPassword { get; set; } = string.Empty;
 
     [ObservableProperty] private string _ftpRemotePath = string.Empty;
@@ -54,24 +61,54 @@ public partial class AppSettingsViewModel : ObservableObject
 
     [ObservableProperty] private string _connectionTestResult = string.Empty;
 
-    public AppSettingsViewModel(AppEntry entry, MainViewModel main, SettingsService settings)
+    public AppSettingsViewModel(ISettingsService settings, IFtpService ftp)
+    {
+        _settings = settings;
+        _ftp = ftp;
+    }
+
+    public void Initialize(AppEntry entry, MainViewModel main)
     {
         _entry = entry;
         _main = main;
-        _settings = settings;
 
-        var s = settings.LoadAppSettings(entry.Name);
-        _outputFolder       = s.OutputFolder        ?? string.Empty;
-        _defaultCertPath    = s.DefaultCertPath     ?? string.Empty;
-        DefaultCertPassword = s.DefaultCertPassword ?? string.Empty;
-        _packageExtension   = s.PackageExtension    ?? string.Empty;
+        var s = _settings.LoadAppSettings(entry.Name);
+        OutputFolder        = s.OutputFolder        ?? string.Empty;
+        DefaultCertPath     = s.DefaultCertPath      ?? string.Empty;
+        DefaultCertPassword = s.DefaultCertPassword  ?? string.Empty;
+        PackageExtension    = s.PackageExtension     ?? string.Empty;
 
-        _ftpHost         = s.FtpHost         ?? string.Empty;
-        _ftpPort         = s.FtpPort == 0    ? 21 : s.FtpPort;
-        _ftpUsername     = s.FtpUsername     ?? string.Empty;
+        FtpHost         = s.FtpHost         ?? string.Empty;
+        FtpPort         = s.FtpPort == 0    ? 21 : s.FtpPort;
+        FtpUsername     = s.FtpUsername     ?? string.Empty;
         FtpPassword      = s.FtpPassword     ?? string.Empty;
-        _ftpRemotePath   = s.FtpRemotePath   ?? string.Empty;
-        _baseDownloadUrl = s.BaseDownloadUrl ?? string.Empty;
+        FtpRemotePath   = s.FtpRemotePath   ?? string.Empty;
+        BaseDownloadUrl = s.BaseDownloadUrl ?? string.Empty;
+
+        UseStoreCert           = s.UseStoreCert;
+        SelectedStoreThumbprint = s.StoreCertThumbprint;
+        RefreshStoreCerts();
+    }
+
+    private void RefreshStoreCerts()
+    {
+        StoreCertificates.Clear();
+        using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+        try
+        {
+            store.Open(OpenFlags.ReadOnly);
+            foreach (var cert in store.Certificates)
+            {
+                using (cert)
+                    StoreCertificates.Add(StoreCertInfo.FromX509(cert));
+            }
+        }
+        catch { /* store not available — leave list empty */ }
+        store.Close();
+
+        if (SelectedStoreThumbprint is not null &&
+            !StoreCertificates.Any(s => s.Thumbprint == SelectedStoreThumbprint))
+            SelectedStoreThumbprint = null;
     }
 
     [RelayCommand]
@@ -103,6 +140,14 @@ public partial class AppSettingsViewModel : ObservableObject
     {
         DefaultCertPath     = string.Empty;
         DefaultCertPassword = string.Empty;
+    }
+
+    [RelayCommand]
+    private void RefreshStoreCertList()
+    {
+        RefreshStoreCerts();
+        if (StoreCertificates.Count > 0 && string.IsNullOrWhiteSpace(SelectedStoreThumbprint))
+            SelectedStoreThumbprint = StoreCertificates[0].Thumbprint;
     }
 
     [RelayCommand(CanExecute = nameof(CanTestConnection))]
@@ -141,6 +186,9 @@ public partial class AppSettingsViewModel : ObservableObject
             FtpPassword     = string.IsNullOrWhiteSpace(FtpPassword)     ? null : FtpPassword,
             FtpRemotePath   = string.IsNullOrWhiteSpace(FtpRemotePath)   ? null : FtpRemotePath,
             BaseDownloadUrl = string.IsNullOrWhiteSpace(BaseDownloadUrl) ? null : BaseDownloadUrl,
+
+            UseStoreCert        = UseStoreCert,
+            StoreCertThumbprint = string.IsNullOrWhiteSpace(SelectedStoreThumbprint) ? null : SelectedStoreThumbprint,
         });
         _main.NavigateToDetail(_entry);
     }

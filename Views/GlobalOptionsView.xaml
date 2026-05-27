@@ -34,50 +34,89 @@
                     any per-app certificate configured in App Settings.
                 </TextBlock>
 
-                <!-- Certificate dropdown + actions -->
-                <TextBlock Text="CERTIFICATE" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
-                           Margin="0,0,0,8" TextWrapping="Wrap">
-                    <Run Text="Lists all .pfx files found in "/>
-                    <Run Text="{Binding CertificateFolderPath, Mode=OneWay}"
-                         Foreground="{StaticResource TextBrush}"/>
-                    <Run Text="."/>
-                </TextBlock>
+                <!-- Source toggle -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <RadioButton Content="PFX File" GroupName="CertSource"
+                                 IsChecked="{Binding UseStoreCert, Converter={StaticResource InvertBool}}"
+                                 FontSize="13" Foreground="{StaticResource TextBrush}" Margin="0,0,24,0"/>
+                    <RadioButton Content="Windows Store" GroupName="CertSource"
+                                 IsChecked="{Binding UseStoreCert}"
+                                 FontSize="13" Foreground="{StaticResource TextBrush}"/>
+                </StackPanel>
 
-                <Grid Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <ComboBox Grid.Column="0" Height="36" Margin="0,0,8,0"
-                              ItemsSource="{Binding AvailableCerts}"
-                              SelectedItem="{Binding SelectedCertFileName, Mode=TwoWay}"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Margin="0,0,8,0" ToolTip="Copy a certificate into the Certificates folder"
-                            Command="{Binding BrowseAndCopyCertCommand}"/>
-                    <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
-                            Padding="10,8"
-                            Command="{Binding ClearGlobalCertCommand}"/>
-                </Grid>
+                <!-- PFX source -->
+                <StackPanel Visibility="{Binding UseStoreCert, Converter={StaticResource InvertVisibility}}">
+                    <TextBlock Text="CERTIFICATE" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,8" TextWrapping="Wrap">
+                        <Run Text="Lists all .pfx files found in "/>
+                        <Run Text="{Binding CertificateFolderPath, Mode=OneWay}"
+                             Foreground="{StaticResource TextBrush}"/>
+                        <Run Text="."/>
+                    </TextBlock>
 
-                <!-- Selected cert badge -->
-                <Border CornerRadius="6" Padding="10,7" Margin="0,0,0,14"
-                        Background="#1A30D158" BorderBrush="{StaticResource AddedBrush}" BorderThickness="1"
-                        Visibility="{Binding HasGlobalCert, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="✔  " Foreground="{StaticResource AddedBrush}" FontWeight="SemiBold" FontSize="12"/>
-                        <TextBlock Text="{Binding GlobalCertFileName}"
-                                   Foreground="{StaticResource AddedBrush}" FontWeight="SemiBold" FontSize="12"/>
-                    </StackPanel>
-                </Border>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" Height="36" Margin="0,0,8,0"
+                                  ItemsSource="{Binding AvailableCerts}"
+                                  SelectedItem="{Binding SelectedCertFileName, Mode=TwoWay}"/>
+                        <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                Padding="14,8" Margin="0,0,8,0" ToolTip="Copy a certificate into the Certificates folder"
+                                Command="{Binding BrowseAndCopyCertCommand}"/>
+                        <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
+                                Padding="10,8"
+                                Command="{Binding ClearGlobalCertCommand}"/>
+                    </Grid>
 
-                <!-- Password -->
-                <TextBlock Text="CERTIFICATE PASSWORD" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <PasswordBox x:Name="CertPasswordBox" Height="36" Margin="0,0,0,14"
-                             PasswordChanged="CertPasswordBox_PasswordChanged"/>
+                    <Border CornerRadius="6" Padding="10,7" Margin="0,0,0,14"
+                            Background="#1A30D158" BorderBrush="{StaticResource AddedBrush}" BorderThickness="1"
+                            Visibility="{Binding HasGlobalCert, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✔  " Foreground="{StaticResource AddedBrush}" FontWeight="SemiBold" FontSize="12"/>
+                            <TextBlock Text="{Binding GlobalCertFileName}"
+                                       Foreground="{StaticResource AddedBrush}" FontWeight="SemiBold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="CERTIFICATE PASSWORD" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <PasswordBox x:Name="CertPasswordBox" Height="36" Margin="0,0,0,14"
+                                 PasswordChanged="CertPasswordBox_PasswordChanged"/>
+                </StackPanel>
+
+                <!-- Windows Store source -->
+                <StackPanel Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}">
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ListBox Grid.Column="0" Height="120" Margin="0,0,8,0"
+                                 ItemsSource="{Binding StoreCertificates}"
+                                 SelectedValue="{Binding SelectedStoreThumbprint, Mode=TwoWay}"
+                                 SelectedValuePath="Thumbprint"
+                                 Background="{StaticResource SurfaceBrush}" BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Subject}" FontSize="12"
+                                                   Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Text="{Binding DisplayName}" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Button Grid.Column="1" Content="Refresh" Style="{StaticResource SecondaryButton}"
+                                Padding="14,8" VerticalAlignment="Top"
+                                Command="{Binding RefreshStoreCertListCommand}"/>
+                    </Grid>
+                </StackPanel>
 
                 <!-- Use globally toggle -->
                 <CheckBox IsChecked="{Binding UseGlobalCert}" Margin="0,0,0,6" FontSize="13">
@@ -94,12 +133,16 @@
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
-                           Margin="0,0,0,16" TextWrapping="Wrap">
+                           Margin="0,0,0,12" TextWrapping="Wrap">
                     <Run Text="Creates a self-signed code-signing certificate and saves it to "/>
                     <Run Text="{Binding CertificateFolderPath, Mode=OneWay}"
                          Foreground="{StaticResource TextBrush}"/>
-                    <Run Text=". The certificate is removed from the Windows store after export — only the PFX file is kept."/>
+                    <Run Text="."/>
                 </TextBlock>
+
+                <CheckBox IsChecked="{Binding KeepInCertStore}" Margin="0,0,0,16" FontSize="13">
+                    Keep in Windows Certificate Store after export
+                </CheckBox>
 
                 <!-- Subject + Friendly Name side by side -->
                 <Grid Margin="0,0,0,10">
@@ -190,12 +233,15 @@
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                <Button Content="Save" Style="{StaticResource SecondaryButton}"
                         Padding="14,8" Margin="0,0,8,0"
-                        Command="{Binding CancelCommand}"/>
-                <Button Content="Save" Style="{StaticResource PrimaryButton}"
-                        Padding="18,8"
                         Command="{Binding SaveCommand}"/>
+                <Button Content="Close" Style="{StaticResource SecondaryButton}"
+                        Padding="14,8" Margin="0,0,8,0"
+                        Command="{Binding CloseCommand}"/>
+                <Button Content="Save and Close" Style="{StaticResource PrimaryButton}"
+                        Padding="18,8"
+                        Command="{Binding SaveAndCloseCommand}"/>
             </StackPanel>
         </Border>
 

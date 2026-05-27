@@ -11,6 +11,14 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="FluentFTP" Version="50.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.8" />
+    <PackageReference Include="PixiEditor.ColorPicker" Version="3.4.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ForgeTekUpdatePackager.Tests\**" />
+    <EmbeddedResource Remove="ForgeTekUpdatePackager.Tests\**" />
+    <None Remove="ForgeTekUpdatePackager.Tests\**" />
   </ItemGroup>
 
 </Project>

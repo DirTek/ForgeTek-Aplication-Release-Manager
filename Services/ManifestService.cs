@@ -4,7 +4,7 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class ManifestService
+public class ManifestService : IManifestService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

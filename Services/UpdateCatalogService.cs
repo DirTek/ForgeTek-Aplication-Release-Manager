@@ -4,7 +4,7 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class UpdateCatalogService
+public class UpdateCatalogService : IUpdateCatalogService
 {
     private static readonly JsonSerializerOptions _writeOptions = new() { WriteIndented = true };
 

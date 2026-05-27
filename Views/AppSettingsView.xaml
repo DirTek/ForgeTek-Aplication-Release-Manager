@@ -86,6 +86,7 @@
                            Margin="0,0,0,6" TextWrapping="Wrap"
                            Visibility="{Binding GlobalCertOverrideInactive, Converter={StaticResource BoolToVisibility}}"/>
 
+                <!-- Default cert path + Windows Store toggle -->
                 <Grid Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -110,11 +111,45 @@
                              IsEnabled="{Binding GlobalCertOverrideInactive}"
                              PasswordChanged="CertPasswordBox_PasswordChanged"/>
 
-                <TextBlock Margin="0,0,0,28" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock Margin="0,0,0,6" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
                            TextWrapping="Wrap">
                     <Run Text="Stored as plain text for now — encryption will be added later.  "/>
                     <Run Text="Leave blank to enter the password manually each time."/>
                 </TextBlock>
+
+                <!-- Windows Store certificate source -->
+                <StackPanel Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
+                    <CheckBox IsChecked="{Binding UseStoreCert}" FontSize="13"
+                              Content="Use certificate from Windows Store"/>
+                    <StackPanel Margin="20,8,0,0"
+                                Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ListBox Grid.Column="0" Height="100" Margin="0,0,8,0"
+                                     ItemsSource="{Binding StoreCertificates}"
+                                     SelectedValue="{Binding SelectedStoreThumbprint, Mode=TwoWay}"
+                                     SelectedValuePath="Thumbprint"
+                                     Background="{StaticResource SurfaceBrush}" BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Subject}" FontSize="12"
+                                                       Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button Grid.Column="1" Content="Refresh" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" VerticalAlignment="Top"
+                                    Command="{Binding RefreshStoreCertListCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
 
                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
 

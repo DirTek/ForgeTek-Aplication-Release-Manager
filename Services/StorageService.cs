@@ -5,9 +5,10 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class StorageService
+public class StorageService : IStorageService
 {
     private readonly string _appsRoot;
+    private readonly ILogService _log;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,9 +21,10 @@ public class StorageService
     private readonly Dictionary<string, string> _folderNames = new();
     private List<AppEntry> _apps = [];
 
-    public StorageService(SettingsService settings)
+    public StorageService(ISettingsService settings, ILogService log)
     {
         _appsRoot = Path.Combine(settings.RootFolder, "apps");
+        _log = log;
         Load();
     }
 
@@ -54,7 +56,7 @@ public class StorageService
                     v.FtpPassword = DecryptOrPassthrough(v.FtpPassword);
                 }
             }
-            catch { }
+            catch (Exception ex) { _log.Write("Storage", $"Failed to load app from {folderName}: {ex.Message}"); }
         }
     }
 
@@ -123,7 +125,8 @@ public class StorageService
         // Serialize to a JSON DOM first, then encrypt credential fields in the DOM.
         // This avoids mutating the live in-memory AppEntry object, which could be
         // observed by the UI between the encrypt and restore steps.
-        var root = JsonNode.Parse(JsonSerializer.Serialize(app, JsonOptions))!.AsObject();
+        var root = JsonNode.Parse(JsonSerializer.Serialize(app, JsonOptions))?.AsObject()
+                    ?? throw new InvalidOperationException("Failed to serialize app entry for storage");
 
         if (root["versions"]?.AsArray() is JsonArray versions)
         {

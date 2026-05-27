@@ -35,121 +35,148 @@
 
             <!-- App list label -->
 
-            <!-- App list -->
-            <ListBox Grid.Row="2" Margin="8,8,8,0"
-                     ItemsSource="{Binding Apps}"
-                     SelectedItem="{Binding SelectedApp}"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ItemContainerStyle="{StaticResource SidebarItemStyle}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Name}" FontSize="13"
-                                       Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+            <!-- Sidebar content -->
+            <Grid Grid.Row="2" Margin="8,8,8,0">
 
-                            <!-- Version display — switches template based on DisplayMode -->
-                            <ContentControl Content="{Binding}" Focusable="False" Margin="0,2,0,0">
-                                <ContentControl.Style>
-                                    <Style TargetType="ContentControl">
+                <!-- App list (main mode) -->
+                <Grid Visibility="{Binding IsNotShowingOptions, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox ItemsSource="{Binding Apps}"
+                             SelectedItem="{Binding SelectedApp}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ItemContainerStyle="{StaticResource SidebarItemStyle}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Rectangle Width="3" Fill="{Binding AccentBrush}"
+                                               RadiusX="1.5" RadiusY="1.5"
+                                               VerticalAlignment="Stretch" Margin="0,0,8,0"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Name}" FontSize="13"
+                                               Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
 
-                                        <!-- Default: Published — show current version -->
-                                        <Setter Property="ContentTemplate">
-                                            <Setter.Value>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding CurrentVersionText}" FontSize="11"
-                                                               Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                </DataTemplate>
-                                            </Setter.Value>
-                                        </Setter>
+                                    <!-- Version display — switches template based on DisplayMode -->
+                                    <ContentControl Content="{Binding}" Focusable="False" Margin="0,2,0,0">
+                                        <ContentControl.Style>
+                                            <Style TargetType="ContentControl">
 
-                                        <Style.Triggers>
-
-                                            <!-- None: no versions yet -->
-                                            <DataTrigger Binding="{Binding DisplayMode}" Value="None">
+                                                <!-- Default: Published — show current version -->
                                                 <Setter Property="ContentTemplate">
                                                     <Setter.Value>
                                                         <DataTemplate>
-                                                            <TextBlock Text="No versions" FontSize="11"
+                                                            <TextBlock Text="{Binding CurrentVersionText}" FontSize="11"
                                                                        Foreground="{StaticResource TextSecondaryBrush}"/>
                                                         </DataTemplate>
                                                     </Setter.Value>
                                                 </Setter>
-                                            </DataTrigger>
 
-                                            <!-- InProgress: 0.1.1 → 0.1.2 (with status color on next) -->
-                                            <DataTrigger Binding="{Binding DisplayMode}" Value="InProgress">
-                                                <Setter Property="ContentTemplate">
-                                                    <Setter.Value>
-                                                        <DataTemplate>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding CurrentVersionText}" FontSize="11"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           Visibility="{Binding HasCurrentVersion, Converter={StaticResource BoolToVisibility}}"/>
-                                                                <TextBlock Text=" → " FontSize="11"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           Visibility="{Binding HasCurrentVersion, Converter={StaticResource BoolToVisibility}}"/>
-                                                                <TextBlock Text="{Binding NextVersionText}" FontSize="11">
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock">
-                                                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                                            <Style.Triggers>
-                                                                                <DataTrigger Binding="{Binding NextVersionStatus}" Value="Signed">
-                                                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-                                                                                </DataTrigger>
-                                                                                <DataTrigger Binding="{Binding NextVersionStatus}" Value="Packed">
-                                                                                    <Setter Property="Foreground" Value="{StaticResource AddedBrush}"/>
-                                                                                </DataTrigger>
-                                                                            </Style.Triggers>
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
+                                                <Style.Triggers>
 
-                                            <!-- Retracted: ~~0.1.2~~ → 0.1.1 -->
-                                            <DataTrigger Binding="{Binding DisplayMode}" Value="Retracted">
-                                                <Setter Property="ContentTemplate">
-                                                    <Setter.Value>
-                                                        <DataTemplate>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <TextBlock Text="{Binding RetractedVersionText}" FontSize="11"
-                                                                           Foreground="{StaticResource RemovedBrush}"
-                                                                           TextDecorations="Strikethrough"/>
-                                                                <TextBlock Text=" → " FontSize="11"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           Visibility="{Binding HasPreviousVersion, Converter={StaticResource BoolToVisibility}}"/>
-                                                                <TextBlock Text="{Binding PreviousVersionText}" FontSize="11"
-                                                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                                                           Visibility="{Binding HasPreviousVersion, Converter={StaticResource BoolToVisibility}}"/>
-                                                            </StackPanel>
-                                                        </DataTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </DataTrigger>
+                                                    <!-- None: no versions yet -->
+                                                    <DataTrigger Binding="{Binding DisplayMode}" Value="None">
+                                                        <Setter Property="ContentTemplate">
+                                                            <Setter.Value>
+                                                                <DataTemplate>
+                                                                    <TextBlock Text="No versions" FontSize="11"
+                                                                               Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                </DataTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
 
-                                        </Style.Triggers>
-                                    </Style>
-                                </ContentControl.Style>
-                            </ContentControl>
+                                                    <!-- InProgress: 0.1.1 → 0.1.2 (with status color on next) -->
+                                                    <DataTrigger Binding="{Binding DisplayMode}" Value="InProgress">
+                                                        <Setter Property="ContentTemplate">
+                                                            <Setter.Value>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock Text="{Binding CurrentVersionText}" FontSize="11"
+                                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                                   Visibility="{Binding HasCurrentVersion, Converter={StaticResource BoolToVisibility}}"/>
+                                                                        <TextBlock Text=" → " FontSize="11"
+                                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                                   Visibility="{Binding HasCurrentVersion, Converter={StaticResource BoolToVisibility}}"/>
+                                                                        <TextBlock Text="{Binding NextVersionText}" FontSize="11">
+                                                                            <TextBlock.Style>
+                                                                                <Style TargetType="TextBlock">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                                                                    <Style.Triggers>
+                                                                                        <DataTrigger Binding="{Binding NextVersionStatus}" Value="Signed">
+                                                                                            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                                                        </DataTrigger>
+                                                                                        <DataTrigger Binding="{Binding NextVersionStatus}" Value="Packed">
+                                                                                            <Setter Property="Foreground" Value="{StaticResource AddedBrush}"/>
+                                                                                        </DataTrigger>
+                                                                                    </Style.Triggers>
+                                                                                </Style>
+                                                                            </TextBlock.Style>
+                                                                        </TextBlock>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
 
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                                                    <!-- Retracted: ~~0.1.2~~ → 0.1.1 -->
+                                                    <DataTrigger Binding="{Binding DisplayMode}" Value="Retracted">
+                                                        <Setter Property="ContentTemplate">
+                                                            <Setter.Value>
+                                                                <DataTemplate>
+                                                                    <StackPanel Orientation="Horizontal">
+                                                                        <TextBlock Text="{Binding RetractedVersionText}" FontSize="11"
+                                                                                   Foreground="{StaticResource RemovedBrush}"
+                                                                                   TextDecorations="Strikethrough"/>
+                                                                        <TextBlock Text=" → " FontSize="11"
+                                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                                   Visibility="{Binding HasPreviousVersion, Converter={StaticResource BoolToVisibility}}"/>
+                                                                        <TextBlock Text="{Binding PreviousVersionText}" FontSize="11"
+                                                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                                                   Visibility="{Binding HasPreviousVersion, Converter={StaticResource BoolToVisibility}}"/>
+                                                                    </StackPanel>
+                                                                </DataTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ContentControl.Style>
+                                    </ContentControl>
+
+                                </StackPanel>
+                            </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+
+                <!-- Options sections (options mode) -->
+                <Grid Visibility="{Binding IsShowingOptions, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="Options" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextBrush}" Margin="4,0,0,8"/>
+                        <Rectangle Height="1" Fill="{StaticResource BorderBrush}"/>
+
+                        <Border Background="#33285080" CornerRadius="6" Padding="12,10" Margin="0,8,0,0">
+                            <TextBlock Text="General Settings" FontSize="12"
+                                       Foreground="{StaticResource TextBrush}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+            </Grid>
 
             <!-- Bottom actions -->
             <StackPanel Grid.Row="3">
                 <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="16,0"/>
-                <Button Content="Options" Style="{StaticResource SecondaryButton}"
-                        Margin="12,8,12,4" Padding="0,10"
-                        Click="Options_Click"/>
-                <Button Content="+ Add Application" Style="{StaticResource PrimaryButton}"
-                        Margin="12,4,12,16" Padding="0,10"
-                        Click="AddApp_Click"/>
+                <StackPanel Visibility="{Binding IsNotShowingOptions, Converter={StaticResource BoolToVisibility}}">
+                    <Button Content="Options" Style="{StaticResource SecondaryButton}"
+                            Margin="12,8,12,4" Padding="0,10"
+                            Click="Options_Click"/>
+                    <Button Content="+ Add Application" Style="{StaticResource PrimaryButton}"
+                            Margin="12,4,12,16" Padding="0,10"
+                            Click="AddApp_Click"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
 

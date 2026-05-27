@@ -8,10 +8,10 @@ namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class ReviseViewModel : ObservableObject
 {
-    private readonly AppEntry _entry;
-    private readonly AppVersion _version;
-    private readonly MainViewModel _main;
-    private readonly Dictionary<string, bool> _originalDebugFlags;
+    private MainViewModel _main = null!;
+    private AppEntry _entry = null!;
+    private AppVersion _version = null!;
+    private Dictionary<string, bool> _originalDebugFlags = [];
 
     public string AppName      => _entry.Name;
     public string VersionNumber => _version.VersionNumber;
@@ -38,7 +38,7 @@ public partial class ReviseViewModel : ObservableObject
     public bool IsFilterNonDebug => DebugFilter == DebugFilter.NonDebug;
     public bool IsFilterDebugOnly => DebugFilter == DebugFilter.DebugOnly;
 
-    public ReviseViewModel(AppEntry entry, AppVersion version, MainViewModel main)
+    public void Initialize(AppEntry entry, AppVersion version, MainViewModel main)
     {
         _entry   = entry;
         _version = version;

@@ -1,50 +1,58 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeTekUpdatePackager.Dialogs;
+using ForgeTekUpdatePackager.Helpers;
 using ForgeTekUpdatePackager.Services;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class GlobalOptionsViewModel : ObservableObject
 {
-    private readonly MainViewModel      _main;
-    private readonly SettingsService    _settings;
-    private readonly CertificateService _certService = new();
-    private readonly BackupService      _backupService = new();
+    private MainViewModel _main = null!;
+    private readonly ISettingsService    _settings;
+    private readonly ICertificateService _certService;
+    private readonly IBackupService      _backupService;
     private CancellationTokenSource?    _cts;
-
-    // ── Global cert settings ───────────────────────────────────────────────
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UseGlobalCertHint))]
     private bool _useGlobalCert;
 
-    /// <summary>
-    /// Filename only (e.g. "MyCert.pfx"). Full path is derived via CertificateFolderPath.
-    /// Null means no certificate is selected.
-    /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGlobalCert))]
     [NotifyPropertyChangedFor(nameof(GlobalCertFileName))]
     [NotifyCanExecuteChangedFor(nameof(ClearGlobalCertCommand))]
     private string? _selectedCertFileName;
 
-    // Stored via PasswordBox code-behind (PasswordBox doesn't support TwoWay binding)
     public string GlobalCertPassword { get; set; } = string.Empty;
 
     public bool   HasGlobalCert     => !string.IsNullOrWhiteSpace(SelectedCertFileName);
     public string GlobalCertFileName => SelectedCertFileName ?? string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStoreCert))]
+    private bool _useStoreCert;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStoreCert))]
+    private string? _selectedStoreThumbprint;
+
+    [ObservableProperty] private bool _keepInCertStore;
+
+    public bool   HasStoreCert => !string.IsNullOrWhiteSpace(SelectedStoreThumbprint);
+
+    public ObservableCollection<StoreCertInfo> StoreCertificates { get; } = [];
 
     public string CertificateFolderPath => Path.Combine(_settings.RootFolder, "Certificates");
 
     public string UseGlobalCertHint => UseGlobalCert
         ? "Signing step will use this certificate for every app — per-app settings are ignored."
         : "Each app uses its own certificate configured in App Settings.";
-
-    // ── Available certificates (dropdown) ─────────────────────────────────
 
     public ObservableCollection<string> AvailableCerts { get; } = [];
 
@@ -56,16 +64,34 @@ public partial class GlobalOptionsViewModel : ObservableObject
         if (Directory.Exists(dir))
             foreach (var file in Directory.GetFiles(dir, "*.pfx")
                                           .Select(Path.GetFileName)
-                                          .Where(f => f is not null)
-                                          .Order()!)
-                AvailableCerts.Add(file!);
+                                          .OfType<string>()
+                                          .Order())
+                AvailableCerts.Add(file);
 
-        // Drop selection if the selected cert no longer exists in the folder
         if (SelectedCertFileName is not null && !AvailableCerts.Contains(SelectedCertFileName))
             SelectedCertFileName = null;
     }
 
-    // ── Certificate generation ─────────────────────────────────────────────
+    private void RefreshStoreCerts()
+    {
+        StoreCertificates.Clear();
+        using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+        try
+        {
+            store.Open(OpenFlags.ReadOnly);
+            foreach (var cert in store.Certificates)
+            {
+                using (cert)
+                    StoreCertificates.Add(StoreCertInfo.FromX509(cert));
+            }
+        }
+        catch { /* store not available — leave list empty */ }
+        store.Close();
+
+        if (SelectedStoreThumbprint is not null &&
+            !StoreCertificates.Any(s => s.Thumbprint == SelectedStoreThumbprint))
+            SelectedStoreThumbprint = null;
+    }
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GenerateCertCommand))]
@@ -73,7 +99,6 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
     [ObservableProperty] private string _friendlyName = string.Empty;
 
-    // Set by code-behind from the PasswordBox
     public string GeneratePassword { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -82,38 +107,39 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
     [ObservableProperty] private bool _hasGenerateLog;
 
-    public ObservableCollection<string> GenerateLog { get; }
+    public ObservableCollection<string> GenerateLog { get; } = [];
 
-    // ── Constructor ────────────────────────────────────────────────────────
-
-    public GlobalOptionsViewModel(MainViewModel main, SettingsService settings)
+    public GlobalOptionsViewModel(ISettingsService settings, ICertificateService certService, IBackupService backupService)
     {
-        _main     = main;
         _settings = settings;
+        _certService = certService;
+        _backupService = backupService;
 
-        GenerateLog = [];
         GenerateLog.CollectionChanged += (_, _) => HasGenerateLog = GenerateLog.Count > 0;
+    }
+
+    public void Initialize(MainViewModel main)
+    {
+        _main = main;
 
         LoadAvailableCerts();
+        RefreshStoreCerts();
 
-        var g = settings.Global;
-        _useGlobalCert     = g.UseGlobalCert;
-        GlobalCertPassword = g.GlobalCertPassword ?? string.Empty;
+        var g = _settings.Global;
+        UseGlobalCert          = g.UseGlobalCert;
+        UseStoreCert           = g.UseStoreCert;
+        GlobalCertPassword     = g.GlobalCertPassword ?? string.Empty;
+        SelectedStoreThumbprint = g.StoreCertThumbprint;
+        KeepInCertStore        = g.KeepInCertStore;
 
-        // Restore selection from saved path
         if (!string.IsNullOrWhiteSpace(g.GlobalCertPath))
         {
             var savedFileName = Path.GetFileName(g.GlobalCertPath);
             if (AvailableCerts.Contains(savedFileName))
-                _selectedCertFileName = savedFileName;
+                SelectedCertFileName = savedFileName;
         }
     }
 
-    // ── Commands ───────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Copies a PFX from anywhere on disk into the Certificates folder and selects it.
-    /// </summary>
     [RelayCommand]
     private void BrowseAndCopyCert()
     {
@@ -152,6 +178,14 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
     private bool CanClearGlobalCert() => SelectedCertFileName is not null;
 
+    [RelayCommand]
+    private void RefreshStoreCertList()
+    {
+        RefreshStoreCerts();
+        if (StoreCertificates.Count > 0 && string.IsNullOrWhiteSpace(SelectedStoreThumbprint))
+            SelectedStoreThumbprint = StoreCertificates[0].Thumbprint;
+    }
+
     [RelayCommand(CanExecute = nameof(CanGenerate))]
     private async Task GenerateCertAsync()
     {
@@ -165,12 +199,11 @@ public partial class GlobalOptionsViewModel : ObservableObject
         {
             var certPath = await _certService.GenerateSelfSignedCertAsync(
                 SubjectName, FriendlyName, GeneratePassword, CertificateFolderPath,
-                progress, _cts.Token);
+                KeepInCertStore, progress, _cts.Token);
 
             GenerateLog.Add(string.Empty);
             GenerateLog.Add($"✔  Saved to: {certPath}");
 
-            // Refresh dropdown and auto-select the new cert
             LoadAvailableCerts();
             SelectedCertFileName = Path.GetFileName(certPath);
             GlobalCertPassword   = GeneratePassword;
@@ -190,18 +223,28 @@ public partial class GlobalOptionsViewModel : ObservableObject
            && !string.IsNullOrWhiteSpace(SubjectName)
            && !string.IsNullOrWhiteSpace(GeneratePassword);
 
-    [RelayCommand]
-    private void Save()
+    private void PersistSettings()
     {
         var g = _settings.Global;
-        g.UseGlobalCert = UseGlobalCert;
+        g.UseGlobalCert      = UseGlobalCert;
+        g.UseStoreCert       = UseStoreCert;
         g.GlobalCertPath = string.IsNullOrWhiteSpace(SelectedCertFileName)
             ? null
             : Path.Combine(CertificateFolderPath, SelectedCertFileName);
         g.GlobalCertPassword = string.IsNullOrWhiteSpace(GlobalCertPassword) ? null : GlobalCertPassword;
+        g.StoreCertThumbprint = string.IsNullOrWhiteSpace(SelectedStoreThumbprint) ? null : SelectedStoreThumbprint;
+        g.KeepInCertStore    = KeepInCertStore;
         _settings.SaveGlobal();
-        GoBack();
     }
+
+    [RelayCommand]
+    private void Save() => PersistSettings();
+
+    [RelayCommand]
+    private void SaveAndClose() { PersistSettings(); GoBack(); }
+
+    [RelayCommand]
+    private void Close() => GoBack();
 
     [RelayCommand]
     private void CreateBackup()
@@ -209,9 +252,6 @@ public partial class GlobalOptionsViewModel : ObservableObject
         new BackupDialog(_backupService, _settings.RootFolder, SettingsService.GlobalSettingsFilePath)
             { Owner = Application.Current.MainWindow }.ShowDialog();
     }
-
-    [RelayCommand]
-    private void Cancel() => GoBack();
 
     private void GoBack()
     {

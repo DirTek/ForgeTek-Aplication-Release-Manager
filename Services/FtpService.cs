@@ -4,7 +4,7 @@ using FluentFTP;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class FtpService
+public class FtpService : IFtpService
 {
     private static AsyncFtpClient CreateClient(string host, int port, string username, string password)
     {
@@ -49,85 +49,92 @@ public class FtpService
             // Do NOT use 'using' — Dispose() sends QUIT and waits for 221, which hangs on
             // servers that never ACK the control channel after a data transfer.
             var client = CreateClient(host, port, username, password);
-
-            await client.AutoConnect(ct);
-            progress.Report($"Connected (mode: {client.Config.EncryptionMode})");
-
-            // Some shared-hosting FTP servers complete the data transfer but never send
-            // the "226 Transfer Complete" ACK on the control channel, hanging indefinitely.
-            using var fileCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            fileCts.CancelAfter(TimeSpan.FromSeconds(60));
-
-            // ── Throttled progress ────────────────────────────────────────────
-            // Progress<T> marshals every callback to the UI thread via Dispatcher.
-            // At ~200+ callbacks/second the dispatcher queue floods and the UI
-            // freezes. We throttle to one UI update per 250 ms maximum.
-            var transferComplete = false;
-            var lastReportTick   = 0L;           // Environment.TickCount64
-            var lastPct          = -1.0;
-
-            var ftpProgress = new Progress<FtpProgress>(p =>
-            {
-                if (p.Progress >= 100) transferComplete = true;
-
-                var now = Environment.TickCount64;
-                // Always report the very first tick, every 250 ms after that,
-                // and the final 100% — skip everything else.
-                var isDue   = (now - lastReportTick) >= 250;
-                var isFinal = p.Progress >= 100 && lastPct < 100;
-                if (!isDue && !isFinal) return;
-
-                lastReportTick = now;
-                lastPct        = p.Progress;
-
-                var speed = p.TransferSpeed > 0 ? $" @ {p.TransferSpeed / 1024.0:F0} KB/s" : "";
-                progress.Report($"  {p.Progress:F1}%{speed}");
-            });
-
-            // Heartbeat: logs every 5 s so the UI never looks completely stuck
-            // during the ACK-wait phase (no FTP progress callbacks fire then).
-            var uploadTask = client.UploadFile(localPath, remotePath,
-                FtpRemoteExists.Overwrite, createRemoteDir: true,
-                progress: ftpProgress, token: fileCts.Token);
-
-            var heartbeatTask = Task.Run(async () =>
-            {
-                while (!fileCts.Token.IsCancellationRequested)
-                {
-                    await Task.Delay(5_000, fileCts.Token).ConfigureAwait(false);
-                    if (fileCts.Token.IsCancellationRequested) break;
-                    progress.Report(transferComplete
-                        ? "  Waiting for server confirmation…"
-                        : "  Uploading…");
-                }
-            }, fileCts.Token);
-
             try
             {
-                var status = await uploadTask;
-                progress.Report(status == FtpStatus.Success
-                    ? $"✔  {name} → {remotePath}"
-                    : $"⚠  {name} uploaded (server returned: {status})");
-            }
-            catch (Exception ex) when (!ct.IsCancellationRequested &&
-                (ex is OperationCanceledException || ex is TimeoutException || ex is IOException))
-            {
-                // Data was fully sent; server just didn't ACK before timeout.
-                progress.Report($"✔  {name} → {remotePath} (ACK timeout — file transferred)");
+                await client.AutoConnect(ct);
+                progress.Report($"Connected (mode: {client.Config.EncryptionMode})");
+
+                // Some shared-hosting FTP servers complete the data transfer but never send
+                // the "226 Transfer Complete" ACK on the control channel, hanging indefinitely.
+                using var fileCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                fileCts.CancelAfter(TimeSpan.FromSeconds(60));
+
+                // ── Throttled progress ────────────────────────────────────────────
+                // Progress<T> marshals every callback to the UI thread via Dispatcher.
+                // At ~200+ callbacks/second the dispatcher queue floods and the UI
+                // freezes. We throttle to one UI update per 250 ms maximum.
+                var transferComplete = false;
+                var lastReportTick   = 0L;           // Environment.TickCount64
+                var lastPct          = -1.0;
+
+                var ftpProgress = new Progress<FtpProgress>(p =>
+                {
+                    if (p.Progress >= 100) transferComplete = true;
+
+                    var now = Environment.TickCount64;
+                    // Always report the very first tick, every 250 ms after that,
+                    // and the final 100% — skip everything else.
+                    var isDue   = (now - lastReportTick) >= 250;
+                    var isFinal = p.Progress >= 100 && lastPct < 100;
+                    if (!isDue && !isFinal) return;
+
+                    lastReportTick = now;
+                    lastPct        = p.Progress;
+
+                    var speed = p.TransferSpeed > 0 ? $" @ {p.TransferSpeed / 1024.0:F0} KB/s" : "";
+                    progress.Report($"  {p.Progress:F1}%{speed}");
+                });
+
+                // Heartbeat: logs every 5 s so the UI never looks completely stuck
+                // during the ACK-wait phase (no FTP progress callbacks fire then).
+                var uploadTask = client.UploadFile(localPath, remotePath,
+                    FtpRemoteExists.Overwrite, createRemoteDir: true,
+                    progress: ftpProgress, token: fileCts.Token);
+
+                var heartbeatTask = Task.Run(async () =>
+                {
+                    while (!fileCts.Token.IsCancellationRequested)
+                    {
+                        await Task.Delay(5_000, fileCts.Token).ConfigureAwait(false);
+                        if (fileCts.Token.IsCancellationRequested) break;
+                        progress.Report(transferComplete
+                            ? "  Waiting for server confirmation…"
+                            : "  Uploading…");
+                    }
+                }, fileCts.Token);
+
+                try
+                {
+                    var status = await uploadTask;
+                    progress.Report(status == FtpStatus.Success
+                        ? $"✔  {name} → {remotePath}"
+                        : $"⚠  {name} uploaded (server returned: {status})");
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested &&
+                    (ex is OperationCanceledException || ex is TimeoutException || ex is IOException))
+                {
+                    // Data was fully sent; server just didn't ACK before timeout.
+                    progress.Report($"✔  {name} → {remotePath} (ACK timeout — file transferred)");
+                }
+                finally
+                {
+                    fileCts.Cancel();
+                    try { await heartbeatTask; } catch { }
+                }
+
+                // Size integrity check — fresh connection so upload client state doesn't matter.
+                if (!ct.IsCancellationRequested)
+                    await VerifyRemoteSizeAsync(localPath, remotePath, host, port, username, password, progress, ct);
+
+                // Disconnect gracefully before dispose to avoid hanging on QUIT ACK.
+                using var disconnectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                disconnectCts.CancelAfter(TimeSpan.FromSeconds(5));
+                try { await client.Disconnect(disconnectCts.Token); } catch { }
             }
             finally
             {
-                fileCts.Cancel();
-                try { await heartbeatTask; } catch { }
+                client.Dispose();
             }
-
-            // Size integrity check — fresh connection so upload client state doesn't matter.
-            if (!ct.IsCancellationRequested)
-                await VerifyRemoteSizeAsync(localPath, remotePath, host, port, username, password, progress, ct);
-
-            // Dispose on a background thread — QUIT can hang on uncooperative servers.
-            var clientToDispose = client;
-            _ = Task.Run(() => { try { clientToDispose.Dispose(); } catch { } });
         }
 
         progress.Report($"[FTP] all files processed");
@@ -165,8 +172,10 @@ public class FtpService
         }
         finally
         {
-            var c = client;
-            _ = Task.Run(() => { try { c.Dispose(); } catch { } });
+            using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            discCts.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await client.Disconnect(discCts.Token); } catch { }
+            client.Dispose();
         }
     }
 
@@ -218,7 +227,10 @@ public class FtpService
         }
         finally
         {
-            _ = Task.Run(() => { try { client.Dispose(); } catch { } });
+            using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            discCts.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await client.Disconnect(discCts.Token); } catch { }
+            client.Dispose();
         }
     }
 
@@ -237,7 +249,10 @@ public class FtpService
         }
         finally
         {
-            _ = Task.Run(() => { try { client.Dispose(); } catch { } });
+            using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            discCts.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await client.Disconnect(discCts.Token); } catch { }
+            client.Dispose();
         }
     }
 

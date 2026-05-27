@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class CertificateService
+public class CertificateService : ICertificateService
 {
     /// <summary>
     /// Generates a self-signed code-signing certificate using PowerShell's
@@ -14,6 +14,7 @@ public class CertificateService
     /// <returns>Full path to the generated .pfx file.</returns>
     public async Task<string> GenerateSelfSignedCertAsync(
         string subject, string friendlyName, string password, string outputFolder,
+        bool keepInStore,
         IProgress<string> progress, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(subject))
@@ -26,7 +27,7 @@ public class CertificateService
         var safeName   = string.Concat(subject.Replace(" ", "_").Split(Path.GetInvalidFileNameChars()));
         var outputPath = Path.Combine(outputFolder, $"{safeName}.pfx");
 
-        var script    = BuildScript(subject, friendlyName, password, outputPath);
+        var script    = BuildScript(subject, friendlyName, password, outputPath, keepInStore);
         var tempScript = Path.ChangeExtension(Path.GetTempFileName(), ".ps1");
         try
         {
@@ -71,14 +72,16 @@ public class CertificateService
         }
     }
 
-    private static string BuildScript(string subject, string friendlyName, string password, string outputPath)
+    private static string BuildScript(string subject, string friendlyName, string password, string outputPath, bool keepInStore)
     {
-        // Single-quoted PS strings: only single-quotes need escaping (doubled).
-        // Backslashes and $ signs are all literal inside single-quoted strings.
         var safeSubject      = Ps(subject);
         var safeFriendly     = Ps(string.IsNullOrWhiteSpace(friendlyName) ? subject : friendlyName);
         var safePassword     = Ps(password);
         var safeOutputPath   = Ps(outputPath);
+
+        var removeStep = keepInStore
+            ? "$null  # keep in store — no removal"
+            : $"Remove-Item -Path \"Cert:\\CurrentUser\\My\\$($cert.Thumbprint)\" -Force";
 
         return $"""
             $ErrorActionPreference = 'Stop'
@@ -92,10 +95,10 @@ public class CertificateService
             $secPwd = ConvertTo-SecureString -String '{safePassword}' -Force -AsPlainText
             Export-PfxCertificate -Cert $cert -FilePath '{safeOutputPath}' -Password $secPwd | Out-Null
             Write-Host 'Certificate exported.'
-            Remove-Item -Path "Cert:\CurrentUser\My\$($cert.Thumbprint)" -Force
-            Write-Host 'Removed from certificate store.'
+            {removeStep}
+            Write-Host 'Done.'
             """;
     }
 
-    private static string Ps(string s) => s.Replace("'", "''");
+    private static string Ps(string s) => s.Replace("'", "''").Replace("`", "``");
 }

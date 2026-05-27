@@ -1,4 +1,9 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
+using ForgeTekUpdatePackager.Helpers;
 using Microsoft.Win32;
 
 namespace ForgeTekUpdatePackager.Dialogs;
@@ -8,18 +13,24 @@ public partial class AddEditAppDialog : Window
     public string AppName         => NameBox.Text.Trim();
     public string AppPath         => PathBox.Text.Trim();
     public string InitialVersion  => VersionBox.Text.Trim();
+    public string AccentColor     { get; private set; } = "#0A84FF";
     public bool   IsNewApp        { get; }
 
-    public AddEditAppDialog(string name = "", string path = "")
+    public AddEditAppDialog(string name = "", string path = "", string accentColor = "#0A84FF")
     {
         InitializeComponent();
         IsNewApp = string.IsNullOrEmpty(name);
+
+        AccentColor = accentColor;
+        ColorPreview.Background = new SolidColorBrush(ParseHex(accentColor));
 
         NameBox.Text = name;
         PathBox.Text = path;
 
         if (!IsNewApp)
         {
+            ExeLabel.Visibility   = Visibility.Collapsed;
+            ExeBox.Visibility     = Visibility.Collapsed;
             VersionLabel.Visibility = Visibility.Collapsed;
             VersionBox.Visibility   = Visibility.Collapsed;
             SaveBtn.Content         = "Save Changes";
@@ -31,7 +42,95 @@ public partial class AddEditAppDialog : Window
     {
         var dlg = new OpenFolderDialog { Title = "Select Application Folder" };
         if (dlg.ShowDialog(this) == true)
+        {
             PathBox.Text = dlg.FolderName;
+            _ = ScanForExesAsync(dlg.FolderName);
+        }
+    }
+
+    private async Task ScanForExesAsync(string folder)
+    {
+        if (!IsNewApp) return;
+
+        ScanProgress.Visibility = Visibility.Visible;
+        ExeBox.IsEnabled        = false;
+        ExeBox.ItemsSource      = null;
+
+        List<string> exes;
+        try
+        {
+            exes = await Task.Run(() =>
+                Directory.EnumerateFiles(folder, "*.exe", SearchOption.AllDirectories)
+                         .Select(f => Path.GetRelativePath(folder, f))
+                         .OrderBy(f => f)
+                         .ToList());
+        }
+        catch (Exception ex)
+        {
+            ScanProgress.Visibility = Visibility.Collapsed;
+            ScanErrorText.Text = $"Scan failed: {ex.Message}";
+            ScanErrorText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        if (exes.Count == 0)
+        {
+            ScanProgress.Visibility = Visibility.Collapsed;
+            ExeBox.IsEnabled        = false;
+            return;
+        }
+
+        ExeBox.ItemsSource = exes;
+
+        if (exes.Count == 1)
+            ExeBox.SelectedIndex = 0;
+
+        ScanProgress.Visibility = Visibility.Collapsed;
+        ExeBox.IsEnabled        = true;
+    }
+
+    private void ExeBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (ExeBox.SelectedItem is not string relativePath) return;
+
+        var fullPath = Path.Combine(PathBox.Text.Trim(), relativePath);
+        try
+        {
+            var version = FileVersionInfo.GetVersionInfo(fullPath).FileVersion;
+            if (!string.IsNullOrWhiteSpace(version))
+                VersionBox.Text = version;
+        }
+        catch
+        {
+            // ignore — keep existing version text
+        }
+    }
+
+    private void ChooseColor_Click(object sender, RoutedEventArgs e)
+    {
+        var initial = ParseHex(AccentColor);
+        var handle = new WindowInteropHelper(this).Handle;
+        var result = NativeColorPicker.PickColor(initial, handle);
+
+        if (result.HasValue)
+        {
+            var c = result.Value;
+            AccentColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+            ColorPreview.Background = new SolidColorBrush(c);
+        }
+    }
+
+    private static Color ParseHex(string hex)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length >= 6)
+        {
+            var r = Convert.ToByte(hex[..2], 16);
+            var g = Convert.ToByte(hex[2..4], 16);
+            var b = Convert.ToByte(hex[4..6], 16);
+            return Color.FromRgb(r, g, b);
+        }
+        return Color.FromRgb(0x0A, 0x84, 0xFF);
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)

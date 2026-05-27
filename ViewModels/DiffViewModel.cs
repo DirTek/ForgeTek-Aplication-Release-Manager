@@ -1,8 +1,6 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -10,15 +8,16 @@ namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class DiffViewModel : ObservableObject
 {
-    private readonly AppEntry _entry;
-    private readonly IReadOnlyList<FileRecord> _scannedFiles;
-    private readonly MainViewModel _main;
-    private readonly StorageService _storage;
-    private readonly AppVersion? _viewingVersion;
+    private MainViewModel _main = null!;
+    private readonly IStorageService _storage;
+    private readonly IDialogService _dialog;
+    private AppEntry _entry = null!;
+    private IReadOnlyList<FileRecord> _scannedFiles = [];
+    private AppVersion? _viewingVersion;
 
-    private readonly string? _detectedExeVersion;
+    private string? _detectedExeVersion;
 
-    public bool IsReadOnly { get; }
+    public bool IsReadOnly { get; private set; }
     public bool IsApprovalMode => !IsReadOnly;
 
     public string AppName => _entry.Name;
@@ -51,10 +50,10 @@ public partial class DiffViewModel : ObservableObject
         }
     }
 
-    public ObservableCollection<FileRecord> Added { get; }
-    public ObservableCollection<FileRecord> Modified { get; }
-    public ObservableCollection<FileRecord> Removed { get; }
-    public ObservableCollection<FileRecord> Unchanged { get; }
+    public ObservableCollection<FileRecord> Added { get; } = [];
+    public ObservableCollection<FileRecord> Modified { get; } = [];
+    public ObservableCollection<FileRecord> Removed { get; } = [];
+    public ObservableCollection<FileRecord> Unchanged { get; } = [];
 
     public string AddedHeader    => $"Added ({Added.Count})";
     public string ModifiedHeader => $"Modified ({Modified.Count})";
@@ -68,23 +67,27 @@ public partial class DiffViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasVersionMismatch))]
     private string _versionNumber = string.Empty;
 
-    public DiffViewModel(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff,
-        MainViewModel main, StorageService storage,
-        bool isReadOnly = false, AppVersion? viewingVersion = null, string? detectedVersion = null)
+    public DiffViewModel(IStorageService storage, IDialogService dialog)
+    {
+        _storage = storage;
+        _dialog = dialog;
+    }
+
+    public void Initialize(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff,
+        MainViewModel main, bool isReadOnly = false, AppVersion? viewingVersion = null, string? detectedVersion = null)
     {
         _entry = entry;
         _scannedFiles = files;
         _main = main;
-        _storage = storage;
         IsReadOnly = isReadOnly;
         _viewingVersion = viewingVersion;
         _detectedExeVersion = detectedVersion;
         VersionNumber = detectedVersion ?? string.Empty;
 
-        Added     = new ObservableCollection<FileRecord>(diff.Added);
-        Modified  = new ObservableCollection<FileRecord>(diff.Modified);
-        Removed   = new ObservableCollection<FileRecord>(diff.Removed);
-        Unchanged = new ObservableCollection<FileRecord>(diff.Unchanged);
+        foreach (var f in diff.Added) Added.Add(f);
+        foreach (var f in diff.Modified) Modified.Add(f);
+        foreach (var f in diff.Removed) Removed.Add(f);
+        foreach (var f in diff.Unchanged) Unchanged.Add(f);
     }
 
     [RelayCommand]
@@ -92,8 +95,7 @@ public partial class DiffViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(VersionNumber))
         {
-            new AlertDialog("Missing Version", "Please enter a version number.")
-                { Owner = Application.Current.MainWindow }.ShowDialog();
+            _dialog.Alert("Missing Version", "Please enter a version number.");
             return;
         }
 
@@ -101,12 +103,9 @@ public partial class DiffViewModel : ObservableObject
 
         if (_entry.Versions.Any(v => v.VersionNumber == trimmed))
         {
-            var warn = new ConfirmDialog(
-                "Duplicate Version",
-                $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
-                "Save Anyway")
-            { Owner = Application.Current.MainWindow };
-            if (warn.ShowDialog() != true) return;
+            if (!_dialog.Confirm("Duplicate Version",
+                    $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
+                    "Save Anyway")) return;
         }
 
         if (_detectedExeVersion is not null &&
@@ -114,14 +113,11 @@ public partial class DiffViewModel : ObservableObject
             Version.TryParse(_detectedExeVersion, out var exeVer) &&
             typedVer > exeVer)
         {
-            var warn = new ConfirmDialog(
-                "Update Loop Risk",
-                $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
-                $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
-                $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
-                "Save Anyway")
-            { Owner = Application.Current.MainWindow };
-            if (warn.ShowDialog() != true) return;
+            if (!_dialog.Confirm("Update Loop Risk",
+                    $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
+                    $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
+                    $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
+                    "Save Anyway")) return;
         }
 
         var prevDebugPaths = _entry.LatestVersion?.Files
@@ -148,7 +144,6 @@ public partial class DiffViewModel : ObservableObject
         _main.NavigateToDetail(_entry);
     }
 
-    // Also used as "Back" in read-only mode
     [RelayCommand]
     private void Cancel() => _main.NavigateToDetail(_entry);
 }

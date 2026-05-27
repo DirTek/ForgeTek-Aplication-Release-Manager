@@ -20,4 +20,8 @@ public class AppSettings
 
     /// <summary>Base HTTP URL for public downloads (e.g. "https://example.com/releases").</summary>
     public string? BaseDownloadUrl { get; set; }
+
+    // Windows Certificate Store
+    public bool    UseStoreCert        { get; set; } = false;
+    public string? StoreCertThumbprint { get; set; }
 }

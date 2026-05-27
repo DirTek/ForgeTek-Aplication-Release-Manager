@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using ForgeTekUpdatePackager.Dialogs;
+using Microsoft.Extensions.DependencyInjection;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -8,75 +8,108 @@ namespace ForgeTekUpdatePackager.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    private readonly StorageService _storage;
-    private readonly ScannerService _scanner;
-    private readonly SigningService _signing;
-    private readonly SettingsService _settings;
-    private readonly LogService _log;
+    private readonly IServiceProvider _services;
+    private readonly IStorageService _storage;
+    private readonly IDialogService _dialog;
     private bool _suppressNav;
 
     [ObservableProperty] private object _currentView = new WelcomeViewModel();
     [ObservableProperty] private AppEntryViewModel? _selectedApp;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotShowingOptions))]
+    private bool _isShowingOptions;
+
+    public bool IsNotShowingOptions => !IsShowingOptions;
+
     public ObservableCollection<AppEntryViewModel> Apps { get; } = [];
 
-    public MainViewModel(StorageService storage, ScannerService scanner, SigningService signing, SettingsService settings, LogService log)
+    public MainViewModel(IServiceProvider services)
     {
-        _storage  = storage;
-        _scanner  = scanner;
-        _signing  = signing;
-        _settings = settings;
-        _log      = log;
+        _services = services;
+        _storage = services.GetRequiredService<IStorageService>();
+        _dialog = services.GetRequiredService<IDialogService>();
         ReloadApps();
     }
 
     partial void OnSelectedAppChanged(AppEntryViewModel? value)
     {
         if (_suppressNav || value is null) return;
-        CurrentView = new AppDetailViewModel(value.Entry, this, _storage, _scanner, _log);
+        var vm = _services.GetRequiredService<AppDetailViewModel>();
+        vm.Initialize(value.Entry, this);
+        CurrentView = vm;
     }
 
     public void AddApp()
     {
-        var dlg = new AddEditAppDialog { Owner = System.Windows.Application.Current.MainWindow };
-        if (dlg.ShowDialog() != true) return;
+        var result = _dialog.ShowAddEditApp();
+        if (result is null) return;
 
-        var entry = new AppEntry { Name = dlg.AppName, FolderPath = dlg.AppPath, InitialVersion = dlg.InitialVersion };
+        var entry = new AppEntry { Name = result.Name, FolderPath = result.Path, InitialVersion = result.InitialVersion, AccentColor = result.AccentColor };
         _storage.Add(entry);
-        SetSelected(entry.Id, () => new AppDetailViewModel(entry, this, _storage, _scanner, _log));
+        NavigateToDetail(entry);
     }
 
     public void NavigateToDetail(AppEntry entry)
     {
+        IsShowingOptions = false;
         _storage.Update(entry);
         var reloaded = _storage.GetById(entry.Id)!;
-        SetSelected(entry.Id, () => new AppDetailViewModel(reloaded, this, _storage, _scanner, _log));
+        var vm = _services.GetRequiredService<AppDetailViewModel>();
+        vm.Initialize(reloaded, this);
+        SetSelected(entry.Id, vm);
     }
 
     public void NavigateToScan(AppEntry entry, IReadOnlyList<FileRecord> files, string? detectedVersion = null)
-        => CurrentView = new ScanViewModel(entry, files, this, _storage, entry.InitialVersion, detectedVersion);
+    {
+        var vm = _services.GetRequiredService<ScanViewModel>();
+        vm.Initialize(entry, files, this, entry.InitialVersion, detectedVersion);
+        CurrentView = vm;
+    }
 
     public void NavigateToDiff(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff, string? detectedVersion = null)
-        => CurrentView = new DiffViewModel(entry, files, diff, this, _storage, detectedVersion: detectedVersion);
+    {
+        var vm = _services.GetRequiredService<DiffViewModel>();
+        vm.Initialize(entry, files, diff, this, detectedVersion: detectedVersion);
+        CurrentView = vm;
+    }
 
     public void NavigateToPackage(AppEntry entry, AppVersion version, PackageStep? startFrom = null)
     {
         _storage.Update(entry);
-        CurrentView = new PackageViewModel(entry, version, this, _storage, _signing, _scanner, _settings, _log, startFrom);
+        var vm = _services.GetRequiredService<PackageViewModel>();
+        vm.Initialize(entry, version, this, startFrom);
+        CurrentView = vm;
     }
 
     public void NavigateToVersionDiff(AppEntry entry, AppVersion version, DiffResult diff)
-        => CurrentView = new DiffViewModel(entry, version.Files, diff, this, _storage,
-               isReadOnly: true, viewingVersion: version);
+    {
+        var vm = _services.GetRequiredService<DiffViewModel>();
+        vm.Initialize(entry, version.Files, diff, this, isReadOnly: true, viewingVersion: version);
+        CurrentView = vm;
+    }
 
     public void NavigateToRevise(AppEntry entry, AppVersion version)
-        => CurrentView = new ReviseViewModel(entry, version, this);
+    {
+        var vm = _services.GetRequiredService<ReviseViewModel>();
+        vm.Initialize(entry, version, this);
+        CurrentView = vm;
+    }
 
     public void NavigateToAppSettings(AppEntry entry)
-        => CurrentView = new AppSettingsViewModel(entry, this, _settings);
+    {
+        var vm = _services.GetRequiredService<AppSettingsViewModel>();
+        vm.Initialize(entry, this);
+        CurrentView = vm;
+    }
 
     public void NavigateToOptions()
-        => CurrentView = new GlobalOptionsViewModel(this, _settings);
+    {
+        IsShowingOptions = true;
+        var vm = _services.GetRequiredService<GlobalOptionsViewModel>();
+        vm.Initialize(this);
+        CurrentView = vm;
+    }
 
     public void RefreshSidebar(AppEntry entry)
     {
@@ -86,6 +119,7 @@ public partial class MainViewModel : ObservableObject
 
     public void NavigateToWelcome()
     {
+        IsShowingOptions = false;
         ReloadApps();
         _suppressNav = true;
         SelectedApp = null;
@@ -93,13 +127,14 @@ public partial class MainViewModel : ObservableObject
         CurrentView = new WelcomeViewModel();
     }
 
-    private void SetSelected(string entryId, Func<object> viewFactory)
+    private void SetSelected(string entryId, object? viewModel = null)
     {
         ReloadApps();
         _suppressNav = true;
         SelectedApp = Apps.FirstOrDefault(a => a.Entry.Id == entryId);
         _suppressNav = false;
-        CurrentView = viewFactory();
+        if (viewModel is not null)
+            CurrentView = viewModel;
     }
 
     private void ReloadApps()

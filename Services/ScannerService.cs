@@ -5,7 +5,7 @@ using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
 
-public class ScannerService
+public class ScannerService : IScannerService
 {
     public IReadOnlyList<FileRecord> ScanDirectory(
         string folderPath,
@@ -89,6 +89,13 @@ public class ScannerService
         }
         catch { return null; }
     }
+
+    // Explicit interface implementations delegate to existing static methods.
+    // Callers using IScannerService go through these; existing static callers are unaffected.
+    string IScannerService.ComputeChecksum(string path) => ComputeChecksum(path);
+    string? IScannerService.DetectExeVersion(string folderPath, string appName) => DetectExeVersion(folderPath, appName);
+    string? IScannerService.ReadExeVersion(string fullPath) => ReadExeVersion(fullPath);
+    IReadOnlyList<string> IScannerService.FindRootExeFiles(string folderPath) => FindRootExeFiles(folderPath);
 
     /// <summary>Returns filenames (not full paths) of all .exe files in the root of the folder.</summary>
     public static IReadOnlyList<string> FindRootExeFiles(string folderPath)
