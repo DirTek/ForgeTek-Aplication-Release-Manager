@@ -73,7 +73,7 @@ public class PackagingService : IPackagingService
         // 2. Build the JSON header
         var header = new PackageHeader
         {
-            App          = entry.Name,
+            AppKey       = entry.Name,
             Version      = version.VersionNumber,
             PackageType  = packageType.ToString().ToLower(),
             CreatedAt    = DateTimeOffset.UtcNow,
@@ -209,7 +209,7 @@ public class PackagingService : IPackagingService
             throw new InvalidDataException($"Header JSON is malformed: {ex.Message}");
         }
 
-        progress.Report($"  ✔  Header: {header.App} v{header.Version} ({header.PackageType}, {header.FileCount} file(s))");
+        progress.Report($"  ✔  Header: {header.AppKey} v{header.Version} ({header.PackageType}, {header.FileCount} file(s))");
 
         // ── 3. SHA-256 (streamed — no full-file allocation) ─────────────────
         fs.Seek(0, SeekOrigin.Begin);
@@ -390,7 +390,7 @@ public class PackagingService : IPackagingService
 
 internal sealed class PackageHeader
 {
-    public string App         { get; set; } = string.Empty;
+    public string AppKey      { get; set; } = string.Empty;
     public string Version     { get; set; } = string.Empty;
     public string PackageType { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }

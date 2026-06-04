@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
-using System.Windows.Interop;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.Helpers;
 using Microsoft.Win32;
 
 namespace ForgeTekUpdatePackager.Dialogs;
@@ -22,7 +21,7 @@ public partial class AddEditAppDialog : Window
         IsNewApp = string.IsNullOrEmpty(name);
 
         AccentColor = accentColor;
-        ColorPreview.Background = new SolidColorBrush(ParseHex(accentColor));
+        ColorPicker.SelectedColor = ParseHex(accentColor);
 
         NameBox.Text = name;
         PathBox.Text = path;
@@ -106,18 +105,29 @@ public partial class AddEditAppDialog : Window
         }
     }
 
+    private void ColorPicker_ColorChanged(object sender, EventArgs e)
+    {
+        var c = ColorPicker.SelectedColor;
+        AccentColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+    }
+
     private void ChooseColor_Click(object sender, RoutedEventArgs e)
     {
-        var initial = ParseHex(AccentColor);
-        var handle = new WindowInteropHelper(this).Handle;
-        var result = NativeColorPicker.PickColor(initial, handle);
+        var toggle = FindVisualChild<ToggleButton>(ColorPicker);
+        if (toggle != null)
+            toggle.IsChecked = true;
+    }
 
-        if (result.HasValue)
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
         {
-            var c = result.Value;
-            AccentColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-            ColorPreview.Background = new SolidColorBrush(c);
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T t) return t;
+            var found = FindVisualChild<T>(child);
+            if (found != null) return found;
         }
+        return null;
     }
 
     private static Color ParseHex(string hex)
