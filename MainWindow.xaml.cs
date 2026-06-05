@@ -16,4 +16,5 @@ public partial class MainWindow : Window
 
     private void AddApp_Click(object sender, RoutedEventArgs e) => _vm.AddApp();
     private void Options_Click(object sender, RoutedEventArgs e) => _vm.NavigateToOptions();
+    private void Setups_Click(object sender, RoutedEventArgs e) => _vm.NavigateToSetups();
 }

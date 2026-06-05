@@ -1,0 +1,19 @@
+namespace ForgeTekUpdatePackager.Models;
+
+public enum VersionMode
+{
+    /// <summary>Include only the latest version's non-debug files.</summary>
+    LatestOnly,
+
+    /// <summary>Include all versions from initial → latest (cumulative merge, newest file wins).</summary>
+    Cumulative,
+}
+
+public class SetupAppRef
+{
+    public string AppId { get; set; } = string.Empty;
+    public VersionMode VersionMode { get; set; } = VersionMode.Cumulative;
+    public string? LaunchExeName { get; set; }
+    public string? SetupIconPath { get; set; }
+    public List<RegistryEntry> RegistryEntries { get; set; } = [];
+}

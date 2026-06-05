@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- WinExe so no console window flashes; the UI is just Win32 message boxes. -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SetupUninstaller</AssemblyName>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <!-- Native AOT: produces a small (~3 MB) normal PE with NO appended bundle overlay, so a
+         per-app icon can be safely injected into each installed copy (unlike the single-file
+         bootstrapper, whose overlay icon injection would strip). -->
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <EventSourceSupport>false</EventSourceSupport>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <StackTraceSupport>false</StackTraceSupport>
+  </PropertyGroup>
+
+</Project>

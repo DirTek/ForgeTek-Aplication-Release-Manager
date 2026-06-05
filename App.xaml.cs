@@ -34,6 +34,10 @@ public partial class App : Application
         services.AddTransient<IBackupService, BackupService>();
         services.AddTransient<IChangelogService, ChangelogService>();
 
+        // Setup services
+        services.AddSingleton<ISetupStorageService, SetupStorageService>();
+        services.AddTransient<ISetupService, SetupService>();
+
         // ViewModels
         services.AddTransient<MainViewModel>();
         services.AddTransient<AppDetailViewModel>();
@@ -43,6 +47,7 @@ public partial class App : Application
         services.AddTransient<ReviseViewModel>();
         services.AddTransient<AppSettingsViewModel>();
         services.AddTransient<GlobalOptionsViewModel>();
+        services.AddTransient<SetupViewModel>();
 
         _services = services.BuildServiceProvider();
 

@@ -24,6 +24,21 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="28,24,28,0">
 
+                <!-- ══ COMPANY NAME ═══════════════════════════════════════════ -->
+                <TextBlock Text="COMPANY NAME" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,0,0,8" TextWrapping="Wrap">
+                    Used as the publisher name in Add/Remove Programs and as the parent folder under Program Files.
+                </TextBlock>
+
+                <TextBox Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}"
+                         Height="36" Margin="0,0,0,28"
+                         ToolTip="e.g. Contoso Inc."/>
+
+                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+
                 <!-- ══ GLOBAL SIGNING CERTIFICATE ══════════════════════════════ -->
                 <TextBlock Text="GLOBAL SIGNING CERTIFICATE" FontSize="10" FontWeight="SemiBold"
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>

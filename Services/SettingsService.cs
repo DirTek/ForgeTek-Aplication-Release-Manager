@@ -44,6 +44,7 @@ public class SettingsService : ISettingsService
         var storable = new GlobalSettings
         {
             RootFolder         = Global.RootFolder,
+            CompanyName        = Global.CompanyName,
             UseGlobalCert      = Global.UseGlobalCert,
             GlobalCertPath     = Global.GlobalCertPath,
             GlobalCertPassword = DpapiService.Protect(Global.GlobalCertPassword),

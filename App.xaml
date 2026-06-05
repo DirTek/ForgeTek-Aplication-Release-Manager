@@ -466,6 +466,9 @@
         <DataTemplate DataType="{x:Type vm:ReviseViewModel}">
             <views:ReviseView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SetupViewModel}">
+            <views:SetupListView/>
+        </DataTemplate>
 
         <!-- ══ TREE VIEW ITEM STYLE ═══════════════════════════════════ -->
         <Style x:Key="TreeViewExpanderStyle" TargetType="ToggleButton">

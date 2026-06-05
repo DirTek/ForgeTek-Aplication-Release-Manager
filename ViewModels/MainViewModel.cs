@@ -18,9 +18,18 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotShowingOptions))]
+    [NotifyPropertyChangedFor(nameof(IsNotShowingSetups))]
+    [NotifyPropertyChangedFor(nameof(ShowBottomButtons))]
     private bool _isShowingOptions;
 
-    public bool IsNotShowingOptions => !IsShowingOptions;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotShowingSetups))]
+    [NotifyPropertyChangedFor(nameof(IsNotShowingOptions))]
+    private bool _isShowingSetups;
+
+    public bool IsNotShowingOptions => !IsShowingOptions && !IsShowingSetups;
+    public bool IsNotShowingSetups => !IsShowingSetups;
+    public bool ShowBottomButtons => !IsShowingOptions;
 
     public ObservableCollection<AppEntryViewModel> Apps { get; } = [];
 
@@ -53,6 +62,7 @@ public partial class MainViewModel : ObservableObject
     public void NavigateToDetail(AppEntry entry)
     {
         IsShowingOptions = false;
+        IsShowingSetups = false;
         _storage.Update(entry);
         var reloaded = _storage.GetById(entry.Id)!;
         var vm = _services.GetRequiredService<AppDetailViewModel>();
@@ -103,10 +113,28 @@ public partial class MainViewModel : ObservableObject
         CurrentView = vm;
     }
 
+    partial void OnIsShowingOptionsChanged(bool value)
+    {
+        if (value) IsShowingSetups = false;
+    }
+
+    partial void OnIsShowingSetupsChanged(bool value)
+    {
+        if (value) IsShowingOptions = false;
+    }
+
     public void NavigateToOptions()
     {
         IsShowingOptions = true;
         var vm = _services.GetRequiredService<GlobalOptionsViewModel>();
+        vm.Initialize(this);
+        CurrentView = vm;
+    }
+
+    public void NavigateToSetups()
+    {
+        IsShowingSetups = true;
+        var vm = _services.GetRequiredService<SetupViewModel>();
         vm.Initialize(this);
         CurrentView = vm;
     }
@@ -120,6 +148,7 @@ public partial class MainViewModel : ObservableObject
     public void NavigateToWelcome()
     {
         IsShowingOptions = false;
+        IsShowingSetups = false;
         ReloadApps();
         _suppressNav = true;
         SelectedApp = null;

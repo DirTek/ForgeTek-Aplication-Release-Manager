@@ -17,8 +17,39 @@
 
   <ItemGroup>
     <Compile Remove="ForgeTekUpdatePackager.Tests\**" />
+    <Compile Remove="SetupBootstrapper\**" />
+    <Compile Remove="SetupUninstaller\**" />
     <EmbeddedResource Remove="ForgeTekUpdatePackager.Tests\**" />
+    <EmbeddedResource Remove="SetupBootstrapper\**" />
+    <EmbeddedResource Remove="SetupUninstaller\**" />
     <None Remove="ForgeTekUpdatePackager.Tests\**" />
+    <None Remove="SetupBootstrapper\**" />
+    <None Remove="SetupUninstaller\**" />
+    <Page Remove="SetupBootstrapper\**" />
+    <Page Remove="SetupUninstaller\**" />
+    <ApplicationDefinition Remove="SetupBootstrapper\**" />
+    <ApplicationDefinition Remove="SetupUninstaller\**" />
   </ItemGroup>
 
+  <Target Name="PublishSetupBootstrapper" AfterTargets="Build" Condition="'$(Configuration)' != ''">
+    <MSBuild Projects="SetupBootstrapper\SetupBootstrapper.csproj" Targets="Publish"
+             Properties="Configuration=$(Configuration);
+                         RuntimeIdentifier=win-x64;
+                         SelfContained=true;
+                         PublishSingleFile=true;
+                         IncludeNativeLibrariesForSelfExtract=true;
+                         PublishDir=$(OutputPath)SetupBootstrapper\" />
+  </Target>
+
+  <!-- Publishes the small native (AOT) per-app uninstaller via a SEPARATE process so a failure
+       (e.g. the C++ AOT toolchain isn't installed yet) is just console text, not a build error —
+       the main build still succeeds and the generator falls back to a single shared uninstaller.
+       Incremental: dotnet publish skips the AOT compile when the source is unchanged. -->
+  <Target Name="PublishSetupUninstaller" AfterTargets="Build" Condition="'$(Configuration)' != ''">
+    <!-- Prepend the VS Installer dir so the AOT ILCompiler can run vswhere.exe to locate MSVC.
+         Without it, AOT linking fails with "'vswhere.exe' is not recognized". -->
+    <Exec Command="set &quot;PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer&quot; &amp;&amp; dotnet publish &quot;$(MSBuildProjectDirectory)\SetupUninstaller\SetupUninstaller.csproj&quot; -c $(Configuration) -r win-x64 -o &quot;$(OutputPath)SetupUninstaller&quot; --nologo"
+          ContinueOnError="true"
+          IgnoreExitCode="true" />
+  </Target>
 </Project>

@@ -1,0 +1,598 @@
+<UserControl x:Class="ForgeTekUpdatePackager.Views.SetupListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
+             xmlns:models="clr-namespace:ForgeTekUpdatePackager.Models"
+             Background="{StaticResource BackgroundBrush}">
+    <Grid Margin="32">
+
+        <!-- ══ LIST VIEW ═══════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding ShowList, Converter={StaticResource BoolToVisibility}}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Setup Bundles" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                        <Button Content="← Back" Style="{StaticResource SecondaryButton}"
+                                Padding="14,6" Margin="16,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding CloseSetupsCommand}"/>
+                    </StackPanel>
+                    <TextBlock Text="Create and generate Windows installers for one or more apps."
+                               FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+                <Button Content="+ New Setup" Style="{StaticResource PrimaryButton}"
+                        Padding="20,10" Margin="24,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding NewSetupCommand}"/>
+            </StackPanel>
+
+            <!-- Empty state -->
+            <StackPanel Grid.Row="1"
+                        Visibility="{Binding Bundles.Count, Converter={StaticResource ZeroToVisible}}"
+                        Margin="0,40,0,0">
+                <TextBlock Text="No setup bundles yet." FontSize="14"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Click '+ New Setup' to create your first installer."
+                           FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Bundle list -->
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Generating banner -->
+                    <Border Background="#33285080" CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                            Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding GenerationMessage}" FontSize="13"
+                                       Foreground="{StaticResource TextBrush}" Margin="0,0,0,10"/>
+                            <ProgressBar Value="{Binding GenerationPercent}" Height="6"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding Bundles}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:SetupBundle}">
+                            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="8"
+                                    Padding="16" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextBrush}"/>
+                                        <TextBlock Margin="0,4,0,0" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}">
+                                            <Run Text="{Binding Apps.Count, Mode=OneWay, StringFormat='{}{0} app(s)'}"/>
+                                            <Run Text=" • "/>
+                                            <Run Text="{Binding CreatedDate, StringFormat='Created: {}{0:yyyy-MM-dd}'}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding LastGeneratedDate, StringFormat=' • Generated: {}{0:yyyy-MM-dd HH:mm}'}"
+                                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                                   Visibility="{Binding LastGeneratedDate, Converter={StaticResource BoolToVisibility}}"/>
+                                        <TextBlock Text="{Binding LastGeneratedPath}" FontSize="11"
+                                                   Foreground="{StaticResource AddedBrush}"
+                                                   Visibility="{Binding LastGeneratedPath, Converter={StaticResource BoolToVisibility}}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <Button Content="Generate" Style="{StaticResource PrimaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                Command="{Binding DataContext.GenerateSetupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Edit" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                Command="{Binding DataContext.EditSetupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Delete" Style="{StaticResource DangerButton}"
+                                                Padding="16,8"
+                                                Command="{Binding DataContext.DeleteSetupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ══ EDIT VIEW ════════════════════════════════════════════════ -->
+        <Grid Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <StackPanel Grid.Row="0" Margin="0,0,0,24">
+                <TextBlock Text="Setup Bundle" FontSize="22" FontWeight="Bold"
+                           Foreground="{StaticResource TextBrush}"/>
+                <TextBlock Text="Configure which apps to include and how to package them."
+                           FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Form -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+
+                    <!-- Name -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Setup Name" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="e.g. STLVerse Suite 1.0"/>
+                    </StackPanel>
+
+                    <!-- Version -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Setup Version" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding EditVersion, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Leave empty to auto-generate (e.g. 2026.0512.1830)"/>
+                    </StackPanel>
+
+                    <!-- Output Folder -->
+                    <StackPanel Margin="0,0,0,24">
+                        <TextBlock Text="Output Folder" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding EditOutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Where to save the generated Setup.exe"
+                                     Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" Content="Browse…"
+                                    Style="{StaticResource SecondaryButton}" Padding="16,8"
+                                    Command="{Binding BrowseOutputFolderCommand}"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- App Selection -->
+                    <TextBlock Text="Applications to Include" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,12"/>
+
+                    <ItemsControl ItemsSource="{Binding AvailableApps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:SetupBundleAppItem}">
+                                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                                        Padding="12,10" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <CheckBox Grid.Row="0" Grid.Column="0"
+                                                  IsChecked="{Binding IsSelected}"
+                                                  VerticalAlignment="Center"/>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AppName}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+
+                                        <ComboBox Grid.Row="0" Grid.Column="2" MinWidth="160"
+                                                  SelectedIndex="{Binding VersionModeIndex}"
+                                                  VerticalAlignment="Center"
+                                                  IsEnabled="{Binding IsSelected}">
+                                            <ComboBoxItem Content="Latest only"/>
+                                            <ComboBoxItem Content="Cumulative (all versions)"/>
+                                        </ComboBox>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                                    Orientation="Horizontal" Margin="12,6,0,0"
+                                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="App Icon:" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <ComboBox MinWidth="160" IsEditable="False"
+                                                      ItemsSource="{Binding AvailableIcons}"
+                                                      SelectedItem="{Binding SetupIcon}"
+                                                      FontSize="11" Padding="4,2"/>
+                                            <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                                    Padding="10,2" Margin="6,0,0,0" FontSize="10"
+                                                    Command="{Binding DataContext.BrowseSetupIconCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+
+                                        <!-- Row 3: Registry entries -->
+                                        <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
+                                                Background="#1A285080" CornerRadius="4" Padding="10,8"
+                                                Margin="0,6,0,0"
+                                                Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="Registry Entries" FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextBrush}" VerticalAlignment="Center"/>
+                                                    <Button Content="+ Add" Style="{StaticResource SecondaryButton}"
+                                                            Padding="10,2" Margin="12,0,0,0" FontSize="10"
+                                                            Command="{Binding DataContext.AddRegistryEntryCommand,
+                                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </StackPanel>
+
+                                                <ItemsControl ItemsSource="{Binding RegistryEntries}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type vm:RegistryItem}">
+                                                            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="3"
+                                                                    Padding="8,6" Margin="0,0,0,4">
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                        <RowDefinition Height="Auto"/>
+                                                                    </Grid.RowDefinitions>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <!-- Row 0: Root + KeyPath + Remove -->
+                                                                    <ComboBox Grid.Row="0" Grid.Column="0" MinWidth="60"
+                                                                              SelectedItem="{Binding Root}"
+                                                                              FontSize="10" Padding="4,2" Margin="0,0,4,0">
+                                                                        <ComboBoxItem Content="HKCU"/>
+                                                                        <ComboBoxItem Content="HKLM"/>
+                                                                        <ComboBoxItem Content="HKCR"/>
+                                                                    </ComboBox>
+                                                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding KeyPath, UpdateSourceTrigger=PropertyChanged}"
+                                                                             FontSize="10" Padding="4,2" Margin="0,0,4,0"
+                                                                             ToolTip="e.g. SOFTWARE\ForgeTek\MyApp"/>
+                                                                    <Button Grid.Row="0" Grid.Column="2" Content="X"
+                                                                            Style="{StaticResource DangerButton}"
+                                                                            Padding="6,1" FontSize="10"
+                                                                            Command="{Binding DataContext.RemoveRegistryEntryCommand,
+                                                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                            CommandParameter="{Binding}"/>
+
+                                                                    <!-- Row 1: ValueName + ValueData + ValueKind -->
+                                                                    <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ValueName, UpdateSourceTrigger=PropertyChanged}"
+                                                                             FontSize="10" Padding="4,2" Margin="0,4,4,0"
+                                                                             ToolTip="Value name"/>
+                                                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ValueData, UpdateSourceTrigger=PropertyChanged}"
+                                                                             FontSize="10" Padding="4,2" Margin="0,4,4,0"
+                                                                             ToolTip="Value data. Use [InstallDir] for the app's install path"/>
+                                                                    <ComboBox Grid.Row="1" Grid.Column="2" MinWidth="60"
+                                                                              SelectedItem="{Binding ValueKind}"
+                                                                              FontSize="10" Padding="4,2" Margin="0,4,0,0">
+                                                                        <ComboBoxItem Content="String"/>
+                                                                        <ComboBoxItem Content="ExpandString"/>
+                                                                        <ComboBoxItem Content="DWord"/>
+                                                                        <ComboBoxItem Content="QWord"/>
+                                                                    </ComboBox>
+
+                                                                    <!-- Row 2: pick the app's exe to fill ValueData with [InstallDir]\<exe> -->
+                                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Exe:" FontSize="10"
+                                                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                                                               VerticalAlignment="Center" Margin="0,4,4,0"/>
+                                                                    <ComboBox Grid.Row="2" Grid.Column="1" FontSize="10"
+                                                                              Padding="4,2" Margin="0,4,4,0"
+                                                                              ItemsSource="{Binding DataContext.AppExes,
+                                                                                  RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
+                                                                              SelectedItem="{Binding ExeName}"
+                                                                              ToolTip="Pick the app's exe to fill the value with [InstallDir]\&lt;exe&gt;"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- ══ REDISTRIBUTABLES ═══════════════════════════════════ -->
+                    <!-- ══ SIGNING ══════════════════════════════════════════ -->
+                    <TextBlock Text="Code Signing" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,24,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <CheckBox Content="Sign the setup executable"
+                                      IsChecked="{Binding EditSignOutput}"
+                                      FontSize="13" Foreground="{StaticResource TextBrush}"/>
+                            <TextBlock Text="{Binding SigningConfigInfo}"
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       Margin="24,6,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ══ LICENSE AGREEMENT (EULA) ═══════════════════════════════ -->
+                    <TextBlock Text="License Agreement" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,24,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8">
+                                The EULA text shown to users during setup. Leave blank for a default license agreement.
+                            </TextBlock>
+                            <TextBox Text="{Binding EditEulaText, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" TextWrapping="Wrap"
+                                     MinHeight="120" MaxHeight="240"
+                                     FontSize="11" FontFamily="Consolas"
+                                     VerticalScrollBarVisibility="Auto"
+                                     Padding="8,6"/>
+                            <Button Content="Reset to default" Style="{StaticResource SecondaryButton}"
+                                    Padding="12,4" Margin="0,8,0,0" FontSize="11"
+                                    Command="{Binding ResetEulaTextCommand}" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ══ BANNER IMAGE ═══════════════════════════════════════ -->
+                    <TextBlock Text="Setup Banner" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                     Text="{Binding EditBannerImage, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Path to a PNG or JPG image (recommended width: 660px)"
+                                     FontSize="11" Padding="8,6" Margin="0,0,0,8"/>
+
+                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6" FontSize="11"
+                                        Command="{Binding BrowseBannerImageCommand}"/>
+                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6" Margin="8,0,0,0" FontSize="11"
+                                        Visibility="{Binding EditBannerImage, Converter={StaticResource BoolToVisibility}}"
+                                        Command="{Binding ClearBannerImageCommand}"/>
+                            </StackPanel>
+
+                            <Border Grid.Row="1" Grid.Column="1" Width="128" Height="48"
+                                    Background="#1A285080" CornerRadius="4"
+                                    Visibility="{Binding EditBannerImage, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Text="Preview"
+                                           FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- ══ SETUP ICON ═════════════════════════════════════════ -->
+                    <TextBlock Text="Setup Icon" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <TextBlock Text="Icon (.ico or .exe) shown on the generated setup file. Leave empty to use the first app's icon."
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBox Text="{Binding EditSetupIcon, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Path to an .ico or .exe whose icon will be used for the setup"
+                                     FontSize="11" Padding="8,6" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6" FontSize="11"
+                                        Command="{Binding BrowseBundleSetupIconCommand}"/>
+                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6" Margin="8,0,0,0" FontSize="11"
+                                        Visibility="{Binding EditSetupIcon, Converter={StaticResource BoolToVisibility}}"
+                                        Command="{Binding ClearBundleSetupIconCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ══ LAUNCH ON FINISH ═══════════════════════════════════ -->
+                    <TextBlock Text="Launch on Finish" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <TextBlock Text="Which app and exe the setup offers to launch on its final page (optional)."
+                                       FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ComboBox Width="200" FontSize="11"
+                                          ItemsSource="{Binding AvailableApps}"
+                                          SelectedItem="{Binding EditLaunchApp, Mode=TwoWay}"
+                                          ToolTip="App to launch">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding AppName}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <ComboBox Width="180" FontSize="11" Margin="8,0,0,0"
+                                          ItemsSource="{Binding EditLaunchApp.AppExes}"
+                                          SelectedItem="{Binding EditLaunchExe, Mode=TwoWay}"
+                                          ToolTip="Exe to launch (required when an app is chosen)"/>
+                                <Button Content="None" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6" Margin="8,0,0,0" FontSize="11"
+                                        Command="{Binding ClearLaunchAppCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ══ REDISTRIBUTABLES ═══════════════════════════════════ -->
+                    <TextBlock Text="Redistributables" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,24,0,8"/>
+
+                    <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                               Margin="0,0,0,12" TextWrapping="Wrap">
+                        Bundled runtimes and prerequisites. The bootstrapper checks the registry and auto-installs missing items.
+                    </TextBlock>
+
+                    <!-- Presets -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <Button Content="+ VC++ 2015-2022" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="11"
+                                Command="{Binding SetRedistPresetCommand}"
+                                CommandParameter="vc2015-2022"/>
+                        <Button Content="+ VC++ 2013" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="11"
+                                Command="{Binding SetRedistPresetCommand}"
+                                CommandParameter="vc2013"/>
+                        <Button Content="+ .NET 6.0" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="11"
+                                Command="{Binding SetRedistPresetCommand}"
+                                CommandParameter="dotnet6"/>
+                        <Button Content="+ .NET 8.0" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="11"
+                                Command="{Binding SetRedistPresetCommand}"
+                                CommandParameter="dotnet8"/>
+                        <Button Content="+ .NET 10.0" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" Margin="0,0,6,0" FontSize="11"
+                                Command="{Binding SetRedistPresetCommand}"
+                                CommandParameter="dotnet10"/>
+                        <Button Content="+ Custom" Style="{StaticResource SecondaryButton}"
+                                Padding="12,6" FontSize="11"
+                                Command="{Binding AddRedistCommand}"/>
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding WorkingRedists}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:RedistItem}">
+                                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                                        Padding="12,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Row 0: Name + Remove -->
+                                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                                   Text="{Binding Name, TargetNullValue='(unnamed)'}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Grid.Row="0" Grid.Column="1" Content="X"
+                                                Style="{StaticResource DangerButton}"
+                                                Padding="8,2" FontSize="11"
+                                                Command="{Binding DataContext.RemoveRedistCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+
+                                        <!-- Row 1: Source path + Browse -->
+                                        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="EXE:" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBox Grid.Column="1" Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="11" Padding="6,4"/>
+                                            <Button Grid.Column="2" Content="Browse…"
+                                                    Style="{StaticResource SecondaryButton}"
+                                                    Padding="10,4" Margin="6,0,0,0" FontSize="11"
+                                                    Command="{Binding DataContext.BrowseRedistExeCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </Grid>
+
+                                        <!-- Row 2: Details expander -->
+                                        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Background="#1A285080" CornerRadius="4" Padding="10,8">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Args:" FontSize="10"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
+                                                         FontSize="10" Padding="4,2" Margin="0,0,12,0"/>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Key:" FontSize="10"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DetectionKeyPath, UpdateSourceTrigger=PropertyChanged}"
+                                                         FontSize="10" Padding="4,2" ToolTip="Registry path under HKLM"/>
+
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Val:" FontSize="10"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DetectionValueName, UpdateSourceTrigger=PropertyChanged}"
+                                                         FontSize="10" Padding="4,2" Margin="0,4,12,0"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Exp:" FontSize="10"
+                                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                                                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DetectionExpectedValue, UpdateSourceTrigger=PropertyChanged}"
+                                                         FontSize="10" Padding="4,2" Margin="0,4,0,0"/>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,16,0,0">
+                <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                        Padding="20,10" Margin="0,0,8,0"
+                        Command="{Binding GoToListCommand}"/>
+                <Button Content="Save Bundle" Style="{StaticResource PrimaryButton}"
+                        Padding="20,10"
+                        Command="{Binding SaveSetupCommand}"/>
+            </StackPanel>
+        </Grid>
+
+    </Grid>
+</UserControl>

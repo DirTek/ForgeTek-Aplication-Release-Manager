@@ -19,6 +19,8 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private readonly IBackupService      _backupService;
     private CancellationTokenSource?    _cts;
 
+    [ObservableProperty] private string _companyName = string.Empty;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UseGlobalCertHint))]
     private bool _useGlobalCert;
@@ -126,6 +128,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
         RefreshStoreCerts();
 
         var g = _settings.Global;
+        CompanyName            = g.CompanyName;
         UseGlobalCert          = g.UseGlobalCert;
         UseStoreCert           = g.UseStoreCert;
         GlobalCertPassword     = g.GlobalCertPassword ?? string.Empty;
@@ -226,6 +229,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private void PersistSettings()
     {
         var g = _settings.Global;
+        g.CompanyName        = CompanyName;
         g.UseGlobalCert      = UseGlobalCert;
         g.UseStoreCert       = UseStoreCert;
         g.GlobalCertPath = string.IsNullOrWhiteSpace(SelectedCertFileName)
