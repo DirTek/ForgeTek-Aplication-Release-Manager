@@ -152,6 +152,20 @@ public partial class App : System.Windows.Application
                 catch { }
             }
 
+            // Remove any "run as admin" AppCompatFlags Layers values this app added.
+            if (log is { LayersEntries.Count: > 0 })
+            {
+                try
+                {
+                    using var k = Registry.LocalMachine.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers", writable: true);
+                    if (k is not null)
+                        foreach (var v in log.LayersEntries)
+                            try { k.DeleteValue(v, throwOnMissingValue: false); } catch { }
+                }
+                catch { }
+            }
+
             // If this was the last app sharing the install root, remove the shared Uninstall.exe
             // (the running process) and the now-empty root after we exit.
             if (log is not null && !string.IsNullOrWhiteSpace(log.RootDir)
@@ -232,4 +246,5 @@ internal sealed class InstallLog
     public string? RootDir { get; set; }
     public string? AppDir { get; set; }
     public string? SharedUninstallerPath { get; set; }
+    public List<string> LayersEntries { get; set; } = [];
 }

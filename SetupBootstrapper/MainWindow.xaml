@@ -86,6 +86,11 @@
                         <TextBox x:Name="InstallPathBox" Grid.Column="0"
                                  Text="" FontSize="13"
                                  IsReadOnly="False"
+                                 Background="{StaticResource SurfaceBrush}"
+                                 Foreground="#D0D0D0"
+                                 CaretBrush="#D0D0D0"
+                                 BorderBrush="{StaticResource BorderBrush}"
+                                 BorderThickness="1"
                                  Padding="10,8" Margin="0,0,8,0"/>
                         <Button Grid.Column="1" Content="Browse…"
                                 Style="{StaticResource SecondaryButton}"
@@ -115,6 +120,11 @@
                                                        FontSize="11"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
                                                        Margin="0,2,0,0"/>
+                                            <CheckBox IsChecked="{Binding CreateShortcut}"
+                                                      Content="Create desktop shortcut"
+                                                      FontSize="11"
+                                                      Foreground="{StaticResource TextSecondaryBrush}"
+                                                      Margin="0,4,0,0"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

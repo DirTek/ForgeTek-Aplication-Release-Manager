@@ -3,7 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
              xmlns:models="clr-namespace:ForgeTekUpdatePackager.Models"
+             xmlns:colorpicker="clr-namespace:ColorPicker;assembly=ColorPicker"
              Background="{StaticResource BackgroundBrush}">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ColorPicker;component/Styles/DefaultColorPickerStyle.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <Grid Margin="32">
 
         <!-- ══ LIST VIEW ═══════════════════════════════════════════════ -->
@@ -208,6 +216,26 @@
                                             <ComboBoxItem Content="Cumulative (all versions)"/>
                                         </ComboBox>
 
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
+                                                    Orientation="Horizontal" Margin="12,6,0,0"
+                                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="Run as admin:" FontSize="11"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <ItemsControl ItemsSource="{Binding AdminExes}" VerticalAlignment="Center">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Name}" IsChecked="{Binding IsAdmin}"
+                                                                  Foreground="{StaticResource TextBrush}" FontSize="11"
+                                                                  Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+
                                         <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                                     Orientation="Horizontal" Margin="12,6,0,0"
                                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
@@ -223,6 +251,11 @@
                                                     Command="{Binding DataContext.BrowseSetupIconCommand,
                                                         RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
+                                            <CheckBox IsChecked="{Binding CreateShortcut}"
+                                                      Content="Desktop shortcut"
+                                                      FontSize="11" Margin="16,0,0,0"
+                                                      Foreground="{StaticResource TextSecondaryBrush}"
+                                                      VerticalAlignment="Center"/>
                                         </StackPanel>
 
                                         <!-- Row 3: Registry entries -->
@@ -394,6 +427,77 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                         </Grid>
+                    </Border>
+
+                    <!-- ══ SETUP APPEARANCE ════════════════════════════════════ -->
+                    <TextBlock Text="Setup Appearance" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="Background:" FontSize="12" Width="80"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <ComboBox Width="150" FontSize="11"
+                                          ItemsSource="{Binding BackgroundModes}"
+                                          SelectedItem="{Binding EditBackgroundMode}"/>
+                            </StackPanel>
+
+                            <!-- Solid / gradient start color -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                        Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Solid,Gradient'}">
+                                <TextBlock Text="Color:" FontSize="12" Width="80"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditBgColor1, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditBgColor1, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Gradient end color -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                        Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Gradient'}">
+                                <TextBlock Text="To color:" FontSize="12" Width="80"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditBgColor2, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditBgColor2, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Gradient direction -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                        Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Gradient'}">
+                                <TextBlock Text="Direction:" FontSize="12" Width="80"
+                                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <ComboBox Width="150" FontSize="11"
+                                          ItemsSource="{Binding GradientDirections}"
+                                          SelectedItem="{Binding EditBgGradientDir}"/>
+                            </StackPanel>
+
+                            <!-- Background image -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                        Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Image'}">
+                                <TextBox Width="260" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditBackgroundImage, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="Full-window background image"/>
+                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                        Padding="12,4" Margin="6,0,0,0" FontSize="10"
+                                        Command="{Binding BrowseBackgroundImageCommand}"/>
+                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                        Padding="12,4" Margin="6,0,0,0" FontSize="10"
+                                        Command="{Binding ClearBackgroundImageCommand}"/>
+                            </StackPanel>
+
+                            <CheckBox Content="Fixed-size window (no resizing)"
+                                      FontSize="12" Foreground="{StaticResource TextBrush}" Margin="0,6,0,0"
+                                      IsChecked="{Binding EditFixedSize}"/>
+                        </StackPanel>
                     </Border>
 
                     <!-- ══ SETUP ICON ═════════════════════════════════════════ -->

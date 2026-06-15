@@ -18,6 +18,8 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly IUpdateCatalogService _catalog;
     private readonly IChangelogService _changelog;
     private readonly IDialogService _dialog;
+    private readonly ISigningService _signing;
+    private readonly ISettingsService _settings;
     private AppEntry _entry = null!;
 
     public AppEntry Entry => _entry;
@@ -43,10 +45,12 @@ public partial class AppDetailViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(RetractVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(ScrapVersionCommand))]
     [NotifyCanExecuteChangedFor(nameof(ReviseVersionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SignFilesCommand))]
     private AppVersion? _selectedVersion;
 
     public AppDetailViewModel(IStorageService storage, IScannerService scanner, ILogService log,
-        IFtpService ftp, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog)
+        IFtpService ftp, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog,
+        ISigningService signing, ISettingsService settings)
     {
         _storage = storage;
         _scanner = scanner;
@@ -55,6 +59,8 @@ public partial class AppDetailViewModel : ObservableObject
         _catalog = catalog;
         _changelog = changelog;
         _dialog = dialog;
+        _signing = signing;
+        _settings = settings;
     }
 
     public void Initialize(AppEntry entry, MainViewModel main)
@@ -103,6 +109,18 @@ public partial class AppDetailViewModel : ObservableObject
         if (SelectedVersion != _entry.Versions.LastOrDefault()) return false;
         return SelectedVersion.Status != VersionStatus.Published;
     }
+
+    [RelayCommand(CanExecute = nameof(CanSignFiles))]
+    private void SignFiles()
+    {
+        var v = SelectedVersion!;
+        new SignAppFilesDialog(_entry, $"v{v.VersionNumber}", v.Files, _signing, _settings, _storage)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    private bool CanSignFiles() => SelectedVersion is not null;
 
     [RelayCommand(CanExecute = nameof(CanStartPacking))]
     private void StartPacking()

@@ -27,6 +27,9 @@
         <conv:InvertBoolConverter x:Key="InvertBool"/>
         <conv:InvertBoolToVisibilityConverter x:Key="InvertVisibility"/>
         <conv:ZeroToVisibleConverter       x:Key="ZeroToVisible"/>
+        <conv:HexToBrushConverter          x:Key="HexToBrush"/>
+        <conv:HexToColorConverter          x:Key="HexToColor"/>
+        <conv:StringMatchToVisibilityConverter x:Key="StringMatchToVisibility"/>
 
         <conv:ProgressBarWidthConverter    x:Key="ProgressBarWidthConverter"/>
 

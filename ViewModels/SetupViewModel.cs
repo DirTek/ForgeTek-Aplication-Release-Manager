@@ -56,6 +56,17 @@ SOFTWARE LICENSE
     partial void OnEditLaunchAppChanged(SetupBundleAppItem? value)
         => EditLaunchExe = value?.AppExes.FirstOrDefault();
 
+    // ── Setup appearance ──────────────────────────────────────────────────────
+    [ObservableProperty] private string _editBackgroundMode = "Default";
+    [ObservableProperty] private string _editBgColor1 = "#1C1C1E";
+    [ObservableProperty] private string _editBgColor2 = "#3A3A3C";
+    [ObservableProperty] private string _editBgGradientDir = "Vertical";
+    [ObservableProperty] private string? _editBackgroundImage;
+    [ObservableProperty] private bool _editFixedSize;
+
+    public string[] BackgroundModes { get; } = ["Default", "Solid", "Gradient", "Image"];
+    public string[] GradientDirections { get; } = ["Vertical", "Horizontal", "Diagonal"];
+
     public string SigningConfigInfo
     {
         get
@@ -161,6 +172,12 @@ SOFTWARE LICENSE
         EditBannerImage = null;
         EditSetupIcon = null;
         EditLaunchApp = null;
+        EditBackgroundMode = "Default";
+        EditBgColor1 = "#1C1C1E";
+        EditBgColor2 = "#3A3A3C";
+        EditBgGradientDir = "Vertical";
+        EditBackgroundImage = null;
+        EditFixedSize = false;
         AvailableApps.Clear();
         WorkingRedists.Clear();
 
@@ -181,6 +198,7 @@ SOFTWARE LICENSE
             VersionMode = existing?.VersionMode ?? VersionMode.Cumulative,
             LaunchExeName = existing?.LaunchExeName,
             SetupIcon = existing?.SetupIconPath,
+            CreateShortcut = existing?.CreateShortcut ?? true,
         };
 
         if (existing is not null)
@@ -213,6 +231,11 @@ SOFTWARE LICENSE
         {
             item.AvailableExes.Add(exe);
             item.AppExes.Add(exe);
+            item.AdminExes.Add(new AdminExeItem
+            {
+                Name = exe,
+                IsAdmin = existing?.RunAsAdminExes.Contains(exe, StringComparer.OrdinalIgnoreCase) ?? false,
+            });
         }
 
         // Populate AvailableIcons: placeholder + exe files + .ico files from versions
@@ -254,6 +277,12 @@ SOFTWARE LICENSE
         EditEulaText = string.IsNullOrWhiteSpace(bundle.EulaText) ? DefaultEulaText : bundle.EulaText;
         EditBannerImage = bundle.BannerImage;
         EditSetupIcon = bundle.SetupIconPath;
+        EditBackgroundMode = string.IsNullOrWhiteSpace(bundle.BackgroundMode) ? "Default" : bundle.BackgroundMode;
+        EditBgColor1 = string.IsNullOrWhiteSpace(bundle.BackgroundColor1) ? "#1C1C1E" : bundle.BackgroundColor1;
+        EditBgColor2 = string.IsNullOrWhiteSpace(bundle.BackgroundColor2) ? "#3A3A3C" : bundle.BackgroundColor2;
+        EditBgGradientDir = string.IsNullOrWhiteSpace(bundle.BackgroundGradientDirection) ? "Vertical" : bundle.BackgroundGradientDirection;
+        EditBackgroundImage = bundle.BackgroundImage;
+        EditFixedSize = bundle.FixedSize;
         AvailableApps.Clear();
         WorkingRedists.Clear();
 
@@ -320,6 +349,24 @@ SOFTWARE LICENSE
     private void ClearBundleSetupIcon()
     {
         EditSetupIcon = null;
+    }
+
+    [RelayCommand]
+    private void BrowseBackgroundImage()
+    {
+        var path = _dialog.OpenFile("Select background image",
+            "Image files (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|All files (*.*)|*.*");
+        if (path is not null)
+        {
+            EditBackgroundImage = path;
+            EditBackgroundMode = "Image";
+        }
+    }
+
+    [RelayCommand]
+    private void ClearBackgroundImage()
+    {
+        EditBackgroundImage = null;
     }
 
     [RelayCommand]
@@ -463,6 +510,8 @@ SOFTWARE LICENSE
                     null or "" or "(From launch exe)" => null,
                     _ => a.SetupIcon,
                 },
+                CreateShortcut = a.CreateShortcut,
+                RunAsAdminExes = a.AdminExes.Where(x => x.IsAdmin).Select(x => x.Name).ToList(),
                 RegistryEntries = a.RegistryEntries
                     .Where(r => !string.IsNullOrWhiteSpace(r.KeyPath))
                     .Select(r => new RegistryEntry
@@ -499,6 +548,12 @@ SOFTWARE LICENSE
         bundle.EulaText = EditEulaText;
         bundle.BannerImage = string.IsNullOrWhiteSpace(EditBannerImage) ? null : EditBannerImage;
         bundle.SetupIconPath = string.IsNullOrWhiteSpace(EditSetupIcon) ? null : EditSetupIcon;
+        bundle.BackgroundMode = EditBackgroundMode == "Default" ? null : EditBackgroundMode;
+        bundle.BackgroundColor1 = EditBgColor1;
+        bundle.BackgroundColor2 = EditBgColor2;
+        bundle.BackgroundGradientDirection = EditBgGradientDir;
+        bundle.BackgroundImage = string.IsNullOrWhiteSpace(EditBackgroundImage) ? null : EditBackgroundImage;
+        bundle.FixedSize = EditFixedSize;
         // Only honor the launch app if it's actually one of the selected apps.
         var launchValid = EditLaunchApp is not null && selectedApps.Any(a => a.AppId == EditLaunchApp.AppId);
         bundle.LaunchAppId = launchValid ? EditLaunchApp!.AppId : null;
@@ -584,10 +639,12 @@ public partial class SetupBundleAppItem : ObservableObject
     [ObservableProperty] private VersionMode _versionMode = VersionMode.Cumulative;
     [ObservableProperty] private string? _launchExeName;
     [ObservableProperty] private string? _setupIcon;
+    [ObservableProperty] private bool _createShortcut = true;
 
     public ObservableCollection<string> AvailableExes { get; } = [];
     public ObservableCollection<string> AppExes { get; } = []; // exe files only (no placeholder), for registry pickers
     public ObservableCollection<string> AvailableIcons { get; } = [];
+    public ObservableCollection<AdminExeItem> AdminExes { get; } = []; // per-exe "run as admin" toggles
     public ObservableCollection<RegistryItem> RegistryEntries { get; } = [];
 
     public int VersionModeIndex
@@ -595,6 +652,12 @@ public partial class SetupBundleAppItem : ObservableObject
         get => (int)VersionMode;
         set => VersionMode = (VersionMode)value;
     }
+}
+
+public partial class AdminExeItem : ObservableObject
+{
+    public string Name { get; set; } = string.Empty;
+    [ObservableProperty] private bool _isAdmin;
 }
 
 public partial class RedistItem : ObservableObject

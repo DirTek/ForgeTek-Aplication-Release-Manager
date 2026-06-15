@@ -121,6 +121,19 @@ internal static class Program
                 }
             }
 
+            if (log.LayersEntries.Count > 0)
+            {
+                try
+                {
+                    using var k = Registry.LocalMachine.OpenSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers", writable: true);
+                    if (k is not null)
+                        foreach (var v in log.LayersEntries)
+                            try { k.DeleteValue(v, throwOnMissingValue: false); } catch { }
+                }
+                catch { }
+            }
+
             ScheduleSelfDelete(log);
 
             if (!silent)
@@ -212,6 +225,7 @@ internal sealed class UninstallLog
     public string? RootDir { get; set; }
     public string? AppDir { get; set; }
     public string? SharedUninstallerPath { get; set; }
+    public List<string> LayersEntries { get; set; } = [];
 }
 
 [JsonSerializable(typeof(UninstallLog))]

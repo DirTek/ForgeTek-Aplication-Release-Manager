@@ -112,6 +112,8 @@ public class SetupService : ISetupService
                     DefaultInstallDir = appDirName,
                     LaunchExeName = appRef.LaunchExeName,
                     IconFileName = appRef.SetupIconPath,
+                    CreateShortcut = appRef.CreateShortcut,
+                    RunAsAdminExes = appRef.RunAsAdminExes,
                     RegistryEntries = appRef.RegistryEntries.Select(r => new RegistryEntryManifestInternal
                     {
                         Root = r.Root,
@@ -180,6 +182,16 @@ public class SetupService : ISetupService
                 progress.Report(new SetupProgressInfo(55, "✓ Banner image added."));
             }
 
+            // 2c. Copy background image if the appearance uses one
+            string? backgroundName = null;
+            if (bundle.BackgroundMode == "Image"
+                && !string.IsNullOrWhiteSpace(bundle.BackgroundImage) && File.Exists(bundle.BackgroundImage))
+            {
+                backgroundName = "background" + Path.GetExtension(bundle.BackgroundImage);
+                File.Copy(bundle.BackgroundImage, Path.Combine(stagingDir, backgroundName), overwrite: true);
+                progress.Report(new SetupProgressInfo(56, "✓ Background image added."));
+            }
+
             // 3. Create install.json
             progress.Report(new SetupProgressInfo(60, "Creating install manifest…"));
 
@@ -207,6 +219,12 @@ public class SetupService : ISetupService
                 LaunchAppName = launchApp?.Name,
                 LaunchAppDir = launchApp?.DefaultInstallDir,
                 LaunchExeName = launchApp is not null ? bundle.LaunchExeName : null,
+                BackgroundMode = bundle.BackgroundMode,
+                BackgroundColor1 = bundle.BackgroundColor1,
+                BackgroundColor2 = bundle.BackgroundColor2,
+                BackgroundGradientDirection = bundle.BackgroundGradientDirection,
+                BackgroundImageName = backgroundName,
+                FixedSize = bundle.FixedSize,
                 Apps = manifestApps,
                 Redists = redistManifests,
             };
@@ -591,6 +609,12 @@ internal sealed class InstallManifest
     public string? LaunchAppName { get; set; }
     public string? LaunchAppDir { get; set; }
     public string? LaunchExeName { get; set; }
+    public string? BackgroundMode { get; set; }
+    public string? BackgroundColor1 { get; set; }
+    public string? BackgroundColor2 { get; set; }
+    public string? BackgroundGradientDirection { get; set; }
+    public string? BackgroundImageName { get; set; }
+    public bool FixedSize { get; set; }
     public List<InstallAppManifest> Apps { get; set; } = [];
     public List<InstallRedistManifest> Redists { get; set; } = [];
 }
@@ -601,6 +625,8 @@ internal sealed class InstallAppManifest
     public string DefaultInstallDir { get; set; } = string.Empty;
     public string? LaunchExeName { get; set; }
     public string? IconFileName { get; set; }
+    public bool CreateShortcut { get; set; }
+    public List<string> RunAsAdminExes { get; set; } = [];
     public List<RegistryEntryManifestInternal> RegistryEntries { get; set; } = [];
 }
 

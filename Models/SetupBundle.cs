@@ -20,6 +20,20 @@ public class SetupBundle
     /// <summary>The exe (within the launch app's files) the final page launches. When null, the
     /// first exe in that app's folder is used.</summary>
     public string? LaunchExeName { get; set; }
+
+    // ── Setup window appearance ───────────────────────────────────────────────
+    /// <summary>"Solid", "Gradient", "Image", or null/"Default" (the built-in dark theme).</summary>
+    public string? BackgroundMode { get; set; }
+    /// <summary>Solid color, or the gradient's start color (hex #RRGGBB).</summary>
+    public string? BackgroundColor1 { get; set; }
+    /// <summary>Gradient end color (hex #RRGGBB).</summary>
+    public string? BackgroundColor2 { get; set; }
+    /// <summary>"Vertical", "Horizontal", or "Diagonal".</summary>
+    public string BackgroundGradientDirection { get; set; } = "Vertical";
+    /// <summary>Path to a full-window background image (used when BackgroundMode == "Image").</summary>
+    public string? BackgroundImage { get; set; }
+    /// <summary>Lock the setup window to a fixed size (no resizing).</summary>
+    public bool FixedSize { get; set; }
     public string? LastGeneratedPath { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public DateTime? LastGeneratedDate { get; set; }

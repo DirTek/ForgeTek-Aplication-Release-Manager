@@ -99,6 +99,10 @@
                 <Button Content="View Changes" Style="{StaticResource SecondaryButton}"
                         Padding="14,6" FontSize="12" Margin="0,0,8,0"
                         Command="{Binding ViewVersionDiffCommand}"/>
+                <Button Content="Sign Files" Style="{StaticResource SecondaryButton}"
+                        Padding="14,6" FontSize="12" Margin="0,0,8,0"
+                        Command="{Binding SignFilesCommand}"
+                        ToolTip="Code-sign selected files of this version (e.g. an unsigned initial version) before packing into a setup"/>
                 <Button Content="Revise Files" Style="{StaticResource SecondaryButton}"
                         Padding="14,6" FontSize="12" Margin="0,0,8,0"
                         Command="{Binding ReviseVersionCommand}"

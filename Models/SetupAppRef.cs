@@ -15,5 +15,8 @@ public class SetupAppRef
     public VersionMode VersionMode { get; set; } = VersionMode.Cumulative;
     public string? LaunchExeName { get; set; }
     public string? SetupIconPath { get; set; }
+    public bool CreateShortcut { get; set; } = true;
+    /// <summary>Exe file names (within the app) to flag as "always run as administrator".</summary>
+    public List<string> RunAsAdminExes { get; set; } = [];
     public List<RegistryEntry> RegistryEntries { get; set; } = [];
 }

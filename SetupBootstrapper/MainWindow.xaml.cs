@@ -89,10 +89,11 @@ public partial class MainWindow : Window
             InstallPathBox.Text = rootDir;
             DefaultPathText.Text = $"Default: {rootDir}";
 
-            var appItems = _manifest.Apps.Select(a => new
+            var appItems = _manifest.Apps.Select(a => new InstallAppItem
             {
-                a.Name,
-                SubPath = Path.Combine(rootDir, a.DefaultInstallDir)
+                Name = a.Name,
+                SubPath = Path.Combine(rootDir, a.DefaultInstallDir),
+                CreateShortcut = a.CreateShortcut,
             }).ToList();
             AppList.ItemsSource = appItems;
 
@@ -120,6 +121,9 @@ public partial class MainWindow : Window
                     BannerBorder.Visibility = Visibility.Visible;
                 }
             }
+
+            // Apply the bundle's custom window appearance (background color/gradient/image, size).
+            ApplyAppearance();
 
             // If this bundle is already installed, offer Repair/Remove instead of re-installing.
             var installedApps = GetInstalledApps();
@@ -276,6 +280,18 @@ public partial class MainWindow : Window
         {
             ShowError("Please select an installation directory.");
             return;
+        }
+
+        // Capture shortcut preferences from the Path page
+        var shortcutRequests = new List<(string Name, string InstallDir, bool Create)>();
+        if (AppList.ItemsSource is IList<InstallAppItem> items)
+        {
+            foreach (var item in items)
+            {
+                var dir = Path.Combine(rootDir,
+                    _manifest?.Apps.FirstOrDefault(a => a.Name == item.Name)?.DefaultInstallDir ?? item.Name);
+                shortcutRequests.Add((item.Name, dir, item.CreateShortcut));
+            }
         }
 
         try
@@ -550,6 +566,23 @@ public partial class MainWindow : Window
                     displayIcon = appIconSource ?? sharedUninstallExe!;
                 }
 
+                // Flag chosen exes "always run as administrator" via the AppCompatFlags Layers key
+                // (HKLM — applies to all users; the setup is elevated). Recorded for uninstall cleanup.
+                var layersEntries = new List<string>();
+                foreach (var exe in app.RunAsAdminExes)
+                {
+                    var exePath = FindNamedExe(appDir, exe);
+                    if (exePath is null) continue;
+                    try
+                    {
+                        using var key = Registry.LocalMachine.CreateSubKey(
+                            @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers");
+                        key.SetValue(exePath, "~ RUNASADMIN", RegistryValueKind.String);
+                        layersEntries.Add(exePath);
+                    }
+                    catch { }
+                }
+
                 var appLog = new InstallLog
                 {
                     UninstallKeyName = appKeyName,
@@ -558,7 +591,16 @@ public partial class MainWindow : Window
                     RootDir = rootDir,
                     AppDir = appDir,
                     SharedUninstallerPath = sharedUninstallExe,
+                    LayersEntries = layersEntries,
                 };
+
+                // Track desktop shortcut for uninstall cleanup
+                var shortcutReq = shortcutRequests.FirstOrDefault(s => s.Name == app.Name);
+                if (shortcutReq.Create)
+                {
+                    var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                    appLog.InstalledFiles.Add(Path.Combine(desktop, $"{app.Name}.lnk"));
+                }
                 try
                 {
                     File.WriteAllText(appLogPath,
@@ -597,6 +639,40 @@ public partial class MainWindow : Window
 
             // Remove any stray single-entry artifacts from older installs at the root.
             try { if (File.Exists(Path.Combine(rootDir, "install-log.json"))) File.Delete(Path.Combine(rootDir, "install-log.json")); } catch { }
+
+            // Step 5: Create desktop shortcuts
+            foreach (var (name, dir, create) in shortcutRequests)
+            {
+                if (!create || string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                try
+                {
+                    var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                    var lnkPath = Path.Combine(desktop, $"{name}.lnk");
+
+                    var exeFiles = Directory.EnumerateFiles(dir, "*.exe", SearchOption.TopDirectoryOnly).ToList();
+                    var targetExe = exeFiles.FirstOrDefault(e =>
+                        Path.GetFileNameWithoutExtension(e).Equals(name, StringComparison.OrdinalIgnoreCase))
+                        ?? exeFiles.FirstOrDefault();
+
+                    if (targetExe is null)
+                        continue;
+
+                    var shellType = Type.GetTypeFromCLSID(new Guid("72C24DD5-D70A-438B-8A42-98424B88AFB8"))!;
+                    dynamic shell = Activator.CreateInstance(shellType)!;
+                    try
+                    {
+                        dynamic lnk = shell.CreateShortcut(lnkPath);
+                        lnk.TargetPath = targetExe;
+                        lnk.WorkingDirectory = dir;
+                        lnk.Description = name;
+                        lnk.Save();
+                    }
+                    finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); }
+                }
+                catch { }
+            }
 
             ProgressStatus.Text = "Installation complete!";
             InstallProgress.Value = 100;
@@ -674,6 +750,70 @@ public partial class MainWindow : Window
         {
             LaunchCheckbox.Visibility = Visibility.Collapsed;
         }
+    }
+
+    // Applies the bundle's custom window background (solid / gradient / image) and fixed size.
+    private void ApplyAppearance()
+    {
+        if (_manifest is null)
+            return;
+
+        try
+        {
+            switch (_manifest.BackgroundMode)
+            {
+                case "Image" when !string.IsNullOrWhiteSpace(_manifest.BackgroundImageName):
+                {
+                    var imgPath = Path.Combine(_tempDir, _manifest.BackgroundImageName);
+                    if (File.Exists(imgPath))
+                    {
+                        var bmp = new System.Windows.Media.Imaging.BitmapImage();
+                        bmp.BeginInit();
+                        bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                        bmp.UriSource = new Uri(imgPath, UriKind.Absolute);
+                        bmp.EndInit();
+                        Background = new System.Windows.Media.ImageBrush(bmp)
+                        {
+                            Stretch = System.Windows.Media.Stretch.UniformToFill,
+                        };
+                    }
+                    break;
+                }
+                case "Gradient":
+                {
+                    if (ParseColor(_manifest.BackgroundColor1) is { } a &&
+                        ParseColor(_manifest.BackgroundColor2) is { } b)
+                    {
+                        var (sp, ep) = _manifest.BackgroundGradientDirection switch
+                        {
+                            "Horizontal" => (new System.Windows.Point(0, 0.5), new System.Windows.Point(1, 0.5)),
+                            "Diagonal" => (new System.Windows.Point(0, 0), new System.Windows.Point(1, 1)),
+                            _ => (new System.Windows.Point(0.5, 0), new System.Windows.Point(0.5, 1)),
+                        };
+                        Background = new System.Windows.Media.LinearGradientBrush(a, b, sp, ep);
+                    }
+                    break;
+                }
+                case "Solid":
+                {
+                    if (ParseColor(_manifest.BackgroundColor1) is { } c)
+                        Background = new System.Windows.Media.SolidColorBrush(c);
+                    break;
+                }
+            }
+
+            if (_manifest.FixedSize)
+                ResizeMode = ResizeMode.NoResize;
+        }
+        catch { }
+    }
+
+    private static System.Windows.Media.Color? ParseColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex))
+            return null;
+        try { return (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex); }
+        catch { return null; }
     }
 
     // ── Maintenance: Repair / Remove when the bundle is already installed ──────
@@ -829,6 +969,19 @@ public partial class MainWindow : Window
                         catch { }
                     }
                 }
+
+                if (log is { LayersEntries.Count: > 0 })
+                {
+                    try
+                    {
+                        using var k = Registry.LocalMachine.OpenSubKey(
+                            @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers", writable: true);
+                        if (k is not null)
+                            foreach (var v in log.LayersEntries)
+                                try { k.DeleteValue(v, throwOnMissingValue: false); } catch { }
+                    }
+                    catch { }
+                }
             }
             catch { }
         }
@@ -865,6 +1018,18 @@ public partial class MainWindow : Window
             return null;
 
         return FindExeInDir(Path.Combine(installDir, firstApp.DefaultInstallDir), firstApp.LaunchExeName);
+    }
+
+    // Locates a specific exe by name within an app folder (recursive), with no fallback.
+    private static string? FindNamedExe(string dir, string exeName)
+    {
+        if (!Directory.Exists(dir) || string.IsNullOrWhiteSpace(exeName))
+            return null;
+        var direct = Path.Combine(dir, exeName);
+        if (File.Exists(direct))
+            return direct;
+        try { return Directory.EnumerateFiles(dir, exeName, SearchOption.AllDirectories).FirstOrDefault(); }
+        catch { return null; }
     }
 
     private static string? FindExeInDir(string dir, string? exeName)
@@ -1083,6 +1248,13 @@ public partial class MainWindow : Window
         try { if (Directory.Exists(_tempDir)) Directory.Delete(_tempDir, recursive: true); }
         catch { }
     }
+}
+
+internal sealed class InstallAppItem
+{
+    public string Name { get; set; } = string.Empty;
+    public string SubPath { get; set; } = string.Empty;
+    public bool CreateShortcut { get; set; } = true;
 }
 
 internal sealed class RedistDetectionResult
