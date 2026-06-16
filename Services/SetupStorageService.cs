@@ -9,6 +9,7 @@ public class SetupStorageService : ISetupStorageService
     private readonly string _setupsRoot;
     private readonly ILogService _log;
     private List<SetupBundle> _bundles = [];
+    private List<GeneratedSetupRecord> _history = [];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -17,11 +18,14 @@ public class SetupStorageService : ISetupStorageService
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
+    private string HistoryFilePath => Path.Combine(_setupsRoot, "history.json");
+
     public SetupStorageService(ISettingsService settings, ILogService log)
     {
         _setupsRoot = Path.Combine(settings.RootFolder, "setups");
         _log = log;
         Load();
+        LoadHistory();
     }
 
     private void Load()
@@ -31,6 +35,9 @@ public class SetupStorageService : ISetupStorageService
 
         foreach (var file in Directory.GetFiles(_setupsRoot, "*.json"))
         {
+            // history.json is the generation log, not a bundle — skip it here.
+            if (string.Equals(Path.GetFileName(file), "history.json", StringComparison.OrdinalIgnoreCase))
+                continue;
             try
             {
                 var bundle = JsonSerializer.Deserialize<SetupBundle>(
@@ -43,6 +50,42 @@ public class SetupStorageService : ISetupStorageService
                 _log.Write("SetupStorage", $"Failed to load {file}: {ex.Message}");
             }
         }
+    }
+
+    private void LoadHistory()
+    {
+        _history = [];
+        if (!File.Exists(HistoryFilePath)) return;
+        try
+        {
+            var list = JsonSerializer.Deserialize<List<GeneratedSetupRecord>>(
+                File.ReadAllText(HistoryFilePath), JsonOptions);
+            if (list is not null) _history = list;
+        }
+        catch (Exception ex)
+        {
+            _log.Write("SetupStorage", $"Failed to load setup history: {ex.Message}");
+        }
+    }
+
+    private void SaveHistory()
+    {
+        Directory.CreateDirectory(_setupsRoot);
+        File.WriteAllText(HistoryFilePath, JsonSerializer.Serialize(_history, JsonOptions));
+    }
+
+    public IReadOnlyList<GeneratedSetupRecord> GetHistory() => _history.AsReadOnly();
+
+    public void AddHistory(GeneratedSetupRecord record)
+    {
+        _history.Add(record);
+        SaveHistory();
+    }
+
+    public void ClearHistory()
+    {
+        _history.Clear();
+        SaveHistory();
     }
 
     public IReadOnlyList<SetupBundle> GetAll() => _bundles.AsReadOnly();

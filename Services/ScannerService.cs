@@ -7,6 +7,10 @@ namespace ForgeTekUpdatePackager.Services;
 
 public class ScannerService : IScannerService
 {
+    // Build artifacts auto-flagged as "exclude from package" on scan (the user can still toggle).
+    private static readonly HashSet<string> DebugExtensions =
+        new(StringComparer.OrdinalIgnoreCase) { ".pdb", ".ilk", ".exp", ".map" };
+
     public IReadOnlyList<FileRecord> ScanDirectory(
         string folderPath,
         IProgress<ScanProgress>? progress = null,
@@ -37,6 +41,7 @@ public class ScannerService : IScannerService
                     Path         = relativePath,
                     Checksum     = ComputeChecksum(file.FullName),
                     DateModified = file.LastWriteTime,
+                    IsDebug      = DebugExtensions.Contains(file.Extension),
                 });
             }
             catch (IOException) { }

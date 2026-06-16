@@ -1,23 +1,35 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.BackupDialog"
+﻿<Window x:Class="ForgeTekUpdatePackager.Dialogs.BackupDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Backup &amp; Migrate" Width="580"
         SizeToContent="Height"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         WindowStyle="ToolWindow" ShowInTaskbar="False"
-        Background="{StaticResource BackgroundBrush}"
-        Foreground="{StaticResource TextBrush}">
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}">
     <StackPanel Margin="24,20,24,24">
 
-        <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
-                   TextWrapping="Wrap" Margin="0,0,0,18">
-            Creates a ZIP archive containing all app data, certificates, and logs.
+        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                   TextWrapping="Wrap" Margin="0,0,0,16">
+            Creates a ZIP archive of the data you choose, plus shared settings, certificates, and logs.
             DPAPI-encrypted values are included as-is and will need to be re-entered on a new machine.
         </TextBlock>
 
+        <!-- What to include -->
+        <TextBlock Text="INCLUDE" FontSize="10" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+        <StackPanel Margin="0,0,0,18">
+            <CheckBox x:Name="IncludeAppsCheck" IsChecked="True" FontSize="13"
+                      Foreground="{DynamicResource TextBrush}"
+                      Content="Apps &amp; releases (app entries, version history, packaged updates)"/>
+            <CheckBox x:Name="IncludeSetupsCheck" IsChecked="True" FontSize="13" Margin="0,8,0,0"
+                      Foreground="{DynamicResource TextBrush}"
+                      Content="Setups (setup bundles and generation history)"/>
+        </StackPanel>
+
         <!-- Output path -->
         <TextBlock Text="OUTPUT FILE" FontSize="10" FontWeight="SemiBold"
-                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -36,7 +48,7 @@
                 Click="CreateBackup_Click"/>
 
         <!-- Progress log -->
-        <Border x:Name="LogBorder" Background="{StaticResource SurfaceBrush}"
+        <Border x:Name="LogBorder" Background="{DynamicResource SurfaceBrush}"
                 CornerRadius="6" Padding="12,10" MaxHeight="320"
                 Margin="0,0,0,16" Visibility="Collapsed">
             <ScrollViewer x:Name="LogScroller" VerticalScrollBarVisibility="Auto">
@@ -44,7 +56,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="12"
-                                       Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                                       Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

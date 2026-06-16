@@ -26,316 +26,460 @@ public class SetupService : ISetupService
     private readonly ISettingsService _settings;
     private readonly ILogService _log;
     private readonly ISigningService _signing;
+    private readonly ISetupStorageService _setupStorage;
 
     public SetupService(IStorageService storage, ISettingsService settings, ILogService log,
-        ISigningService signing)
+        ISigningService signing, ISetupStorageService setupStorage)
     {
         _storage = storage;
         _settings = settings;
         _log = log;
         _signing = signing;
+        _setupStorage = setupStorage;
     }
 
+    // Generation is an ordered set of steps over a shared SetupGenContext. Each step is small and
+    // independently testable; this method just drives them and guarantees temp-dir cleanup.
     public async Task<string> GenerateAsync(SetupBundle bundle, IProgress<SetupProgressInfo> progress, CancellationToken ct = default)
     {
-        // 1. Locate the pre-built bootstrapper (used as-is when no custom icon is needed,
-        //    and as a fallback if an on-demand branded publish fails).
-        var prebuiltBootstrapper = LocateBootstrapper();
-        if (prebuiltBootstrapper is null && LocateBootstrapperCsproj() is null)
+        // Locate the pre-built bootstrapper (used as-is when no custom icon is needed, and as a
+        // fallback if an on-demand branded publish fails).
+        var prebuilt = LocateBootstrapper();
+        if (prebuilt is null && LocateBootstrapperCsproj() is null)
             throw new FileNotFoundException(
                 "SetupBootstrapper.exe not found. Build the solution first to compile the bootstrapper.");
 
         progress.Report(new SetupProgressInfo(5, "Bootstrapper found."));
 
-        // 2. Collect files from selected apps
-        var stagingDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupGen",
-            Guid.NewGuid().ToString("N"));
-        var zipDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupZip");
-        var iconTempDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupIcon",
-            Guid.NewGuid().ToString("N"));
-        var publishDir = Path.Combine(Path.GetTempPath(), "ForgeTekBootstrapper",
-            Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(stagingDir);
-        Directory.CreateDirectory(zipDir);
+        var ctx = new SetupGenContext(bundle, progress, ct)
+        {
+            PrebuiltBootstrapper = prebuilt,
+            StagingDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupGen", Guid.NewGuid().ToString("N")),
+            ZipDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupZip"),
+            IconTempDir = Path.Combine(Path.GetTempPath(), "ForgeTekSetupIcon", Guid.NewGuid().ToString("N")),
+            PublishDir = Path.Combine(Path.GetTempPath(), "ForgeTekBootstrapper", Guid.NewGuid().ToString("N")),
+        };
+        Directory.CreateDirectory(ctx.StagingDir);
+        Directory.CreateDirectory(ctx.ZipDir);
 
         try
         {
-            var manifestApps = new List<InstallAppManifest>();
-            var appCount = bundle.Apps.Count;
-            var appIndex = 0;
+            await CollectAppsAsync(ctx);     // → ctx.ManifestApps (+ staged app files)
+            await CollectRedistsAsync(ctx);  // → ctx.Redists (+ staged redist exes)
+            StageImages(ctx);                // → ctx.BannerName, ctx.BackgroundName
+            await BuildManifestAsync(ctx);   // writes install.json
+            StageUninstaller(ctx);           // stages the AOT uninstaller (if built)
+            CreateZip(ctx);                  // → ctx.ZipPath
+            await BuildSetupExeAsync(ctx);   // → ctx.SetupPath (bootstrapper + appended payload)
+            await SignOutputAsync(ctx);      // signs ctx.SetupPath (if requested)
 
-            foreach (var appRef in bundle.Apps)
-            {
-                ct.ThrowIfCancellationRequested();
+            RecordHistory(ctx);
 
-                var appEntry = _storage.GetById(appRef.AppId);
-                if (appEntry is null)
-                {
-                    progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
-                        $"⚠ App not found: {appRef.AppId} — skipped"));
-                    continue;
-                }
-
-                progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
-                    $"Collecting files for: {appEntry.Name}"));
-
-                var files = CollectAppFiles(appEntry, appRef.VersionMode);
-
-                if (files.Count == 0)
-                {
-                    progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
-                        $"⚠ No files collected for {appEntry.Name} — skipped"));
-                    continue;
-                }
-
-                var appDirName = StorageService.Sanitize(appEntry.Name);
-                var appStagingDir = Path.Combine(stagingDir, "apps", appDirName);
-                Directory.CreateDirectory(appStagingDir);
-
-                foreach (var file in files)
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    var sourcePath = Path.Combine(appEntry.FolderPath, file.Path);
-                    var targetPath = Path.Combine(appStagingDir, file.Path);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-
-                    await using var src = File.OpenRead(sourcePath);
-                    await using var dst = File.Create(targetPath);
-                    await src.CopyToAsync(dst, ct);
-                }
-
-                manifestApps.Add(new InstallAppManifest
-                {
-                    Name = appEntry.Name,
-                    DefaultInstallDir = appDirName,
-                    LaunchExeName = appRef.LaunchExeName,
-                    IconFileName = appRef.SetupIconPath,
-                    CreateShortcut = appRef.CreateShortcut,
-                    RunAsAdminExes = appRef.RunAsAdminExes,
-                    RegistryEntries = appRef.RegistryEntries.Select(r => new RegistryEntryManifestInternal
-                    {
-                        Root = r.Root,
-                        KeyPath = r.KeyPath,
-                        ValueName = r.ValueName,
-                        ValueData = r.ValueData,
-                        ValueKind = r.ValueKind,
-                    }).ToList(),
-                });
-
-                appIndex++;
-                progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
-                    $"✓ {files.Count} file(s) collected for {appEntry.Name}"));
-            }
-
-            if (manifestApps.Count == 0)
-                throw new InvalidOperationException("No apps selected or no apps have files.");
-
-            // 2b. Copy redistributable files
-            var redistManifests = new List<InstallRedistManifest>();
-            var redistIndex = 0;
-            var redistCount = bundle.Redists.Count;
-
-            foreach (var redist in bundle.Redists)
-            {
-                ct.ThrowIfCancellationRequested();
-
-                if (string.IsNullOrWhiteSpace(redist.SourcePath) || !File.Exists(redist.SourcePath))
-                {
-                    progress.Report(new SetupProgressInfo(45 + 10 * redistIndex / Math.Max(redistCount, 1),
-                        $"⚠ Redist not found: {redist.Name} — skipped"));
-                    continue;
-                }
-
-                var redistDir = Path.Combine(stagingDir, "redist");
-                Directory.CreateDirectory(redistDir);
-
-                var exeName = Path.GetFileName(redist.SourcePath);
-                var targetPath = Path.Combine(redistDir, exeName);
-                await using (var src = File.OpenRead(redist.SourcePath))
-                await using (var dst = File.Create(targetPath))
-                    await src.CopyToAsync(dst, ct);
-
-                redistManifests.Add(new InstallRedistManifest
-                {
-                    Name = redist.Name,
-                    ExeName = exeName,
-                    Arguments = redist.Arguments,
-                    DetectionKeyPath = redist.DetectionKeyPath,
-                    DetectionValueName = redist.DetectionValueName,
-                    DetectionExpectedValue = redist.DetectionExpectedValue,
-                });
-
-                redistIndex++;
-                progress.Report(new SetupProgressInfo(45 + 10 * redistIndex / Math.Max(redistCount, 1),
-                    $"✓ Redist added: {redist.Name}"));
-            }
-
-            // 2b. Copy banner image if provided
-            string? bannerName = null;
-            if (!string.IsNullOrWhiteSpace(bundle.BannerImage) && File.Exists(bundle.BannerImage))
-            {
-                bannerName = "banner" + Path.GetExtension(bundle.BannerImage);
-                var bannerTarget = Path.Combine(stagingDir, bannerName);
-                File.Copy(bundle.BannerImage, bannerTarget, overwrite: true);
-                progress.Report(new SetupProgressInfo(55, "✓ Banner image added."));
-            }
-
-            // 2c. Copy background image if the appearance uses one
-            string? backgroundName = null;
-            if (bundle.BackgroundMode == "Image"
-                && !string.IsNullOrWhiteSpace(bundle.BackgroundImage) && File.Exists(bundle.BackgroundImage))
-            {
-                backgroundName = "background" + Path.GetExtension(bundle.BackgroundImage);
-                File.Copy(bundle.BackgroundImage, Path.Combine(stagingDir, backgroundName), overwrite: true);
-                progress.Report(new SetupProgressInfo(56, "✓ Background image added."));
-            }
-
-            // 3. Create install.json
-            progress.Report(new SetupProgressInfo(60, "Creating install manifest…"));
-
-            // Resolve the bundle's chosen launch app (offered on the setup's final page).
-            InstallAppManifest? launchApp = null;
-            if (!string.IsNullOrWhiteSpace(bundle.LaunchAppId))
-            {
-                var launchRef = bundle.Apps.FirstOrDefault(a => a.AppId == bundle.LaunchAppId);
-                var launchEntry = launchRef is null ? null : _storage.GetById(launchRef.AppId);
-                if (launchEntry is not null)
-                {
-                    var dir = StorageService.Sanitize(launchEntry.Name);
-                    launchApp = manifestApps.FirstOrDefault(m => m.DefaultInstallDir == dir);
-                }
-            }
-
-            var installManifest = new InstallManifest
-            {
-                SetupName = bundle.Name,
-                SetupVersion = string.IsNullOrWhiteSpace(bundle.Version)
-                    ? DateTime.Now.ToString("yyyy.MMdd.HHmm") : bundle.Version,
-                CompanyName = _settings.Global.CompanyName,
-                EulaText = bundle.EulaText,
-                BannerImageName = bannerName,
-                LaunchAppName = launchApp?.Name,
-                LaunchAppDir = launchApp?.DefaultInstallDir,
-                LaunchExeName = launchApp is not null ? bundle.LaunchExeName : null,
-                BackgroundMode = bundle.BackgroundMode,
-                BackgroundColor1 = bundle.BackgroundColor1,
-                BackgroundColor2 = bundle.BackgroundColor2,
-                BackgroundGradientDirection = bundle.BackgroundGradientDirection,
-                BackgroundImageName = backgroundName,
-                FixedSize = bundle.FixedSize,
-                Apps = manifestApps,
-                Redists = redistManifests,
-            };
-
-            var manifestJson = JsonSerializer.Serialize(installManifest, JsonOptions);
-            await File.WriteAllTextAsync(Path.Combine(stagingDir, "install.json"), manifestJson, ct);
-
-            // 3b. Bundle the small per-app uninstaller (AOT) if it has been built. The bootstrapper
-            //     copies it into each app folder and injects that app's icon. If absent (AOT tools
-            //     not installed yet), the bootstrapper falls back to a single shared uninstaller.
-            var uninstallerPath = LocateUninstaller();
-            if (uninstallerPath is not null)
-            {
-                var uninstStageDir = Path.Combine(stagingDir, "__uninstaller__");
-                Directory.CreateDirectory(uninstStageDir);
-                File.Copy(uninstallerPath, Path.Combine(uninstStageDir, "SetupUninstaller.exe"), overwrite: true);
-                progress.Report(new SetupProgressInfo(68, "✓ Per-app uninstaller bundled."));
-            }
-
-            // 4. Create ZIP of staging directory
-            progress.Report(new SetupProgressInfo(70, "Creating package archive…"));
-
-            var zipPath = Path.Combine(zipDir, "package.zip");
-            ZipFile.CreateFromDirectory(stagingDir, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
-
-            progress.Report(new SetupProgressInfo(85, $"ZIP created: {new FileInfo(zipPath).Length / 1024.0:F1} KB"));
-
-            // 5. Build the final setup executable (obtain bootstrapper → append ZIP → sign)
-            progress.Report(new SetupProgressInfo(90, "Building setup executable…"));
-
-            Directory.CreateDirectory(bundle.OutputFolder);
-            var setupPath = Path.Combine(bundle.OutputFolder, $"{StorageService.Sanitize(bundle.Name)}Setup.exe");
-
-            // 5a. Resolve the setup icon (first app's icon) to a .ico, if available.
-            //     The icon is baked into the bootstrapper at publish time (ApplicationIcon)
-            //     rather than injected into the finished EXE — Win32 resource updates strip
-            //     the .NET single-file overlay and destroy the bootstrapper. See IconExtractor.
-            var setupIcoPath = TryResolveSetupIcon(bundle, iconTempDir);
-
-            // 5b. Obtain the bootstrapper. With an icon, publish a fresh single-file bootstrapper
-            //     with that icon baked in; otherwise use the pre-built (unbranded) one.
-            string? bootstrapperPath = null;
-            if (setupIcoPath is not null)
-            {
-                progress.Report(new SetupProgressInfo(91, "Building branded bootstrapper…"));
-                bootstrapperPath = await PublishBootstrapperWithIconAsync(setupIcoPath, publishDir, ct);
-            }
-
-            bootstrapperPath ??= prebuiltBootstrapper
-                ?? throw new FileNotFoundException(
-                    "SetupBootstrapper.exe could not be built or located.");
-
-            // 5c. Copy bootstrapper (async stream to avoid any File.Copy attribute/lock issues)
-            await using (var src = File.OpenRead(bootstrapperPath))
-            await using (var dst = File.Create(setupPath))
-            {
-                await src.CopyToAsync(dst, ct);
-            }
-
-            // 5d. Append ZIP + footer (offset = bootstrapper size before the appended payload)
-            var bootstrapperLength = new FileInfo(setupPath).Length;
-            await AppendZipToExeAsync(zipPath, setupPath, bootstrapperLength, ct);
-
-            // Verify footer was written correctly
-            using (var verifyFs = new FileStream(setupPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                if (verifyFs.Length < EndMagic.Length + 8)
-                    throw new InvalidOperationException(
-                        $"Setup file is too small ({verifyFs.Length} bytes) to contain the ZIP footer.");
-                verifyFs.Seek(-EndMagic.Length, SeekOrigin.End);
-                var magicBuf = new byte[EndMagic.Length];
-                verifyFs.ReadExactly(magicBuf);
-                if (!magicBuf.AsSpan().SequenceEqual(EndMagic))
-                    throw new InvalidOperationException(
-                        $"Setup file footer is corrupt or missing. " +
-                        $"Expected {BitConverter.ToString(EndMagic)}, got {BitConverter.ToString(magicBuf)}. " +
-                        $"File: {setupPath} ({new FileInfo(setupPath).Length} bytes)");
-            }
-
-            // 6. Sign the setup EXE if requested and configured (happens last so signature is preserved)
-            var global = _settings.Global;
-            var signToolPath = bundle.SignOutput && (global.UseStoreCert || !string.IsNullOrWhiteSpace(global.GlobalCertPath))
-                ? _signing.FindSignTool() : null;
-
-            if (signToolPath is not null)
-            {
-                progress.Report(new SetupProgressInfo(96, "Signing setup executable…"));
-                var silentProgress = new Progress<string>();
-                await _signing.SignFilesAsync(signToolPath,
-                    [setupPath],
-                    global.UseStoreCert ? null : global.GlobalCertPath,
-                    global.UseStoreCert ? null : global.GlobalCertPassword,
-                    global.UseStoreCert ? global.StoreCertThumbprint : null,
-                    silentProgress, ct);
-            }
-
-            progress.Report(new SetupProgressInfo(100, $"✔ Setup generated → {setupPath}"));
-
-            return setupPath;
+            progress.Report(new SetupProgressInfo(100, $"✔ Setup generated → {ctx.SetupPath}"));
+            return ctx.SetupPath;
+        }
+        catch
+        {
+            // Build failed or was cancelled. If we'd already renamed the previous build aside for
+            // "Preserve old setups", restore it so the user's current setup isn't left corrupt.
+            RestoreArchivedSetup(ctx);
+            throw;
         }
         finally
         {
-            try { if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, recursive: true); }
-            catch { }
-            try { if (Directory.Exists(zipDir)) Directory.Delete(zipDir, recursive: true); }
-            catch { }
-            try { if (Directory.Exists(iconTempDir)) Directory.Delete(iconTempDir, recursive: true); }
-            catch { }
-            try { if (Directory.Exists(publishDir)) Directory.Delete(publishDir, recursive: true); }
+            DeleteDir(ctx.StagingDir);
+            DeleteDir(ctx.ZipDir);
+            DeleteDir(ctx.IconTempDir);
+            DeleteDir(ctx.PublishDir);
+        }
+
+        static void DeleteDir(string dir)
+        {
+            try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
             catch { }
         }
+    }
+
+    // Mutable state threaded through the generation steps.
+    private sealed class SetupGenContext(SetupBundle bundle, IProgress<SetupProgressInfo> progress, CancellationToken ct)
+    {
+        public SetupBundle Bundle { get; } = bundle;
+        public IProgress<SetupProgressInfo> Progress { get; } = progress;
+        public CancellationToken Ct { get; } = ct;
+
+        public required string StagingDir { get; init; }
+        public required string ZipDir { get; init; }
+        public required string IconTempDir { get; init; }
+        public required string PublishDir { get; init; }
+        public string? PrebuiltBootstrapper { get; init; }
+
+        public List<InstallAppManifest> ManifestApps { get; } = [];
+        public List<InstallRedistManifest> Redists { get; } = [];
+        public string? BannerName { get; set; }
+        public string? BackgroundName { get; set; }
+        public string ZipPath { get; set; } = string.Empty;
+        public string SetupPath { get; set; } = string.Empty;
+
+        /// <summary>When "Preserve old setups" renamed a prior build, its new path (for history).</summary>
+        public string? ArchivedPath { get; set; }
+    }
+
+    // ── Generation steps ──────────────────────────────────────────────────────
+
+    // Stages each selected app's files under apps/<dir> and builds its manifest entry.
+    private async Task CollectAppsAsync(SetupGenContext ctx)
+    {
+        var (bundle, progress, ct) = (ctx.Bundle, ctx.Progress, ctx.Ct);
+        var appCount = bundle.Apps.Count;
+        var appIndex = 0;
+
+        foreach (var appRef in bundle.Apps)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var appEntry = _storage.GetById(appRef.AppId);
+            if (appEntry is null)
+            {
+                progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
+                    $"⚠ App not found: {appRef.AppId} — skipped"));
+                continue;
+            }
+
+            progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
+                $"Collecting files for: {appEntry.Name}"));
+
+            var files = CollectAppFiles(appEntry, appRef.VersionMode);
+
+            if (files.Count == 0)
+            {
+                progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
+                    $"⚠ No files collected for {appEntry.Name} — skipped"));
+                continue;
+            }
+
+            var appDirName = StorageService.Sanitize(appEntry.Name);
+            var appStagingDir = Path.Combine(ctx.StagingDir, "apps", appDirName);
+            Directory.CreateDirectory(appStagingDir);
+
+            foreach (var file in files)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                var sourcePath = Path.Combine(appEntry.FolderPath, file.Path);
+                var targetPath = Path.Combine(appStagingDir, file.Path);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+
+                await using var src = File.OpenRead(sourcePath);
+                await using var dst = File.Create(targetPath);
+                await src.CopyToAsync(dst, ct);
+            }
+
+            ctx.ManifestApps.Add(new InstallAppManifest
+            {
+                Name = appEntry.Name,
+                DefaultInstallDir = appDirName,
+                LaunchExeName = appRef.LaunchExeName,
+                IconFileName = appRef.SetupIconPath,
+                CreateShortcut = appRef.CreateShortcut,
+                RunAsAdminExes = appRef.RunAsAdminExes,
+                RegistryEntries = appRef.RegistryEntries.Select(r => new RegistryEntryManifestInternal
+                {
+                    Root = r.Root,
+                    KeyPath = r.KeyPath,
+                    ValueName = r.ValueName,
+                    ValueData = r.ValueData,
+                    ValueKind = r.ValueKind,
+                }).ToList(),
+            });
+
+            appIndex++;
+            progress.Report(new SetupProgressInfo(10 + 30 * appIndex / Math.Max(appCount, 1),
+                $"✓ {files.Count} file(s) collected for {appEntry.Name}"));
+        }
+
+        if (ctx.ManifestApps.Count == 0)
+            throw new InvalidOperationException("No apps selected or no apps have files.");
+    }
+
+    // Stages redistributable installers under redist/.
+    private async Task CollectRedistsAsync(SetupGenContext ctx)
+    {
+        var (bundle, progress, ct) = (ctx.Bundle, ctx.Progress, ctx.Ct);
+        var redistIndex = 0;
+        var redistCount = bundle.Redists.Count;
+
+        foreach (var redist in bundle.Redists)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            if (string.IsNullOrWhiteSpace(redist.SourcePath) || !File.Exists(redist.SourcePath))
+            {
+                progress.Report(new SetupProgressInfo(45 + 10 * redistIndex / Math.Max(redistCount, 1),
+                    $"⚠ Redist not found: {redist.Name} — skipped"));
+                continue;
+            }
+
+            var redistDir = Path.Combine(ctx.StagingDir, "redist");
+            Directory.CreateDirectory(redistDir);
+
+            var exeName = Path.GetFileName(redist.SourcePath);
+            var targetPath = Path.Combine(redistDir, exeName);
+            await using (var src = File.OpenRead(redist.SourcePath))
+            await using (var dst = File.Create(targetPath))
+                await src.CopyToAsync(dst, ct);
+
+            ctx.Redists.Add(new InstallRedistManifest
+            {
+                Name = redist.Name,
+                ExeName = exeName,
+                Arguments = redist.Arguments,
+                DetectionKeyPath = redist.DetectionKeyPath,
+                DetectionValueName = redist.DetectionValueName,
+                DetectionExpectedValue = redist.DetectionExpectedValue,
+            });
+
+            redistIndex++;
+            progress.Report(new SetupProgressInfo(45 + 10 * redistIndex / Math.Max(redistCount, 1),
+                $"✓ Redist added: {redist.Name}"));
+        }
+    }
+
+    // Copies the optional banner and full-window background images into the staging root.
+    private void StageImages(SetupGenContext ctx)
+    {
+        var (bundle, progress) = (ctx.Bundle, ctx.Progress);
+
+        if (!string.IsNullOrWhiteSpace(bundle.BannerImage) && File.Exists(bundle.BannerImage))
+        {
+            ctx.BannerName = "banner" + Path.GetExtension(bundle.BannerImage);
+            File.Copy(bundle.BannerImage, Path.Combine(ctx.StagingDir, ctx.BannerName), overwrite: true);
+            progress.Report(new SetupProgressInfo(55, "✓ Banner image added."));
+        }
+
+        if (bundle.BackgroundMode == "Image"
+            && !string.IsNullOrWhiteSpace(bundle.BackgroundImage) && File.Exists(bundle.BackgroundImage))
+        {
+            ctx.BackgroundName = "background" + Path.GetExtension(bundle.BackgroundImage);
+            File.Copy(bundle.BackgroundImage, Path.Combine(ctx.StagingDir, ctx.BackgroundName), overwrite: true);
+            progress.Report(new SetupProgressInfo(56, "✓ Background image added."));
+        }
+    }
+
+    // Builds install.json (apps, redists, launch target, appearance) from the staged content.
+    private async Task BuildManifestAsync(SetupGenContext ctx)
+    {
+        var (bundle, progress, ct) = (ctx.Bundle, ctx.Progress, ctx.Ct);
+        progress.Report(new SetupProgressInfo(60, "Creating install manifest…"));
+
+        // Resolve the bundle's chosen launch app (offered on the setup's final page).
+        InstallAppManifest? launchApp = null;
+        if (!string.IsNullOrWhiteSpace(bundle.LaunchAppId))
+        {
+            var launchRef = bundle.Apps.FirstOrDefault(a => a.AppId == bundle.LaunchAppId);
+            var launchEntry = launchRef is null ? null : _storage.GetById(launchRef.AppId);
+            if (launchEntry is not null)
+            {
+                var dir = StorageService.Sanitize(launchEntry.Name);
+                launchApp = ctx.ManifestApps.FirstOrDefault(m => m.DefaultInstallDir == dir);
+            }
+        }
+
+        var installManifest = new InstallManifest
+        {
+            SetupName = bundle.Name,
+            SetupVersion = string.IsNullOrWhiteSpace(bundle.Version)
+                ? DateTime.Now.ToString("yyyy.MMdd.HHmm") : bundle.Version,
+            CompanyName = _settings.Global.CompanyName,
+            EulaText = bundle.EulaText,
+            BannerImageName = ctx.BannerName,
+            LaunchAppName = launchApp?.Name,
+            LaunchAppDir = launchApp?.DefaultInstallDir,
+            LaunchExeName = launchApp is not null ? bundle.LaunchExeName : null,
+            BackgroundMode = bundle.BackgroundMode,
+            BackgroundColor1 = bundle.BackgroundColor1,
+            BackgroundColor2 = bundle.BackgroundColor2,
+            BackgroundGradientDirection = bundle.BackgroundGradientDirection,
+            BackgroundImageName = ctx.BackgroundName,
+            FixedSize = bundle.FixedSize,
+            Apps = ctx.ManifestApps,
+            Redists = ctx.Redists,
+        };
+
+        var manifestJson = JsonSerializer.Serialize(installManifest, JsonOptions);
+        await File.WriteAllTextAsync(Path.Combine(ctx.StagingDir, "install.json"), manifestJson, ct);
+    }
+
+    // Bundles the small per-app uninstaller (AOT) if it has been built. The bootstrapper copies it
+    // into each app folder and injects that app's icon. If absent (AOT tools not installed yet),
+    // the bootstrapper falls back to a single shared uninstaller.
+    private void StageUninstaller(SetupGenContext ctx)
+    {
+        var uninstallerPath = LocateUninstaller();
+        if (uninstallerPath is null)
+            return;
+
+        var uninstStageDir = Path.Combine(ctx.StagingDir, "__uninstaller__");
+        Directory.CreateDirectory(uninstStageDir);
+        File.Copy(uninstallerPath, Path.Combine(uninstStageDir, "SetupUninstaller.exe"), overwrite: true);
+        ctx.Progress.Report(new SetupProgressInfo(68, "✓ Per-app uninstaller bundled."));
+    }
+
+    private void CreateZip(SetupGenContext ctx)
+    {
+        ctx.Progress.Report(new SetupProgressInfo(70, "Creating package archive…"));
+        ctx.ZipPath = Path.Combine(ctx.ZipDir, "package.zip");
+        ZipFile.CreateFromDirectory(ctx.StagingDir, ctx.ZipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+        ctx.Progress.Report(new SetupProgressInfo(85, $"ZIP created: {new FileInfo(ctx.ZipPath).Length / 1024.0:F1} KB"));
+    }
+
+    // Obtains the bootstrapper (branded on-demand publish or the pre-built fallback), copies it to
+    // the output, appends the ZIP + footer, and verifies the footer.
+    private async Task BuildSetupExeAsync(SetupGenContext ctx)
+    {
+        var (bundle, progress, ct) = (ctx.Bundle, ctx.Progress, ctx.Ct);
+        progress.Report(new SetupProgressInfo(90, "Building setup executable…"));
+
+        Directory.CreateDirectory(bundle.OutputFolder);
+        ctx.SetupPath = Path.Combine(bundle.OutputFolder, $"{StorageService.Sanitize(bundle.Name)}Setup.exe");
+
+        // "Preserve old setups": if a prior build is at the destination, rename it to
+        // "{name}Setup-{previous generation date}.exe" before we overwrite it.
+        if (bundle.PreserveOldSetups && File.Exists(ctx.SetupPath))
+            ctx.ArchivedPath = ArchiveExistingSetup(ctx.SetupPath, bundle.LastGeneratedDate);
+
+        // Resolve the setup icon and bake it into the bootstrapper at publish time. (Win32 resource
+        // updates on the finished single-file EXE strip its overlay — see IconExtractor.)
+        var setupIcoPath = TryResolveSetupIcon(bundle, ctx.IconTempDir);
+
+        string? bootstrapperPath = null;
+        if (setupIcoPath is not null)
+        {
+            progress.Report(new SetupProgressInfo(91, "Building branded bootstrapper…"));
+            bootstrapperPath = await PublishBootstrapperWithIconAsync(setupIcoPath, ctx.PublishDir, ct);
+        }
+
+        bootstrapperPath ??= ctx.PrebuiltBootstrapper
+            ?? throw new FileNotFoundException("SetupBootstrapper.exe could not be built or located.");
+
+        // Copy bootstrapper (async stream to avoid any File.Copy attribute/lock issues).
+        await using (var src = File.OpenRead(bootstrapperPath))
+        await using (var dst = File.Create(ctx.SetupPath))
+        {
+            await src.CopyToAsync(dst, ct);
+        }
+
+        // Append ZIP + footer (offset = bootstrapper size before the appended payload).
+        var bootstrapperLength = new FileInfo(ctx.SetupPath).Length;
+        await AppendZipToExeAsync(ctx.ZipPath, ctx.SetupPath, bootstrapperLength, ct);
+
+        VerifyFooter(ctx.SetupPath);
+    }
+
+    // Renames an existing Setup.exe to "{base}-{stamp}.exe" so it isn't overwritten. The stamp is the
+    // file's previous generation date when known, else its last-write time. Returns the new path.
+    // Appends a "Past Bundles" history entry for the setup just generated.
+    private void RecordHistory(SetupGenContext ctx)
+    {
+        try
+        {
+            var size = File.Exists(ctx.SetupPath) ? new FileInfo(ctx.SetupPath).Length : 0;
+            _setupStorage.AddHistory(new GeneratedSetupRecord
+            {
+                BundleId      = ctx.Bundle.Id,
+                BundleName    = ctx.Bundle.Name,
+                Version       = ctx.Bundle.Version,
+                GeneratedDate = DateTime.Now,
+                OutputPath    = ctx.SetupPath,
+                FileSizeBytes = size,
+                ArchivedPath  = ctx.ArchivedPath,
+            });
+        }
+        catch (Exception ex)
+        {
+            _log.Write("SetupGen", $"Could not record setup history: {ex.Message}");
+        }
+    }
+
+    // Undoes ArchiveExistingSetup when generation didn't finish: deletes the partial new file and
+    // moves the preserved previous build back into place.
+    private void RestoreArchivedSetup(SetupGenContext ctx)
+    {
+        if (string.IsNullOrEmpty(ctx.ArchivedPath) || !File.Exists(ctx.ArchivedPath)) return;
+        try
+        {
+            if (File.Exists(ctx.SetupPath)) File.Delete(ctx.SetupPath);
+            File.Move(ctx.ArchivedPath, ctx.SetupPath);
+            _log.Write("SetupGen", $"Restored previous setup after incomplete build → {ctx.SetupPath}");
+            ctx.ArchivedPath = null;
+        }
+        catch (Exception ex)
+        {
+            _log.Write("SetupGen", $"Could not restore previous setup: {ex.Message}");
+        }
+    }
+
+    private string? ArchiveExistingSetup(string setupPath, DateTime? previousGeneratedDate)
+    {
+        var dir   = Path.GetDirectoryName(setupPath)!;
+        var name  = Path.GetFileNameWithoutExtension(setupPath);
+        var ext   = Path.GetExtension(setupPath);
+        var stamp = (previousGeneratedDate ?? File.GetLastWriteTime(setupPath)).ToString("yyyyMMdd-HHmmss");
+
+        var archived = Path.Combine(dir, $"{name}-{stamp}{ext}");
+        // Avoid clobbering an archive already taken this same second.
+        var n = 1;
+        while (File.Exists(archived))
+            archived = Path.Combine(dir, $"{name}-{stamp}-{n++}{ext}");
+
+        try
+        {
+            File.Move(setupPath, archived);
+            _log.Write("SetupGen", $"Preserved previous setup → {archived}");
+            return archived;
+        }
+        catch (Exception ex)
+        {
+            _log.Write("SetupGen", $"Could not preserve previous setup: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static void VerifyFooter(string setupPath)
+    {
+        using var verifyFs = new FileStream(setupPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (verifyFs.Length < EndMagic.Length + 8)
+            throw new InvalidOperationException(
+                $"Setup file is too small ({verifyFs.Length} bytes) to contain the ZIP footer.");
+        verifyFs.Seek(-EndMagic.Length, SeekOrigin.End);
+        var magicBuf = new byte[EndMagic.Length];
+        verifyFs.ReadExactly(magicBuf);
+        if (!magicBuf.AsSpan().SequenceEqual(EndMagic))
+            throw new InvalidOperationException(
+                $"Setup file footer is corrupt or missing. " +
+                $"Expected {BitConverter.ToString(EndMagic)}, got {BitConverter.ToString(magicBuf)}. " +
+                $"File: {setupPath} ({new FileInfo(setupPath).Length} bytes)");
+    }
+
+    // Authenticode-signs the finished setup EXE when requested and a cert is configured. Runs last
+    // so the signature covers the appended payload and the cert table is the final bytes.
+    private async Task SignOutputAsync(SetupGenContext ctx)
+    {
+        var global = _settings.Global;
+        var signToolPath = ctx.Bundle.SignOutput && (global.UseStoreCert || !string.IsNullOrWhiteSpace(global.GlobalCertPath))
+            ? _signing.FindSignTool() : null;
+
+        if (signToolPath is null)
+            return;
+
+        ctx.Progress.Report(new SetupProgressInfo(96, "Signing setup executable…"));
+        var silentProgress = new Progress<string>();
+        await _signing.SignFilesAsync(signToolPath,
+            [ctx.SetupPath],
+            global.UseStoreCert ? null : global.GlobalCertPath,
+            global.UseStoreCert ? null : global.GlobalCertPassword,
+            global.UseStoreCert ? global.StoreCertThumbprint : null,
+            silentProgress, ctx.Ct);
     }
 
     /// <summary>

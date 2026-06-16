@@ -1,10 +1,10 @@
 # ForgeTek Update Client Integration Guide
 
-This guide explains how to integrate ForgeTek Update Packager-generated updates into your application. Use this documentation to implement automatic update checking, download, and installation for your app.
+This guide explains how to integrate ForgeTek Release Manager-generated updates into your application. Use this documentation to implement automatic update checking, download, and installation for your app.
 
 ## Overview
 
-ForgeTek Update Packager creates two core artifacts for each app release:
+ForgeTek Release Manager creates two core artifacts for each app release:
 1. **Update Catalog JSON**: Publicly accessible JSON file listing all available versions and download URLs
 2. **.ftu Update Package**: Binary container with your app files, integrity checks, and metadata
 

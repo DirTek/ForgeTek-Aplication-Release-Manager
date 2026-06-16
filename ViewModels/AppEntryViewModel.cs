@@ -13,6 +13,25 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
     public string AccentColor => Entry.AccentColor;
     public SolidColorBrush AccentBrush => ParseColor(AccentColor);
 
+    /// <summary>Subtle left-to-right wash of the app's accent color fading to transparent,
+    /// used as the sidebar row background for a splash of per-app color.</summary>
+    public LinearGradientBrush AccentGradientBrush
+    {
+        get
+        {
+            var c = ParseColor(AccentColor).Color;
+            var brush = new LinearGradientBrush
+            {
+                StartPoint = new System.Windows.Point(0, 0),
+                EndPoint   = new System.Windows.Point(1, 0),
+            };
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x66, c.R, c.G, c.B), 0.0));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, c.R, c.G, c.B), 0.9));
+            brush.Freeze();
+            return brush;
+        }
+    }
+
     internal void SetEntry(AppEntry newEntry)
     {
         Entry = newEntry;
@@ -24,6 +43,7 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(AccentColor));
         OnPropertyChanged(nameof(AccentBrush));
+        OnPropertyChanged(nameof(AccentGradientBrush));
         OnPropertyChanged(nameof(DisplayMode));
         OnPropertyChanged(nameof(CurrentVersionText));
         OnPropertyChanged(nameof(HasCurrentVersion));
@@ -32,7 +52,36 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
         OnPropertyChanged(nameof(RetractedVersionText));
         OnPropertyChanged(nameof(PreviousVersionText));
         OnPropertyChanged(nameof(HasPreviousVersion));
+        OnPropertyChanged(nameof(VersionLine));
+        OnPropertyChanged(nameof(StatusBadge));
+        OnPropertyChanged(nameof(NeedsAttention));
     }
+
+    // ── Compact status, used by the Home dashboard cards ──────────────────
+
+    /// <summary>One-line version summary for a card (e.g. "v0.1.37" or "v0.1.31 → v0.1.37").</summary>
+    public string VersionLine => DisplayMode switch
+    {
+        VersionDisplayMode.None       => "No versions yet",
+        VersionDisplayMode.InProgress => HasCurrentVersion ? $"{CurrentVersionText} → {NextVersionText}" : NextVersionText ?? string.Empty,
+        VersionDisplayMode.Retracted  => HasPreviousVersion ? $"{RetractedVersionText} → {PreviousVersionText}" : RetractedVersionText ?? string.Empty,
+        _                             => CurrentVersionText ?? string.Empty,
+    };
+
+    /// <summary>Short release-state label for the dashboard badge.</summary>
+    public string StatusBadge => DisplayMode switch
+    {
+        VersionDisplayMode.None       => "No versions",
+        VersionDisplayMode.Retracted  => "Retracted",
+        VersionDisplayMode.InProgress => Entry.LatestVersion?.Status == VersionStatus.Packed ? "Ready to publish" : "In progress",
+        _                             => "Published",
+    };
+
+    /// <summary>True when the app wants a nudge (no versions yet, or a build is ready to publish).</summary>
+    public bool NeedsAttention =>
+        DisplayMode == VersionDisplayMode.None
+        || DisplayMode == VersionDisplayMode.Retracted
+        || (DisplayMode == VersionDisplayMode.InProgress && Entry.LatestVersion?.Status == VersionStatus.Packed);
 
     public VersionDisplayMode DisplayMode
     {

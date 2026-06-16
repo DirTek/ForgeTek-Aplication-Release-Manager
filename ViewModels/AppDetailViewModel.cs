@@ -69,7 +69,135 @@ public partial class AppDetailViewModel : ObservableObject
         _main = main;
         Versions = new ObservableCollection<AppVersion>(entry.Versions.AsEnumerable().Reverse());
         CheckChangelogEntries();
+        RaiseWorkflowChanged();
     }
+
+    // ── Workflow rail ─────────────────────────────────────────────────────
+    // Frames the selected (or latest) version around its lifecycle:
+    //   Scan → Review → Package → Publish.
+    // The rail reflects SelectedVersion when a row is picked, otherwise the
+    // latest non-scrapped version.
+
+    /// <summary>The version the rail describes: the selected row, else the latest live one.</summary>
+    public AppVersion? ActiveVersion =>
+        SelectedVersion ?? _entry.Versions.LastOrDefault(v => v.Status != VersionStatus.Scrapped);
+
+    private bool ActiveIsPublished => ActiveVersion?.Status == VersionStatus.Published;
+
+    // Lifecycle stage index of the active version: 0=Scan 1=Review 2=Package 3=Publish.
+    private int CurrentStageIndex()
+    {
+        var a = ActiveVersion;
+        if (a is null || a.IsInitial) return 0;
+        return a.Status switch
+        {
+            VersionStatus.Review     => 1,
+            VersionStatus.Signed     => 2,
+            VersionStatus.Packed     => 2,
+            VersionStatus.Retracted  => 2,
+            VersionStatus.Published  => 3,
+            _                        => 0,
+        };
+    }
+
+    private string StageState(int index)
+    {
+        if (ActiveIsPublished) return "Done";
+        var current = CurrentStageIndex();
+        return index < current ? "Done" : index == current ? "Current" : "Pending";
+    }
+
+    public string ScanState     => StageState(0);
+    public string ReviewState   => StageState(1);
+    public string PackageState  => StageState(2);
+    public string PublishState  => StageState(3);
+
+    public string WorkflowStageTitle =>
+        ActiveIsPublished ? "Published"
+        : CurrentStageIndex() switch { 1 => "Review", 2 => "Package", 3 => "Publish", _ => "Scan" };
+
+    public string WorkflowHint
+    {
+        get
+        {
+            var a = ActiveVersion;
+            if (a is null) return "Scan the app folder to register the initial version.";
+            if (a.IsInitial) return "Baseline registered. Scan the folder to detect changes and start the next version.";
+            return a.Status switch
+            {
+                VersionStatus.Published => $"v{a.VersionNumber} is live. Scan to start the next update.",
+                VersionStatus.Review    => $"Changes detected for v{a.VersionNumber}. Review them, then package.",
+                VersionStatus.Retracted => $"v{a.VersionNumber} was retracted. Re-package to publish it again.",
+                _                       => $"Run the packaging pipeline for v{a.VersionNumber}.",
+            };
+        }
+    }
+
+    public string PrimaryActionText
+    {
+        get
+        {
+            var a = ActiveVersion;
+            if (a is null) return "Scan Now";
+            if (a.IsInitial) return "Scan for Changes";
+            return a.Status switch
+            {
+                VersionStatus.Published => "Scan for Update",
+                VersionStatus.Review    => "Review Changes",
+                VersionStatus.Retracted => "Re-package",
+                _                       => a.PipelineStep is not null ? "Continue Packing" : "Start Packing",
+            };
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPrimaryAction))]
+    private void PrimaryAction()
+    {
+        var a = ActiveVersion;
+        if (a is null || a.IsInitial) { ScanNowCommand.Execute(null); return; }
+
+        switch (a.Status)
+        {
+            case VersionStatus.Published:
+                ScanNowCommand.Execute(null);
+                break;
+            case VersionStatus.Review:
+                SelectedVersion = a;
+                ViewVersionDiffCommand.Execute(null);
+                break;
+            default: // Signed / Packed / Retracted
+                SelectedVersion = a;
+                StartPackingCommand.Execute(null);
+                break;
+        }
+    }
+
+    private bool CanPrimaryAction()
+    {
+        var a = ActiveVersion;
+        if (a is null || a.IsInitial) return true;            // Scan
+        return a.Status switch
+        {
+            VersionStatus.Published => true,                  // Scan for update
+            VersionStatus.Review    => _entry.Versions.IndexOf(a) > 0,
+            VersionStatus.Scrapped  => false,
+            _                       => true,                  // Package
+        };
+    }
+
+    private void RaiseWorkflowChanged()
+    {
+        OnPropertyChanged(nameof(ScanState));
+        OnPropertyChanged(nameof(ReviewState));
+        OnPropertyChanged(nameof(PackageState));
+        OnPropertyChanged(nameof(PublishState));
+        OnPropertyChanged(nameof(WorkflowStageTitle));
+        OnPropertyChanged(nameof(WorkflowHint));
+        OnPropertyChanged(nameof(PrimaryActionText));
+        PrimaryActionCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedVersionChanged(AppVersion? value) => RaiseWorkflowChanged();
 
     private void CheckChangelogEntries()
     {
@@ -384,13 +512,6 @@ public partial class AppDetailViewModel : ObservableObject
             }
         }
 
-        if (detectedVersion is not null &&
-            _entry.Versions.Any(v => string.Equals(v.VersionNumber, detectedVersion, StringComparison.OrdinalIgnoreCase)))
-        {
-            _dialog.Alert("EXE Version Already Saved",
-                $"The EXE reports v{detectedVersion}, which matches an already-saved version for this app.\n\nVerify the version number before approving.");
-        }
-
         if (_entry.LatestVersion is { } latest)
         {
             DiffProgress = new DiffProgress("Preparing…", 0);
@@ -413,10 +534,26 @@ public partial class AppDetailViewModel : ObservableObject
                 return;
             }
 
+            // Only warn about a duplicate EXE version once we know there are real
+            // changes to review — otherwise it's redundant with "No Changes".
+            WarnIfDuplicateExeVersion(detectedVersion);
             _main.NavigateToDiff(_entry, files, diff, detectedVersion);
         }
         else
+        {
+            WarnIfDuplicateExeVersion(detectedVersion);
             _main.NavigateToScan(_entry, files, detectedVersion);
+        }
+    }
+
+    private void WarnIfDuplicateExeVersion(string? detectedVersion)
+    {
+        if (detectedVersion is not null &&
+            _entry.Versions.Any(v => string.Equals(v.VersionNumber, detectedVersion, StringComparison.OrdinalIgnoreCase)))
+        {
+            _dialog.Alert("EXE Version Already Saved",
+                $"The EXE reports v{detectedVersion}, which matches an already-saved version for this app.\n\nVerify the version number before approving.");
+        }
     }
 
     private void NoChanges()

@@ -297,7 +297,7 @@ public partial class MainWindow : Window
         try
         {
             // Step 1: Install redistributables
-            if (_manifest.Redists.Count > 0)
+            if (_manifest is not null && _manifest.Redists.Count > 0)
             {
                 var redistDir = Path.Combine(_tempDir, "redist");
                 if (Directory.Exists(redistDir))
@@ -379,7 +379,7 @@ public partial class MainWindow : Window
                 var processed = 0;
                 var sw = System.Diagnostics.Stopwatch.StartNew();
 
-                foreach (var app in _manifest.Apps)
+                foreach (var app in _manifest!.Apps)
                 {
                     var sourceAppDir = Path.Combine(appsDir, app.DefaultInstallDir);
                     var targetAppDir = Path.Combine(rootDir, app.DefaultInstallDir);
@@ -442,7 +442,7 @@ public partial class MainWindow : Window
             });
 
             // Step 2b: Write per-app registry entries
-            foreach (var app in _manifest.Apps)
+            foreach (var app in _manifest!.Apps)
             {
                 var appDir = Path.Combine(rootDir, app.DefaultInstallDir);
                 foreach (var reg in app.RegistryEntries)
@@ -1080,8 +1080,13 @@ public partial class MainWindow : Window
         // Set window icon to a standard uninstall icon from imageres.dll
         try
         {
+            // ExtractIcon only needs a non-null module handle; GetHINSTANCE returning -1 in a
+            // single-file build is harmless here (the icon path is what matters), so suppress IL3002.
+#pragma warning disable IL3002
+            var hModule = System.Runtime.InteropServices.Marshal.GetHINSTANCE(GetType().Module);
+#pragma warning restore IL3002
             var hIcon = NativeMethods.ExtractIcon(
-                System.Runtime.InteropServices.Marshal.GetHINSTANCE(GetType().Module),
+                hModule,
                 Environment.ExpandEnvironmentVariables(@"%SystemRoot%\System32\imageres.dll"), -131);
             if (hIcon != IntPtr.Zero)
             {

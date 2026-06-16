@@ -5,45 +5,61 @@ namespace ForgeTekUpdatePackager.Services;
 
 public class ChangelogService : IChangelogService
 {
+    // Accept common changelog filenames (changelog.md / .txt / no extension), case-insensitive.
+    private static readonly string[] ChangelogNames =
+        { "changelog.md", "changelog.txt", "changelog", "changes.md", "history.md" };
+
     public string? FindChangelogFile(string appFolder)
     {
         if (!Directory.Exists(appFolder)) return null;
-        return Directory.GetFiles(appFolder, "*changelog*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(f => Path.GetFileName(f).Equals("changelog.md", StringComparison.OrdinalIgnoreCase));
+        return Directory.GetFiles(appFolder, "*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(f => ChangelogNames.Contains(Path.GetFileName(f), StringComparer.OrdinalIgnoreCase));
     }
+
+    // Matches any markdown heading (#..######) whose text contains the version as a standalone token,
+    // tolerating the common variants: "## Version 1.0.1 - x", "## [1.0.1] - x", "## v1.0.1", "## 1.0.1".
+    // The look-around stops "1.0.1" from matching inside "1.0.10" or "11.0.1".
+    private static string HeadingPattern(string versionNumber) =>
+        $@"^\s{{0,3}}#{{1,6}}\s+.*(?<![\d.]){Regex.Escape(versionNumber)}(?![\d.])";
 
     public bool HasChangelogEntry(string changelogPath, string versionNumber)
     {
         if (!File.Exists(changelogPath) || string.IsNullOrWhiteSpace(versionNumber))
             return false;
-        var lines = File.ReadAllLines(changelogPath);
-        var pattern = $@"^\s*##\s+Version\s+{Regex.Escape(versionNumber)}\s+[-–—]";
-        return lines.Any(line => Regex.IsMatch(line, pattern, RegexOptions.IgnoreCase));
+        var pattern = HeadingPattern(versionNumber);
+        return File.ReadAllLines(changelogPath).Any(line => Regex.IsMatch(line, pattern, RegexOptions.IgnoreCase));
     }
 
     public string? ExtractVersionContent(string changelogPath, string versionNumber)
     {
         if (!File.Exists(changelogPath) || string.IsNullOrWhiteSpace(versionNumber))
             return null;
+
         var lines = File.ReadAllLines(changelogPath);
+        var startPattern = HeadingPattern(versionNumber);
+        const string anyHeading = @"^\s{0,3}(#{1,6})\s+";
+
         var result = new List<string>();
-        bool inSection = false;
-        var startPattern    = $@"^\s*##\s+Version\s+{Regex.Escape(versionNumber)}\s+[-–—]";
-        var nextVerPattern  = @"^\s*##\s+Version\s+";
+        var startLevel = -1;
         foreach (var line in lines)
         {
-            if (Regex.IsMatch(line, startPattern, RegexOptions.IgnoreCase))
+            if (startLevel < 0)
             {
-                inSection = true;
-                result.Add(line);
+                var start = Regex.Match(line, startPattern, RegexOptions.IgnoreCase);
+                if (start.Success)
+                {
+                    startLevel = Regex.Match(line, anyHeading).Groups[1].Value.Length;
+                    result.Add(line);
+                }
                 continue;
             }
-            if (inSection)
-            {
-                if (Regex.IsMatch(line, nextVerPattern))
-                    break;
-                result.Add(line);
-            }
+
+            // End the section at the next heading of the same or higher level (sub-headings are kept).
+            var heading = Regex.Match(line, anyHeading);
+            if (heading.Success && heading.Groups[1].Value.Length <= startLevel)
+                break;
+
+            result.Add(line);
         }
         return result.Count > 0 ? string.Join(Environment.NewLine, result) : null;
     }

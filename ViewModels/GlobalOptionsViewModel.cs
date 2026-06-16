@@ -17,9 +17,27 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private readonly ISettingsService    _settings;
     private readonly ICertificateService _certService;
     private readonly IBackupService      _backupService;
+    private readonly IThemeService       _theme;
     private CancellationTokenSource?    _cts;
+    private bool _suppressThemeApply;
 
     [ObservableProperty] private string _companyName = string.Empty;
+
+    // ── Category navigation (driven by the sidebar) ───────────────────────
+    public string[] Categories { get; } = { "General", "Signing", "Backup & Data" };
+
+    [ObservableProperty] private string _selectedCategory = "General";
+
+    // ── Appearance ────────────────────────────────────────────────────────
+    public string[] ThemeOptions { get; } = { "System", "Light", "Dark" };
+
+    [ObservableProperty] private string _selectedTheme = "Dark";
+
+    partial void OnSelectedThemeChanged(string value)
+    {
+        if (_suppressThemeApply) return;
+        _theme.Apply(value);   // applies live + persists the preference
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(UseGlobalCertHint))]
@@ -111,11 +129,13 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
     public ObservableCollection<string> GenerateLog { get; } = [];
 
-    public GlobalOptionsViewModel(ISettingsService settings, ICertificateService certService, IBackupService backupService)
+    public GlobalOptionsViewModel(ISettingsService settings, ICertificateService certService,
+        IBackupService backupService, IThemeService theme)
     {
         _settings = settings;
         _certService = certService;
         _backupService = backupService;
+        _theme = theme;
 
         GenerateLog.CollectionChanged += (_, _) => HasGenerateLog = GenerateLog.Count > 0;
     }
@@ -126,6 +146,10 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
         LoadAvailableCerts();
         RefreshStoreCerts();
+
+        _suppressThemeApply = true;
+        SelectedTheme = _theme.Current;
+        _suppressThemeApply = false;
 
         var g = _settings.Global;
         CompanyName            = g.CompanyName;

@@ -42,9 +42,223 @@ SOFTWARE LICENSE
     [ObservableProperty] private string _generationMessage = string.Empty;
     [ObservableProperty] private bool _showList = true;
 
-    [ObservableProperty] private string _editName = string.Empty;
+    // Generation overlay stays up after the run to show the result (success/failure) in-place,
+    // instead of a separate dialog. IsGenerating = running phase; result phase shows when it clears.
+    [ObservableProperty] private bool _showGenerationOverlay;
+    [ObservableProperty] private bool _generationSucceeded;
+    [ObservableProperty] private string _generationResultDetail = string.Empty;
+    private string? _lastGeneratedSetupPath;
+
+    // ── Sidebar categories (Setup Bundles / Past Bundles) ─────────────────
+    public string[] Categories { get; } = { "Setup Bundles", "Past Bundles" };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBundlesCategory))]
+    [NotifyPropertyChangedFor(nameof(IsPastCategory))]
+    private string _selectedCategory = "Setup Bundles";
+
+    public bool IsBundlesCategory => SelectedCategory == "Setup Bundles";
+    public bool IsPastCategory    => SelectedCategory == "Past Bundles";
+
+    /// <summary>Generation history, newest first ("Past Bundles").</summary>
+    public ObservableCollection<GeneratedSetupRecord> History { get; } = [];
+
+    private bool _suppressCategoryChange;
+
+    partial void OnSelectedCategoryChanged(string? oldValue, string newValue)
+    {
+        if (_suppressCategoryChange) return;
+
+        // Navigating categories leaves the wizard — confirm if mid-edit so edits aren't lost silently.
+        if (IsEditing)
+        {
+            if (!_dialog.Confirm("Discard Changes",
+                    "Leave the setup editor? Unsaved changes to this bundle will be lost.",
+                    "Discard"))
+            {
+                _suppressCategoryChange = true;
+                SelectedCategory = oldValue ?? "Setup Bundles";
+                _suppressCategoryChange = false;
+                return;
+            }
+            IsEditing = false;
+            ShowList = true;
+        }
+
+        if (IsPastCategory) ReloadHistory();
+    }
+
+    private void ReloadHistory()
+    {
+        History.Clear();
+        foreach (var record in _setupStorage.GetHistory().OrderByDescending(h => h.GeneratedDate))
+            History.Add(record);
+    }
+
+    [RelayCommand]
+    private void ClearHistory()
+    {
+        if (!_dialog.Confirm("Clear History",
+                "Remove all Past Bundles entries? Generated setup files on disk are not deleted.",
+                "Clear")) return;
+        _setupStorage.ClearHistory();
+        ReloadHistory();
+    }
+
+    [RelayCommand]
+    private void OpenSetupFolder(GeneratedSetupRecord? record)
+    {
+        if (record is not null) RevealInExplorer(record.OutputPath);
+    }
+
+    // Opens Explorer with the setup file selected (or its folder, if the file is gone).
+    private void RevealInExplorer(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            if (System.IO.File.Exists(path))
+                System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+            else
+            {
+                var dir = System.IO.Path.GetDirectoryName(path);
+                if (dir is not null && System.IO.Directory.Exists(dir))
+                    System.Diagnostics.Process.Start("explorer.exe", $"\"{dir}\"");
+                else
+                    _dialog.Alert("Not Found", $"The setup file no longer exists:\n{path}");
+            }
+        }
+        catch (Exception ex) { _dialog.Alert("Open Failed", ex.Message); }
+    }
+
+    // ── Generation pipeline stepper ───────────────────────────────────────
+    // Maps the live GenerationPercent onto discrete phases so the setups list
+    // shows the same "Done / Current / Pending" stepper as packaging.
+    // Boundaries mirror the percent ranges reported by SetupService.GenerateAsync.
+    private static readonly (int Start, string Label)[] GenSteps =
+    {
+        (0,  "Apps"),      // collect + stage app files       (5–40%)
+        (40, "Redists"),   // runtimes + images               (40–56%)
+        (56, "Manifest"),  // install manifest + uninstaller  (56–68%)
+        (68, "Package"),   // ZIP payload                     (68–90%)
+        (90, "Build"),     // bootstrapper + appended payload (90–96%)
+        (96, "Sign"),      // sign the setup exe              (96–100%)
+    };
+
+    private int CurrentGenStep()
+    {
+        var p = GenerationPercent;
+        var idx = 0;
+        for (var i = 0; i < GenSteps.Length; i++)
+            if (p >= GenSteps[i].Start) idx = i;
+        return idx;
+    }
+
+    private string GenState(int index)
+    {
+        if (GenerationPercent >= 100) return "Done";
+        var current = CurrentGenStep();
+        return index < current ? "Done" : index == current ? "Current" : "Pending";
+    }
+
+    public string GenAppsState     => GenState(0);
+    public string GenRedistsState  => GenState(1);
+    public string GenManifestState => GenState(2);
+    public string GenPackageState  => GenState(3);
+    public string GenBuildState    => GenState(4);
+    public string GenSignState     => GenState(5);
+
+    /// <summary>Current step label, e.g. "Step 3 of 6 · Manifest".</summary>
+    public string GenStageTitle =>
+        GenerationPercent >= 100
+            ? "Finishing…"
+            : $"Step {CurrentGenStep() + 1} of {GenSteps.Length} · {GenSteps[CurrentGenStep()].Label}";
+
+    partial void OnGenerationPercentChanged(double value)
+    {
+        OnPropertyChanged(nameof(GenAppsState));
+        OnPropertyChanged(nameof(GenRedistsState));
+        OnPropertyChanged(nameof(GenManifestState));
+        OnPropertyChanged(nameof(GenPackageState));
+        OnPropertyChanged(nameof(GenBuildState));
+        OnPropertyChanged(nameof(GenSignState));
+        OnPropertyChanged(nameof(GenStageTitle));
+    }
+
+    // ── Editor wizard (guided steps) ──────────────────────────────────────
+    // The edit screen is a Next/Back wizard. Step circles are also clickable.
+    public static readonly string[] EditStepLabels = { "General", "Apps", "Signing", "Appearance", "Launch" };
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditStep1State))]
+    [NotifyPropertyChangedFor(nameof(EditStep2State))]
+    [NotifyPropertyChangedFor(nameof(EditStep3State))]
+    [NotifyPropertyChangedFor(nameof(EditStep4State))]
+    [NotifyPropertyChangedFor(nameof(EditStep5State))]
+    [NotifyPropertyChangedFor(nameof(EditStepTitle))]
+    [NotifyPropertyChangedFor(nameof(IsFirstStep))]
+    [NotifyPropertyChangedFor(nameof(IsLastStep))]
+    [NotifyPropertyChangedFor(nameof(ShowSaveHint))]
+    [NotifyPropertyChangedFor(nameof(IsGeneralStep))]
+    [NotifyPropertyChangedFor(nameof(IsAppsStep))]
+    [NotifyPropertyChangedFor(nameof(IsSigningStep))]
+    [NotifyPropertyChangedFor(nameof(IsAppearanceStep))]
+    [NotifyPropertyChangedFor(nameof(IsLaunchStep))]
+    [NotifyCanExecuteChangedFor(nameof(NextStepCommand))]
+    [NotifyCanExecuteChangedFor(nameof(PrevStepCommand))]
+    private int _editStepIndex;
+
+    public bool IsFirstStep => EditStepIndex <= 0;
+    public bool IsLastStep  => EditStepIndex >= EditStepLabels.Length - 1;
+
+    public bool IsGeneralStep    => EditStepIndex == 0;
+    public bool IsAppsStep       => EditStepIndex == 1;
+    public bool IsSigningStep    => EditStepIndex == 2;
+    public bool IsAppearanceStep => EditStepIndex == 3;
+    public bool IsLaunchStep     => EditStepIndex == 4;
+    public string EditStepTitle =>
+        $"Step {EditStepIndex + 1} of {EditStepLabels.Length} · {EditStepLabels[EditStepIndex]}";
+
+    private string EditStepState(int index) =>
+        index < EditStepIndex ? "Done" : index == EditStepIndex ? "Current" : "Pending";
+
+    public string EditStep1State => EditStepState(0);
+    public string EditStep2State => EditStepState(1);
+    public string EditStep3State => EditStepState(2);
+    public string EditStep4State => EditStepState(3);
+    public string EditStep5State => EditStepState(4);
+
+    [RelayCommand(CanExecute = nameof(CanNextStep))]
+    private void NextStep() { if (!IsLastStep) EditStepIndex++; }
+    private bool CanNextStep() => !IsLastStep;
+
+    [RelayCommand(CanExecute = nameof(CanPrevStep))]
+    private void PrevStep() { if (!IsFirstStep) EditStepIndex--; }
+    private bool CanPrevStep() => !IsFirstStep;
+
+    [RelayCommand]
+    private void GoToStep(object? index)
+    {
+        if (index is int i && i >= 0 && i < EditStepLabels.Length) EditStepIndex = i;
+        else if (index is string s && int.TryParse(s, out var n) && n >= 0 && n < EditStepLabels.Length) EditStepIndex = n;
+    }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveSetupCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowSaveHint))]
+    private string _editName = string.Empty;
+
     [ObservableProperty] private string _editVersion = string.Empty;
-    [ObservableProperty] private string _editOutputFolder = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveSetupCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowSaveHint))]
+    private string _editOutputFolder = string.Empty;
+
+    /// <summary>Shown on the last step when Save is blocked, since the missing fields live on Step 1.</summary>
+    public bool ShowSaveHint => IsLastStep && !CanSaveSetup();
+
+    [ObservableProperty] private bool _editPreserveOldSetups;
     [ObservableProperty] private bool _editSignOutput;
     [ObservableProperty] private string _editEulaText = string.Empty;
     [ObservableProperty] private string? _editBannerImage;
@@ -80,7 +294,7 @@ SOFTWARE LICENSE
         }
     }
 
-    public ObservableCollection<SetupBundle> Bundles { get; } = [];
+    public ObservableCollection<SetupBundleVm> Bundles { get; } = [];
     public ObservableCollection<SetupBundleAppItem> AvailableApps { get; } = [];
     public ObservableCollection<RedistItem> WorkingRedists { get; } = [];
 
@@ -106,8 +320,12 @@ SOFTWARE LICENSE
     private void Reload()
     {
         Bundles.Clear();
+        // Tolerate duplicate ids (GroupBy) so a bad data set never throws here.
+        var appsById = _storage.GetAll()
+            .GroupBy(a => a.Id)
+            .ToDictionary(g => g.Key, g => g.First());
         foreach (var b in _setupStorage.GetAll())
-            Bundles.Add(b);
+            Bundles.Add(new SetupBundleVm(b, appsById));
     }
 
     [RelayCommand]
@@ -167,6 +385,7 @@ SOFTWARE LICENSE
         EditName = string.Empty;
         EditVersion = string.Empty;
         EditOutputFolder = string.Empty;
+        EditPreserveOldSetups = false;
         EditSignOutput = false;
         EditEulaText = DefaultEulaText;
         EditBannerImage = null;
@@ -184,6 +403,7 @@ SOFTWARE LICENSE
         foreach (var app in _storage.GetAll())
             AvailableApps.Add(MakeAppItem(app, null));
 
+        EditStepIndex = 0;
         IsEditing = true;
         ShowList = false;
     }
@@ -273,6 +493,7 @@ SOFTWARE LICENSE
         EditName = bundle.Name;
         EditVersion = bundle.Version;
         EditOutputFolder = bundle.OutputFolder;
+        EditPreserveOldSetups = bundle.PreserveOldSetups;
         EditSignOutput = bundle.SignOutput;
         EditEulaText = string.IsNullOrWhiteSpace(bundle.EulaText) ? DefaultEulaText : bundle.EulaText;
         EditBannerImage = bundle.BannerImage;
@@ -309,6 +530,7 @@ SOFTWARE LICENSE
                 DetectionExpectedValue = r.DetectionExpectedValue,
             });
 
+        EditStepIndex = 0;
         IsEditing = true;
         ShowList = false;
     }
@@ -480,7 +702,10 @@ SOFTWARE LICENSE
             WorkingRedists.Add(entry);
     }
 
-    [RelayCommand]
+    private bool CanSaveSetup() =>
+        !string.IsNullOrWhiteSpace(EditName) && !string.IsNullOrWhiteSpace(EditOutputFolder);
+
+    [RelayCommand(CanExecute = nameof(CanSaveSetup))]
     private void SaveSetup()
     {
         if (string.IsNullOrWhiteSpace(EditName))
@@ -544,6 +769,7 @@ SOFTWARE LICENSE
         bundle.Name = EditName;
         bundle.Version = EditVersion;
         bundle.OutputFolder = EditOutputFolder;
+        bundle.PreserveOldSetups = EditPreserveOldSetups;
         bundle.SignOutput = EditSignOutput;
         bundle.EulaText = EditEulaText;
         bundle.BannerImage = string.IsNullOrWhiteSpace(EditBannerImage) ? null : EditBannerImage;
@@ -590,11 +816,28 @@ SOFTWARE LICENSE
         Reload();
     }
 
+    private CancellationTokenSource? _genCts;
+
     [RelayCommand]
     private async Task GenerateSetup(SetupBundle? bundle)
     {
         if (bundle is null) return;
 
+        // Guard older/partial bundles that predate Save-time validation.
+        if (string.IsNullOrWhiteSpace(bundle.OutputFolder))
+        {
+            _dialog.Alert("Cannot Generate", "This bundle has no output folder. Edit it and set one first.");
+            return;
+        }
+        if (bundle.Apps.Count == 0)
+        {
+            _dialog.Alert("Cannot Generate", "This bundle has no apps. Edit it and add at least one.");
+            return;
+        }
+
+        _genCts = new CancellationTokenSource();
+        _lastGeneratedSetupPath = null;
+        ShowGenerationOverlay = true;
         IsGenerating = true;
         GenerationPercent = 0;
         GenerationMessage = "Starting…";
@@ -608,27 +851,104 @@ SOFTWARE LICENSE
             });
 
             var setupPath = await Task.Run(() =>
-                _setupService.GenerateAsync(bundle, progress));
+                _setupService.GenerateAsync(bundle, progress, _genCts.Token), _genCts.Token);
 
             bundle.LastGeneratedPath = setupPath;
             bundle.LastGeneratedDate = DateTime.Now;
+            // Snapshot the app versions that actually went into this build.
+            bundle.GeneratedAppVersions = bundle.Apps
+                .Where(a => !string.IsNullOrEmpty(a.AppId))
+                .GroupBy(a => a.AppId)
+                .ToDictionary(g => g.Key,
+                    g => _storage.GetById(g.Key)?.LatestVersion?.VersionNumber ?? string.Empty);
             _setupStorage.Save(bundle);
             Reload();
+            ReloadHistory();
 
             _log.Write("Setups", $"Setup generated: {setupPath}");
-            _dialog.Alert("Setup Generated",
-                $"Setup saved to:\n{setupPath}");
+            _lastGeneratedSetupPath = setupPath;
+            GenerationSucceeded = true;
+            GenerationResultDetail = setupPath;
+        }
+        catch (OperationCanceledException)
+        {
+            _log.Write("SetupGen", "Generation cancelled by user.");
+            ShowGenerationOverlay = false;   // nothing to report — just close
         }
         catch (Exception ex)
         {
             _log.Write("SetupGen", $"Generation failed: {ex.Message}");
-            _dialog.Alert("Generation Failed", ex.Message);
+            GenerationSucceeded = false;
+            GenerationResultDetail = ex.Message;
         }
         finally
         {
-            IsGenerating = false;
+            IsGenerating = false;            // clears the running phase → result phase shows
+            _genCts.Dispose();
+            _genCts = null;
         }
     }
+
+    [RelayCommand]
+    private void CancelGeneration()
+    {
+        if (_genCts is null || _genCts.IsCancellationRequested) return;
+        GenerationMessage = "Cancelling…";
+        _genCts.Cancel();
+    }
+
+    [RelayCommand]
+    private void CloseGenerationResult() => ShowGenerationOverlay = false;
+
+    [RelayCommand]
+    private void OpenGeneratedFolder() => RevealInExplorer(_lastGeneratedSetupPath);
+}
+
+/// <summary>Display wrapper for a setup bundle in the list — resolves app names/versions and status.</summary>
+public class SetupBundleVm
+{
+    public SetupBundle Bundle { get; }
+
+    public SetupBundleVm(SetupBundle bundle, IReadOnlyDictionary<string, AppEntry> appsById)
+    {
+        Bundle = bundle;
+
+        var generatedVersions = bundle.GeneratedAppVersions ?? new Dictionary<string, string>();
+
+        var parts = new List<string>();
+        foreach (var a in bundle.Apps ?? new List<SetupAppRef>())
+        {
+            if (a is null || string.IsNullOrEmpty(a.AppId) || !appsById.TryGetValue(a.AppId, out var app))
+            {
+                parts.Add("(removed app)");
+                continue;
+            }
+            // Prefer the version captured when the setup was generated; fall back to the app's current
+            // latest (for bundles not generated yet, or apps added since the last build).
+            var v = generatedVersions.TryGetValue(a.AppId, out var gv) && !string.IsNullOrEmpty(gv)
+                ? gv
+                : app.LatestVersion?.VersionNumber;
+            var versioned = string.IsNullOrEmpty(v) ? app.Name : $"{app.Name} v{v}";
+            // Show the version for both modes; note cumulative bundles (all versions through latest).
+            parts.Add(a.VersionMode == VersionMode.Cumulative ? $"{versioned} (cumulative)" : versioned);
+        }
+        AppsSummary = parts.Count > 0 ? string.Join("   ·   ", parts) : "No apps selected";
+    }
+
+    public string  Name              => Bundle.Name;
+    public string  Version           => Bundle.Version;
+    public int     AppsCount         => Bundle.Apps?.Count ?? 0;
+    public DateTime CreatedDate      => Bundle.CreatedDate;
+    public DateTime? LastGeneratedDate => Bundle.LastGeneratedDate;
+    public string? LastGeneratedPath => Bundle.LastGeneratedPath;
+    public bool    IsSigned          => Bundle.SignOutput;
+    public bool    IsGenerated       => Bundle.LastGeneratedDate is not null;
+    public string  AppsSummary       { get; }
+
+    /// <summary>The generated file path if it exists, otherwise the configured output folder.</summary>
+    public string  OutputDisplay     => string.IsNullOrWhiteSpace(Bundle.LastGeneratedPath)
+        ? Bundle.OutputFolder
+        : Bundle.LastGeneratedPath;
 }
 
 public partial class SetupBundleAppItem : ObservableObject

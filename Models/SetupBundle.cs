@@ -34,7 +34,15 @@ public class SetupBundle
     public string? BackgroundImage { get; set; }
     /// <summary>Lock the setup window to a fixed size (no resizing).</summary>
     public bool FixedSize { get; set; }
+    /// <summary>Before overwriting an existing Setup.exe at the output folder, rename the old one to
+    /// "{name}Setup-{previous generation date}.exe" so prior builds are kept as backups.</summary>
+    public bool PreserveOldSetups { get; set; }
+
     public string? LastGeneratedPath { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public DateTime? LastGeneratedDate { get; set; }
+
+    /// <summary>App version numbers captured at the last successful generation (AppId → version),
+    /// so the list can show what actually shipped rather than each app's current latest.</summary>
+    public Dictionary<string, string> GeneratedAppVersions { get; set; } = [];
 }

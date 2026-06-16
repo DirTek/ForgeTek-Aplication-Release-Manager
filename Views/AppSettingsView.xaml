@@ -1,7 +1,7 @@
-<UserControl x:Class="ForgeTekUpdatePackager.Views.AppSettingsView"
+﻿<UserControl x:Class="ForgeTekUpdatePackager.Views.AppSettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Background="{StaticResource BackgroundBrush}">
+             Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -11,13 +11,13 @@
 
         <!-- Header -->
         <Border Grid.Row="0" Padding="28,24,28,16"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
-                <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextBrush}">
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
                     <Run Text="Settings — "/><Run Text="{Binding AppName, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Text="Per-app configuration" FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 
@@ -27,13 +27,13 @@
 
                 <!-- OUTPUT FOLDER -->
                 <TextBlock Text="OUTPUT FOLDER" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
-                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,6" TextWrapping="Wrap">
                     <Run Text="Default: "/>
                     <Run Text="{Binding DefaultOutputBase, Mode=OneWay}"
-                         Foreground="{StaticResource TextBrush}"/>
+                         Foreground="{DynamicResource TextBrush}"/>
                     <Run Text="\{version}"/>
                 </TextBlock>
 
@@ -55,34 +55,34 @@
                 </Grid>
 
                 <TextBlock Text="Leave blank to use the default. Version number is appended automatically."
-                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,28" TextWrapping="Wrap"/>
 
-                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
 
                 <!-- DEFAULT CERTIFICATE -->
                 <TextBlock Text="DEFAULT SIGNING CERTIFICATE" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <!-- Global cert override banner -->
                 <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
-                        Background="#1A0A84FF" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                        Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                         Visibility="{Binding GlobalCertOverrideActive, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
-                        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"
+                        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
                                    Text="Global certificate active"/>
-                        <TextBlock FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                    Margin="0,3,0,0" TextWrapping="Wrap">
                             <Run Text="Using "/>
                             <Run Text="{Binding GlobalCertOverrideName, Mode=OneWay}"
-                                 Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                 Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
                             <Run Text=" from Options. These fields are disabled while the global certificate is active."/>
                         </TextBlock>
                     </StackPanel>
                 </Border>
 
                 <TextBlock Text="Pre-fills the certificate path on the Sign step for this app."
-                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,6" TextWrapping="Wrap"
                            Visibility="{Binding GlobalCertOverrideInactive, Converter={StaticResource BoolToVisibility}}"/>
 
@@ -105,13 +105,13 @@
                 </Grid>
 
                 <TextBlock Text="CERTIFICATE PASSWORD" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <PasswordBox x:Name="CertPasswordBox" Height="36" Margin="0,0,0,6"
                              IsEnabled="{Binding GlobalCertOverrideInactive}"
                              PasswordChanged="CertPasswordBox_PasswordChanged"/>
 
-                <TextBlock Margin="0,0,0,6" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock Margin="0,0,0,6" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            TextWrapping="Wrap">
                     <Run Text="Stored as plain text for now — encryption will be added later.  "/>
                     <Run Text="Leave blank to enter the password manually each time."/>
@@ -132,14 +132,14 @@
                                      ItemsSource="{Binding StoreCertificates}"
                                      SelectedValue="{Binding SelectedStoreThumbprint, Mode=TwoWay}"
                                      SelectedValuePath="Thumbprint"
-                                     Background="{StaticResource SurfaceBrush}" BorderThickness="0">
+                                     Background="{DynamicResource SurfaceBrush}" BorderThickness="0">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel>
                                             <TextBlock Text="{Binding Subject}" FontSize="12"
-                                                       Foreground="{StaticResource TextBrush}"/>
+                                                       Foreground="{DynamicResource TextBrush}"/>
                                             <TextBlock Text="{Binding DisplayName}" FontSize="11"
-                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -151,16 +151,16 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
 
                 <!-- PACKAGE EXTENSION -->
                 <TextBlock Text="PACKAGE FILE EXTENSION" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
-                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,6" TextWrapping="Wrap">
                     Customize the file extension used when packaging this app.
-                    Leave blank to use the default <Run Text=".ftu" Foreground="{StaticResource TextBrush}"/>.
+                    Leave blank to use the default <Run Text=".ftu" Foreground="{DynamicResource TextBrush}"/>.
                 </TextBlock>
 
                 <Grid Margin="0,0,0,6">
@@ -169,7 +169,7 @@
                         <ColumnDefinition Width="160"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="." FontSize="15" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center" Margin="0,0,2,0"/>
                     <TextBox Grid.Column="1"
                              Text="{Binding PackageExtension, UpdateSourceTrigger=PropertyChanged}"
@@ -177,16 +177,16 @@
                 </Grid>
 
                 <TextBlock Text="Example: pkg, update, ftu — do not include the leading dot."
-                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,28" TextWrapping="Wrap"/>
 
-                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
 
                 <!-- FTP SETTINGS -->
                 <TextBlock Text="FTP SETTINGS" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
-                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,16" TextWrapping="Wrap">
                     Used in Step 5 to upload the package and update catalog to your distribution server.
                 </TextBlock>
@@ -199,44 +199,44 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
                         <TextBlock Text="HOST" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                         <TextBox Text="{Binding FtpHost, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="PORT" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                         <TextBox Text="{Binding FtpPort, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
                     </StackPanel>
                 </Grid>
 
                 <!-- Username -->
                 <TextBlock Text="USERNAME" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                 <TextBox Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" Margin="0,0,0,10"/>
 
                 <!-- FTP Password -->
                 <TextBlock Text="FTP PASSWORD" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                 <PasswordBox x:Name="FtpPasswordBox" Height="36" Margin="0,0,0,10"
                              PasswordChanged="FtpPasswordBox_PasswordChanged"/>
 
                 <!-- Remote path -->
                 <TextBlock Text="REMOTE BASE PATH" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                 <TextBox Text="{Binding FtpRemotePath, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" Margin="0,0,0,4"/>
                 <TextBlock Text="Root folder on the FTP server (e.g. /public/releases). App name and version are appended automatically."
-                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,10" TextWrapping="Wrap"/>
 
                 <!-- Base download URL -->
                 <TextBlock Text="BASE DOWNLOAD URL" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                 <TextBox Text="{Binding BaseDownloadUrl, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" Margin="0,0,0,4"/>
                 <TextBlock Text="Public HTTP base URL (e.g. https://example.com/releases). Used to build the download link in the update catalog."
-                           FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,14" TextWrapping="Wrap"/>
 
                 <!-- Test connection -->
@@ -245,7 +245,7 @@
                             Padding="14,8" Margin="0,0,12,0"
                             Command="{Binding TestConnectionCommand}"/>
                     <TextBlock Text="Testing…" FontSize="13"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
@@ -261,15 +261,15 @@
                 </StackPanel>
 
                 <TextBlock Text="{Binding ConnectionTestResult}" FontSize="12"
-                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,28" TextWrapping="Wrap"/>
 
             </StackPanel>
         </ScrollViewer>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Background="{StaticResource SidebarBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+        <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" Style="{StaticResource SecondaryButton}"

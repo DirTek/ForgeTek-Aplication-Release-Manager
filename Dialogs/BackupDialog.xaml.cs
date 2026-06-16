@@ -47,6 +47,15 @@ public partial class BackupDialog : Window
             return;
         }
 
+        var includeApps   = IncludeAppsCheck.IsChecked == true;
+        var includeSetups = IncludeSetupsCheck.IsChecked == true;
+        if (!includeApps && !includeSetups)
+        {
+            _log.Clear();
+            _log.Add("Select at least one of Apps or Setups to back up.");
+            return;
+        }
+
         CreateBackupBtn.IsEnabled = false;
         BrowseBtn.IsEnabled       = false;
         _log.Clear();
@@ -62,7 +71,8 @@ public partial class BackupDialog : Window
 
         try
         {
-            await _backup.CreateBackupAsync(_rootFolder, _globalSettingsFilePath, path, progress, _cts.Token);
+            await _backup.CreateBackupAsync(_rootFolder, _globalSettingsFilePath, path,
+                includeApps, includeSetups, progress, _cts.Token);
             _log.Add(string.Empty);
             _log.Add($"✔  Backup saved to: {path}");
         }

@@ -52,15 +52,25 @@ public partial class FileTreeNodeViewModel : ObservableObject
         Change = change;
     }
 
+    // "Include" is the single user-facing toggle; it's the inverse of the persisted debug/exclude
+    // flag. Folders cascade to their children; files mirror to IsDebug (→ Record.IsDebug).
+    // The two setters converge because assigning an unchanged value doesn't re-raise the change.
     partial void OnIsIncludedChanged(bool value)
     {
-        foreach (var child in Children)
-            child.IsIncluded = value;
+        if (IsFolder)
+        {
+            foreach (var child in Children)
+                child.IsIncluded = value;
+        }
+        else
+        {
+            IsDebug = !value;
+        }
     }
 
     partial void OnIsDebugChanged(bool value)
     {
-        if (value) IsIncluded = false;
+        IsIncluded = !value;
         if (Record is not null) Record.IsDebug = value;
     }
 

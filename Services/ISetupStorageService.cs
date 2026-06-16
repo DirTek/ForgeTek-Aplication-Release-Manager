@@ -8,4 +8,9 @@ public interface ISetupStorageService
     SetupBundle? GetById(string id);
     void Save(SetupBundle bundle);
     void Delete(string id);
+
+    // ── Generation history ("Past Bundles") ──────────────────────────────
+    IReadOnlyList<GeneratedSetupRecord> GetHistory();
+    void AddHistory(GeneratedSetupRecord record);
+    void ClearHistory();
 }

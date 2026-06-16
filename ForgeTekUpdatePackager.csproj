@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>appicon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,14 +32,13 @@
     <ApplicationDefinition Remove="SetupUninstaller\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="appicon.ico" />
+    <Resource Include="forgetek-logo.png" />
+  </ItemGroup>
+
   <Target Name="PublishSetupBootstrapper" AfterTargets="Build" Condition="'$(Configuration)' != ''">
-    <MSBuild Projects="SetupBootstrapper\SetupBootstrapper.csproj" Targets="Publish"
-             Properties="Configuration=$(Configuration);
-                         RuntimeIdentifier=win-x64;
-                         SelfContained=true;
-                         PublishSingleFile=true;
-                         IncludeNativeLibrariesForSelfExtract=true;
-                         PublishDir=$(OutputPath)SetupBootstrapper\" />
+    <MSBuild Projects="SetupBootstrapper\SetupBootstrapper.csproj" Targets="Publish" Properties="Configuration=$(Configuration);&#xD;&#xA;                         RuntimeIdentifier=win-x64;&#xD;&#xA;                         SelfContained=true;&#xD;&#xA;                         PublishSingleFile=true;&#xD;&#xA;                         IncludeNativeLibrariesForSelfExtract=true;&#xD;&#xA;                         PublishDir=$(OutputPath)SetupBootstrapper\" />
   </Target>
 
   <!-- Publishes the small native (AOT) per-app uninstaller via a SEPARATE process so a failure
@@ -48,8 +48,6 @@
   <Target Name="PublishSetupUninstaller" AfterTargets="Build" Condition="'$(Configuration)' != ''">
     <!-- Prepend the VS Installer dir so the AOT ILCompiler can run vswhere.exe to locate MSVC.
          Without it, AOT linking fails with "'vswhere.exe' is not recognized". -->
-    <Exec Command="set &quot;PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer&quot; &amp;&amp; dotnet publish &quot;$(MSBuildProjectDirectory)\SetupUninstaller\SetupUninstaller.csproj&quot; -c $(Configuration) -r win-x64 -o &quot;$(OutputPath)SetupUninstaller&quot; --nologo"
-          ContinueOnError="true"
-          IgnoreExitCode="true" />
+    <Exec Command="set &quot;PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer&quot; &amp;&amp; dotnet publish &quot;$(MSBuildProjectDirectory)\SetupUninstaller\SetupUninstaller.csproj&quot; -c $(Configuration) -r win-x64 -o &quot;$(OutputPath)SetupUninstaller&quot; --nologo" ContinueOnError="true" IgnoreExitCode="true" />
   </Target>
 </Project>

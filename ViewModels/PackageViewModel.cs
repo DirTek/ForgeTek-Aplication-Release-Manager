@@ -208,8 +208,23 @@ public partial class PackageViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSkipVisible))]
     [NotifyPropertyChangedFor(nameof(StepTitle))]
     [NotifyPropertyChangedFor(nameof(AdvanceLabel))]
+    [NotifyPropertyChangedFor(nameof(SignState))]
+    [NotifyPropertyChangedFor(nameof(ManifestState))]
+    [NotifyPropertyChangedFor(nameof(PackageState))]
+    [NotifyPropertyChangedFor(nameof(JsonState))]
+    [NotifyPropertyChangedFor(nameof(FtpState))]
     [NotifyCanExecuteChangedFor(nameof(BuildPackageCommand))]
     private PackageStep _currentStep = PackageStep.Sign;
+
+    // "Done" | "Current" | "Pending" for the pipeline stepper (drives each node's appearance).
+    public string SignState     => StepStateOf(PackageStep.Sign);
+    public string ManifestState => StepStateOf(PackageStep.Manifest);
+    public string PackageState  => StepStateOf(PackageStep.Package);
+    public string JsonState     => StepStateOf(PackageStep.Json);
+    public string FtpState      => StepStateOf(PackageStep.Ftp);
+
+    private string StepStateOf(PackageStep step)
+        => CurrentStep > step ? "Done" : CurrentStep == step ? "Current" : "Pending";
 
     public bool IsSignCurrent     => CurrentStep == PackageStep.Sign;
     public bool IsManifestCurrent => CurrentStep == PackageStep.Manifest;

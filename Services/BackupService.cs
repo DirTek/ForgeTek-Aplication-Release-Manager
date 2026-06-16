@@ -9,6 +9,8 @@ public class BackupService : IBackupService
         string rootFolder,
         string globalSettingsFilePath,
         string outputPath,
+        bool includeApps,
+        bool includeSetups,
         IProgress<string> progress,
         CancellationToken ct)
     {
@@ -19,14 +21,21 @@ public class BackupService : IBackupService
             {
                 using var zip = ZipFile.Open(tmpPath, ZipArchiveMode.Create);
 
+                // Shared config is always included (settings + certs + logs apply to both apps and setups).
                 if (File.Exists(globalSettingsFilePath))
                 {
                     zip.CreateEntryFromFile(globalSettingsFilePath, "settings/global.json");
                     progress.Report("  + settings/global.json");
                 }
 
-                AddFolder(zip, rootFolder, Path.Combine(rootFolder, "apps"), ct, progress);
-                AddFolder(zip, rootFolder, Path.Combine(rootFolder, "releases"), ct, progress);
+                if (includeApps)
+                {
+                    AddFolder(zip, rootFolder, Path.Combine(rootFolder, "apps"), ct, progress);
+                    AddFolder(zip, rootFolder, Path.Combine(rootFolder, "releases"), ct, progress);
+                }
+
+                if (includeSetups)
+                    AddFolder(zip, rootFolder, Path.Combine(rootFolder, "setups"), ct, progress);
 
                 var certDir = Path.Combine(rootFolder, "Certificates");
                 if (Directory.Exists(certDir))

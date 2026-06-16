@@ -1,0 +1,29 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Light theme palette. Keys match Themes/Dark.xaml exactly. Status colors are darkened
+         for contrast on light surfaces; OnAccentBrush stays white for colored-fill text. -->
+    <SolidColorBrush x:Key="BackgroundBrush"     Color="#F5F5F7"/>
+    <SolidColorBrush x:Key="SidebarBrush"        Color="#EBEBED"/>
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#E6E6EA"/>
+    <SolidColorBrush x:Key="AccentBrush"         Color="#0A84FF"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"    Color="#0070E0"/>
+    <SolidColorBrush x:Key="TextBrush"           Color="#1C1C1E"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#6E6E73"/>
+    <SolidColorBrush x:Key="BorderBrush"         Color="#D2D2D7"/>
+    <SolidColorBrush x:Key="AddedBrush"          Color="#248A3D"/>
+    <SolidColorBrush x:Key="ModifiedBrush"       Color="#B25E00"/>
+    <SolidColorBrush x:Key="RemovedBrush"        Color="#D70015"/>
+    <SolidColorBrush x:Key="DebugBrush"          Color="#8944AB"/>
+    <SolidColorBrush x:Key="DangerBrush"         Color="#CC2222"/>
+
+    <SolidColorBrush x:Key="OnAccentBrush"       Color="#FFFFFF"/>
+
+    <!-- Soft tints for banners / sub-panels / selection. Light: opaque pale tints that read on white. -->
+    <SolidColorBrush x:Key="AccentSoftBrush"     Color="#E8F1FE"/>
+    <SolidColorBrush x:Key="SuccessSoftBrush"    Color="#E3F6E9"/>
+    <SolidColorBrush x:Key="SubtlePanelBrush"    Color="#EEF1F6"/>
+    <SolidColorBrush x:Key="SelectionBrush"      Color="#DCE8FB"/>
+
+</ResourceDictionary>

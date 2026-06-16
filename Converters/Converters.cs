@@ -9,7 +9,13 @@ public class ZeroToVisibleConverter : IValueConverter
 {
     public static readonly ZeroToVisibleConverter Instance = new();
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => value is int i && i == 0 ? Visibility.Visible : Visibility.Collapsed;
+    {
+        var isZero = value is int i && i == 0;
+        // ConverterParameter="invert" flips it → visible when the count is non-zero.
+        if (string.Equals(parameter as string, "invert", StringComparison.OrdinalIgnoreCase))
+            isZero = !isZero;
+        return isZero ? Visibility.Visible : Visibility.Collapsed;
+    }
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }

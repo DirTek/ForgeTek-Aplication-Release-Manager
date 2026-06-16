@@ -1,8 +1,8 @@
-<UserControl x:Class="ForgeTekUpdatePackager.Views.ReviseView"
+﻿<UserControl x:Class="ForgeTekUpdatePackager.Views.ReviseView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
-             Background="{StaticResource BackgroundBrush}">
+             Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -14,24 +14,24 @@
 
         <!-- Header -->
         <Border Grid.Row="0" Padding="28,24,28,16"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
-                <TextBlock FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextBrush}">
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
                     <Run Text="Revise Files — "/>
                     <Run Text="{Binding AppName, Mode=OneWay}"/>
                 </TextBlock>
-                <TextBlock FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0">
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0">
                     <Run Text="v"/>
                     <Run Text="{Binding VersionNumber, Mode=OneWay}"/>
-                    <Run Text=" — toggle Debug to exclude files from packaging"/>
+                    <Run Text=" — uncheck Include to exclude files from packaging"/>
                 </TextBlock>
             </StackPanel>
         </Border>
 
         <!-- Packaging warning banner -->
-        <Border Grid.Row="1" Padding="28,10" Background="{StaticResource ModifiedBrush}"
+        <Border Grid.Row="1" Padding="28,10" Background="{DynamicResource ModifiedBrush}"
                 Visibility="{Binding HasPackagingWarning, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock FontSize="12" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap">
+            <TextBlock FontSize="12" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap">
                 <Run FontWeight="SemiBold" Text="Warning: "/>
                 <Run Text="This version has already started packaging. Saving will reset it to Review status and require repackaging."/>
             </TextBlock>
@@ -39,7 +39,7 @@
 
         <!-- Search + sort toolbar -->
         <Border Grid.Row="2" Padding="28,10"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -51,7 +51,7 @@
                     <TextBox Height="32"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="Search files…" IsHitTestVisible="False"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
@@ -69,38 +69,38 @@
                 <!-- Filter toggles -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
                     <TextBlock Text="Show:" VerticalAlignment="Center" Margin="0,0,10,0"
-                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <Button Content="All" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding FilterAllCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsFilterAll}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Non-Debug" Padding="14,6" Margin="0,0,4,0"
+                    <Button Content="Included" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding FilterNonDebugCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsFilterNonDebug}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Debug Only" Padding="14,6"
+                    <Button Content="Excluded" Padding="14,6"
                             Command="{Binding FilterDebugOnlyCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsFilterDebugOnly}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -111,14 +111,14 @@
                 <!-- Sort toggles -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="0,0,10,0"
-                               FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"/>
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <Button Content="Name" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding SortByNameCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsSortByName}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -130,7 +130,7 @@
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsSortByDate}" Value="True">
-                                        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
@@ -179,7 +179,7 @@
                                                         <Border Background="Transparent">
                                                             <Path x:Name="arrow"
                                                                   Data="M 5 3 L 12 9 L 5 15"
-                                                                  Stroke="{StaticResource TextSecondaryBrush}"
+                                                                  Stroke="{DynamicResource TextSecondaryBrush}"
                                                                   StrokeThickness="1.5"
                                                                   StrokeStartLineCap="Round"
                                                                   StrokeEndLineCap="Round"
@@ -214,7 +214,7 @@
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter TargetName="rowBorder" Property="Background"
-                                                Value="{StaticResource SurfaceHoverBrush}"/>
+                                                Value="{DynamicResource SurfaceHoverBrush}"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
@@ -237,10 +237,10 @@
                             <ColumnDefinition Width="140"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Debug toggle (files only) -->
-                        <CheckBox Grid.Column="0" IsChecked="{Binding IsDebug}"
+                        <!-- Include toggle (files only) -->
+                        <CheckBox Grid.Column="0" IsChecked="{Binding IsIncluded}"
                                   VerticalAlignment="Center"
-                                  ToolTip="Mark as debug file (excluded from packaging)">
+                                  ToolTip="Include in the package. Uncheck to exclude (e.g. debug files).">
                             <CheckBox.Style>
                                 <Style TargetType="CheckBox">
                                     <Style.Triggers>
@@ -256,13 +256,13 @@
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsFolder}" Value="True">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsDebug}" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                             <Setter Property="TextDecorations" Value="Strikethrough"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -271,7 +271,7 @@
                         </TextBlock>
 
                         <TextBlock Grid.Column="2" FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
                                    Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}">
                             <TextBlock.Style>
@@ -290,8 +290,8 @@
         </TreeView>
 
         <!-- Footer -->
-        <Border Grid.Row="4" Background="{StaticResource SidebarBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+        <Border Grid.Row="4" Background="{DynamicResource SidebarBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -299,7 +299,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="13"
-                           Foreground="{StaticResource TextSecondaryBrush}">
+                           Foreground="{DynamicResource TextSecondaryBrush}">
                     <Run Text="Editing debug flags for v"/>
                     <Run Text="{Binding VersionNumber, Mode=OneWay}"/>
                 </TextBlock>

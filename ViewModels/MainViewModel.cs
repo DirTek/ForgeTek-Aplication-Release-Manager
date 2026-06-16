@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using ForgeTekUpdatePackager.Models;
@@ -13,7 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialog;
     private bool _suppressNav;
 
-    [ObservableProperty] private object _currentView = new WelcomeViewModel();
+    [ObservableProperty] private object _currentView = null!;
     [ObservableProperty] private AppEntryViewModel? _selectedApp;
 
     [ObservableProperty]
@@ -25,11 +25,26 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNotShowingSetups))]
     [NotifyPropertyChangedFor(nameof(IsNotShowingOptions))]
+    [NotifyPropertyChangedFor(nameof(SetupsButtonText))]
     private bool _isShowingSetups;
 
     public bool IsNotShowingOptions => !IsShowingOptions && !IsShowingSetups;
     public bool IsNotShowingSetups => !IsShowingSetups;
     public bool ShowBottomButtons => !IsShowingOptions;
+
+    /// <summary>Sidebar Setups button doubles as the way back to apps while you're in Setups.</summary>
+    public string SetupsButtonText => IsShowingSetups ? "← Back to apps" : "Setups";
+
+    /// <summary>Enter Setups, or (when already there) return to the apps view.</summary>
+    public void ToggleSetups()
+    {
+        if (IsShowingSetups)
+        {
+            if (SelectedApp is not null) NavigateToDetail(SelectedApp.Entry);
+            else NavigateToWelcome();
+        }
+        else NavigateToSetups();
+    }
 
     public ObservableCollection<AppEntryViewModel> Apps { get; } = [];
 
@@ -38,8 +53,9 @@ public partial class MainViewModel : ObservableObject
         _services = services;
         _storage = services.GetRequiredService<IStorageService>();
         _dialog = services.GetRequiredService<IDialogService>();
-        ReloadApps();
+        NavigateToWelcome();
     }
+
 
     partial void OnSelectedAppChanged(AppEntryViewModel? value)
     {
@@ -145,6 +161,9 @@ public partial class MainViewModel : ObservableObject
         appVm?.SetEntry(entry);
     }
 
+    /// <summary>Deselect the current app and return to the Welcome screen.</summary>
+    public void DeselectApp() => NavigateToWelcome();
+
     public void NavigateToWelcome()
     {
         IsShowingOptions = false;
@@ -153,7 +172,10 @@ public partial class MainViewModel : ObservableObject
         _suppressNav = true;
         SelectedApp = null;
         _suppressNav = false;
-        CurrentView = new WelcomeViewModel();
+
+        var vm = _services.GetRequiredService<DashboardViewModel>();
+        vm.Initialize(this);
+        CurrentView = vm;
     }
 
     private void SetSelected(string entryId, object? viewModel = null)

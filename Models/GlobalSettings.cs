@@ -12,4 +12,7 @@ public class GlobalSettings
     public bool    UseStoreCert        { get; set; } = false;
     public string? StoreCertThumbprint { get; set; }
     public bool    KeepInCertStore     { get; set; } = false;
+
+    // UI appearance: "Dark" (default) or "Light".
+    public string  Theme               { get; set; } = "Dark";
 }
