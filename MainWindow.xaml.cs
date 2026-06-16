@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private void AddApp_Click(object sender, RoutedEventArgs e) => _vm.AddApp();
     private void Options_Click(object sender, RoutedEventArgs e) => _vm.NavigateToOptions();
     private void Setups_Click(object sender, RoutedEventArgs e) => _vm.ToggleSetups();
+    private void SignOut_Click(object sender, RoutedEventArgs e) => _vm.SignOut();
 
     // Click an already-selected app to deselect it (returns to the Welcome screen).
     private void AppListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

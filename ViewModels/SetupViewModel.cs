@@ -277,6 +277,8 @@ SOFTWARE LICENSE
     [ObservableProperty] private string _editBgGradientDir = "Vertical";
     [ObservableProperty] private string? _editBackgroundImage;
     [ObservableProperty] private bool _editFixedSize;
+    [ObservableProperty] private bool _editShowFooterWatermark = true;
+    [ObservableProperty] private string _editFooterWatermark = "Installer by ForgeTek Release Manager";
 
     public string[] BackgroundModes { get; } = ["Default", "Solid", "Gradient", "Image"];
     public string[] GradientDirections { get; } = ["Vertical", "Horizontal", "Diagonal"];
@@ -397,6 +399,8 @@ SOFTWARE LICENSE
         EditBgGradientDir = "Vertical";
         EditBackgroundImage = null;
         EditFixedSize = false;
+        EditShowFooterWatermark = true;
+        EditFooterWatermark = "Installer by ForgeTek Release Manager";
         AvailableApps.Clear();
         WorkingRedists.Clear();
 
@@ -504,6 +508,9 @@ SOFTWARE LICENSE
         EditBgGradientDir = string.IsNullOrWhiteSpace(bundle.BackgroundGradientDirection) ? "Vertical" : bundle.BackgroundGradientDirection;
         EditBackgroundImage = bundle.BackgroundImage;
         EditFixedSize = bundle.FixedSize;
+        EditShowFooterWatermark = bundle.ShowFooterWatermark;
+        EditFooterWatermark = string.IsNullOrWhiteSpace(bundle.FooterWatermark)
+            ? "Installer by ForgeTek Release Manager" : bundle.FooterWatermark;
         AvailableApps.Clear();
         WorkingRedists.Clear();
 
@@ -780,6 +787,9 @@ SOFTWARE LICENSE
         bundle.BackgroundGradientDirection = EditBgGradientDir;
         bundle.BackgroundImage = string.IsNullOrWhiteSpace(EditBackgroundImage) ? null : EditBackgroundImage;
         bundle.FixedSize = EditFixedSize;
+        bundle.ShowFooterWatermark = EditShowFooterWatermark;
+        bundle.FooterWatermark = string.IsNullOrWhiteSpace(EditFooterWatermark)
+            ? "Installer by ForgeTek Release Manager" : EditFooterWatermark.Trim();
         // Only honor the launch app if it's actually one of the selected apps.
         var launchValid = EditLaunchApp is not null && selectedApps.Any(a => a.AppId == EditLaunchApp.AppId);
         bundle.LaunchAppId = launchValid ? EditLaunchApp!.AppId : null;

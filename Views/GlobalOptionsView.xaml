@@ -63,6 +63,80 @@
                 </StackPanel>
             </ScrollViewer>
 
+            <!-- ══ GITHUB ═════════════════════════════════════════════════ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,16,12,0"
+                          Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='GitHub'}">
+                <StackPanel>
+                    <TextBlock Text="GITHUB ACCOUNT" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" Margin="0,0,0,14">
+                        Connect once with your GitHub account; every app then uses this connection to check for
+                        newer releases (per app you only set the repository). Sign-in uses the browser-based
+                        device flow — no password or token is typed here.
+                    </TextBlock>
+
+                    <!-- Connected state -->
+                    <Border Background="{DynamicResource SuccessSoftBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,14"
+                            Visibility="{Binding IsGitHubConnected, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Text="Connected" FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AddedBrush}"/>
+                                <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0">
+                                    <Run Text="Signed in as @"/><Run Text="{Binding GitHubLogin, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="Disconnect" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,7" Command="{Binding DisconnectGitHubCommand}"/>
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Text="OAUTH APP CLIENT ID" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" Margin="0,0,0,6">
+                        Register a GitHub OAuth App (github.com/settings/developers) with “Enable Device Flow” on,
+                        then paste its Client ID here. The Client ID is public — no client secret is needed or stored.
+                    </TextBlock>
+                    <TextBox Text="{Binding GitHubClientId, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,0,12" ToolTip="e.g. Iv1.abcdef0123456789"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,18">
+                        <Button Content="Connect GitHub" Style="{StaticResource PrimaryButton}"
+                                Padding="18,9" Command="{Binding ConnectGitHubCommand}"/>
+                    </StackPanel>
+
+                    <!-- PAT alternative -->
+                    <TextBlock Text="OR USE A PERSONAL ACCESS TOKEN" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                    <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" Margin="0,0,0,6">
+                        Prefer not to register an OAuth App? Generate a token at
+                        github.com/settings/tokens (scope “repo”) and paste it here — it's stored encrypted (DPAPI)
+                        and used account-wide, just like the Connect option.
+                    </TextBlock>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <PasswordBox Grid.Column="0" x:Name="GitHubPatBox" Height="36"
+                                     PasswordChanged="GitHubPatBox_PasswordChanged"/>
+                        <Button Grid.Column="2" Content="Use token" Style="{StaticResource SecondaryButton}"
+                                Padding="16,8" Command="{Binding UseGitHubTokenCommand}"/>
+                    </Grid>
+
+                    <TextBlock Text="{Binding GitHubMessage}" FontSize="11" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,28"/>
+                </StackPanel>
+            </ScrollViewer>
+
             <!-- ══ SIGNING ════════════════════════════════════════════════ -->
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,16,12,0"
                           Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Signing'}">
@@ -275,6 +349,161 @@
                                 Padding="16,10" HorizontalAlignment="Left" Margin="0,0,0,28"
                                 Command="{Binding CreateBackupCommand}"/>
 
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ══ LOGS ═══════════════════════════════════════════════════════ -->
+            <Grid Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Logs'}"
+                  Margin="0,16,12,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="ACTIVITY LOG" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="Refresh" Style="{StaticResource SecondaryButton}"
+                            Padding="16,8" Command="{Binding RefreshLogsCommand}"/>
+                    <Button Content="Open log folder" Style="{StaticResource SecondaryButton}"
+                            Padding="16,8" Margin="8,0,0,0" Command="{Binding OpenLogFolderCommand}"/>
+                </StackPanel>
+
+                <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                        BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="2">
+                    <ListBox ItemsSource="{Binding LogEntries}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             FontFamily="Consolas" FontSize="12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" TextWrapping="NoWrap"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <TextBlock Grid.Row="2" Text="No log entries yet." VerticalAlignment="Center" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                           Visibility="{Binding HasLogEntries, Converter={StaticResource InvertVisibility}}"/>
+            </Grid>
+
+            <!-- ══ USERS ══════════════════════════════════════════════════════ -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,16,12,0"
+                          Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Users'}">
+                <StackPanel>
+                    <TextBlock Text="USERS &amp; ACCESS" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                    <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,16"
+                               Text="Local accounts that can sign in. Roles control what each user may do; passwords are stored only as salted hashes. This is app-level access control, not OS or file-system security."/>
+
+                    <!-- First-run hint -->
+                    <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,16"
+                            Visibility="{Binding ProtectionEnabled, Converter={StaticResource InvertVisibility}}">
+                        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextBrush}"
+                                   Text="No users yet — the app is unprotected. Create the first user to enable login. The first user becomes the administrator."/>
+                    </Border>
+
+                    <!-- Add user -->
+                    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="14" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="Add user" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Height="34" VerticalContentAlignment="Center"
+                                         Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" ToolTip="Username"/>
+                                <PasswordBox Grid.Column="2" Height="34" x:Name="NewUserPasswordBox"
+                                             PasswordChanged="NewUserPasswordBox_PasswordChanged"/>
+                                <ComboBox Grid.Column="4" Height="34" MinWidth="130" VerticalContentAlignment="Center"
+                                          ItemsSource="{Binding RoleOptions}" SelectedItem="{Binding NewUserRole}"/>
+                                <Button Grid.Column="6" Content="Add" Style="{StaticResource PrimaryButton}"
+                                        Padding="18,8" Command="{Binding AddUserCommand}"/>
+                            </Grid>
+                            <TextBlock Text="{Binding UserMessage}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Accounts -->
+                    <TextBlock Text="ACCOUNTS" FontSize="10" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"
+                               Visibility="{Binding ProtectionEnabled, Converter={StaticResource BoolToVisibility}}"/>
+                    <ListBox ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
+                             Background="Transparent" BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Margin" Value="0,0,0,6"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1" CornerRadius="8" Padding="12,9">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Username}" FontSize="13" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                            <Border CornerRadius="4" Padding="6,1" Margin="8,0,0,0" Background="{DynamicResource AccentSoftBrush}"
+                                                    Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="you" FontSize="10" Foreground="{DynamicResource AccentBrush}"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" MinWidth="130" Margin="0,0,8,0" VerticalContentAlignment="Center"
+                                                  ItemsSource="{Binding DataContext.RoleOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  SelectedItem="{Binding Role, Mode=TwoWay}"/>
+                                        <Button Grid.Column="2" Content="Delete" Style="{StaticResource DangerButton}"
+                                                Padding="12,6" FontSize="11"
+                                                Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Reset password for the selected account -->
+                    <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                            CornerRadius="8" Padding="14" Margin="0,8,0,28"
+                            Visibility="{Binding HasSelectedUser, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10">
+                                <Run Text="Reset password for "/><Run Text="{Binding SelectedUser.Username, Mode=OneWay}" FontWeight="Bold"/>
+                            </TextBlock>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox Grid.Column="0" Height="34" x:Name="ResetPasswordBox"
+                                             PasswordChanged="ResetPasswordBox_PasswordChanged"/>
+                                <Button Grid.Column="2" Content="Reset password" Style="{StaticResource SecondaryButton}"
+                                        Padding="16,8"
+                                        Command="{Binding ResetUserPasswordCommand}" CommandParameter="{Binding SelectedUser}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 

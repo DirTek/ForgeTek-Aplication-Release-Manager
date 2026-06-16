@@ -55,7 +55,24 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
         OnPropertyChanged(nameof(VersionLine));
         OnPropertyChanged(nameof(StatusBadge));
         OnPropertyChanged(nameof(NeedsAttention));
+        OnPropertyChanged(nameof(NextActionLabel));
     }
+
+    /// <summary>The app's next logical step, used as the dashboard card's call-to-action label.</summary>
+    public string NextActionLabel => DisplayMode switch
+    {
+        VersionDisplayMode.None      => "Scan",
+        VersionDisplayMode.Published => "Scan",
+        VersionDisplayMode.Retracted => "Package",
+        VersionDisplayMode.InProgress => Entry.LatestVersion?.Status switch
+        {
+            VersionStatus.Review => "Review",
+            VersionStatus.Signed => "Package",
+            VersionStatus.Packed => "Publish",
+            _                    => "Package",
+        },
+        _ => "Scan",
+    };
 
     // ── Compact status, used by the Home dashboard cards ──────────────────
 

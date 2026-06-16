@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 
 namespace ForgeTekUpdatePackager.Services;
 
@@ -9,6 +10,36 @@ public class LogService : ILogService
     public LogService(ISettingsService settings)
     {
         _logFolder = Path.Combine(settings.RootFolder, "logs");
+    }
+
+    public string LogFolder => _logFolder;
+
+    public IReadOnlyList<string> ReadRecent(int maxLines = 500)
+    {
+        try
+        {
+            if (!Directory.Exists(_logFolder)) return [];
+
+            // Walk day files newest-first, accumulating lines until we hit the cap, then
+            // return them in chronological order (newest last).
+            var files = new DirectoryInfo(_logFolder)
+                .GetFiles("*.log")
+                .OrderByDescending(f => f.Name);
+
+            var collected = new List<string>();
+            foreach (var f in files)
+            {
+                var lines = File.ReadAllLines(f.FullName);
+                // Prepend older-file blocks ahead of what we've already gathered.
+                collected.InsertRange(0, lines);
+                if (collected.Count >= maxLines) break;
+            }
+
+            return collected.Count > maxLines
+                ? collected.Skip(collected.Count - maxLines).ToList()
+                : collected;
+        }
+        catch { return []; }
     }
 
     public void Write(string category, string message)

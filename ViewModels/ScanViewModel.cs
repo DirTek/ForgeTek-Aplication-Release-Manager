@@ -33,6 +33,9 @@ public partial class ScanViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasVersionMismatch))]
     private string _versionNumber = string.Empty;
 
+    /// <summary>When checked, this version is published to the Beta channel (pre-release).</summary>
+    [ObservableProperty] private bool _isBeta;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSortByName))]
     [NotifyPropertyChangedFor(nameof(IsSortByDate))]
@@ -157,6 +160,7 @@ public partial class ScanViewModel : ObservableObject
             VersionNumber = trimmed,
             ScanDate      = DateTime.Now,
             IsInitial     = true,
+            Channel       = IsBeta ? UpdateChannel.Beta : UpdateChannel.Stable,
             Files         = FileTreeNodeViewModel.CollectFiles(FileTree).ToList(),
         };
 

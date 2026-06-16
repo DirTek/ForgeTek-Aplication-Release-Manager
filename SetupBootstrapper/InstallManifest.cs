@@ -21,6 +21,7 @@ public class InstallManifest
     public string? BackgroundGradientDirection { get; set; }
     public string? BackgroundImageName { get; set; }
     public bool FixedSize { get; set; }
+    public string? FooterWatermark { get; set; }
     public List<InstallApp> Apps { get; set; } = [];
     public List<RedistInfo> Redists { get; set; } = [];
 }

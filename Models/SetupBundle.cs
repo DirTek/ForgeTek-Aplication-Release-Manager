@@ -34,6 +34,11 @@ public class SetupBundle
     public string? BackgroundImage { get; set; }
     /// <summary>Lock the setup window to a fixed size (no resizing).</summary>
     public bool FixedSize { get; set; }
+
+    /// <summary>Show a small attribution watermark in the installer window footer.</summary>
+    public bool   ShowFooterWatermark { get; set; } = true;
+    /// <summary>Text of the footer watermark (editable).</summary>
+    public string FooterWatermark     { get; set; } = "Installer by ForgeTek Release Manager";
     /// <summary>Before overwriting an existing Setup.exe at the output folder, rename the old one to
     /// "{name}Setup-{previous generation date}.exe" so prior builds are kept as backups.</summary>
     public bool PreserveOldSetups { get; set; }

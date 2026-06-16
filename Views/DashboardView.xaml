@@ -30,6 +30,30 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Flat clickable row (recent activity) -->
+        <Style x:Key="RowButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="b" CornerRadius="8" BorderThickness="1"
+                                BorderBrush="{DynamicResource BorderBrush}"
+                                Background="{DynamicResource SurfaceBrush}" Padding="12,9">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="b" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource BackgroundBrush}" ClipToBounds="True">
@@ -121,14 +145,27 @@
                         <TextBlock Text="Your apps at a glance — pick one from the sidebar to manage it."
                                    FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="+ Add Application" Style="{StaticResource PrimaryButton}"
-                                Padding="18,9" Margin="0,0,8,0" Command="{Binding AddAppCommand}"/>
-                        <Button Content="Setups" Style="{StaticResource SecondaryButton}"
-                                Padding="16,9" Margin="0,0,8,0" Command="{Binding OpenSetupsCommand}"/>
-                        <Button Content="Options" Style="{StaticResource SecondaryButton}"
-                                Padding="16,9" Command="{Binding OpenOptionsCommand}"/>
-                    </StackPanel>
+                    <!-- GitHub connection status -->
+                    <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="6" Padding="10,6"
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="9" Height="9" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding GitHubConnected}" Value="True">
+                                                <Setter Property="Fill" Value="{DynamicResource AddedBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <TextBlock Text="{Binding GitHubStatusText}" FontSize="12"
+                                       Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <!-- Summary stat chips -->
@@ -184,11 +221,17 @@
                                     </DockPanel>
                                     <TextBlock Text="{Binding VersionLine}" FontSize="12" Margin="0,4,0,0"
                                                Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                    <Border CornerRadius="4" Padding="7,2" Margin="0,10,0,0" HorizontalAlignment="Left"
-                                            Background="{DynamicResource SurfaceHoverBrush}">
-                                        <TextBlock Text="{Binding StatusBadge}" FontSize="11"
-                                                   Foreground="{DynamicResource TextBrush}"/>
-                                    </Border>
+                                    <Grid Margin="0,12,0,0">
+                                        <Border CornerRadius="4" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                Background="{DynamicResource SurfaceHoverBrush}">
+                                            <TextBlock Text="{Binding StatusBadge}" FontSize="11"
+                                                       Foreground="{DynamicResource TextBrush}"/>
+                                        </Border>
+                                        <Button Content="{Binding NextActionLabel}" Style="{StaticResource SecondaryButton}"
+                                                Padding="12,5" FontSize="11" HorizontalAlignment="Right"
+                                                Command="{Binding DataContext.OpenAppCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </Grid>
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
@@ -201,8 +244,9 @@
                     <ItemsControl ItemsSource="{Binding RecentActivity}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:ActivityItem}">
-                                <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="1" CornerRadius="8" Padding="12,9" Margin="0,0,0,6">
+                                <Button Style="{StaticResource RowButton}"
+                                        Command="{Binding DataContext.OpenActivityCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -222,7 +266,7 @@
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    Text="{Binding When, StringFormat='{}{0:yyyy-MM-dd  HH:mm}'}"/>
                                     </Grid>
-                                </Border>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

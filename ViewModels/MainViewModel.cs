@@ -13,6 +13,9 @@ public partial class MainViewModel : ObservableObject
     private readonly IDialogService _dialog;
     private bool _suppressNav;
 
+    /// <summary>Signed-in user + role permissions, for binding sidebar/command gating.</summary>
+    public ISessionService Session { get; }
+
     [ObservableProperty] private object _currentView = null!;
     [ObservableProperty] private AppEntryViewModel? _selectedApp;
 
@@ -53,7 +56,20 @@ public partial class MainViewModel : ObservableObject
         _services = services;
         _storage = services.GetRequiredService<IStorageService>();
         _dialog = services.GetRequiredService<IDialogService>();
+        Session = services.GetRequiredService<ISessionService>();
         NavigateToWelcome();
+    }
+
+    public bool IsProtected => Session.IsProtected;
+    public string CurrentUserName => Session.Current?.Username ?? string.Empty;
+
+    /// <summary>Sign out and return to the login screen (restarts the shell cleanly).</summary>
+    public void SignOut()
+    {
+        if (!Session.IsProtected) return;
+        var exe = Environment.ProcessPath;
+        if (exe is not null) System.Diagnostics.Process.Start(exe);
+        System.Windows.Application.Current.Shutdown();
     }
 
 
@@ -149,6 +165,7 @@ public partial class MainViewModel : ObservableObject
 
     public void NavigateToSetups()
     {
+        if (!Session.CanManageSetups) return;   // role gate (defense in depth)
         IsShowingSetups = true;
         var vm = _services.GetRequiredService<SetupViewModel>();
         vm.Initialize(this);

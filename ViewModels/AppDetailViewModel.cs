@@ -20,8 +20,11 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly IDialogService _dialog;
     private readonly ISigningService _signing;
     private readonly ISettingsService _settings;
+    private readonly ISessionService _session;
+    private readonly IGitHubService _github;
     private AppEntry _entry = null!;
 
+    public ISessionService Session => _session;
     public AppEntry Entry => _entry;
     public string AppName => _entry.Name;
     public string AppPath => _entry.FolderPath;
@@ -31,6 +34,32 @@ public partial class AppDetailViewModel : ObservableObject
     [ObservableProperty] private bool _isDiffing;
     [ObservableProperty] private ScanProgress? _scanProgress;
     [ObservableProperty] private DiffProgress? _diffProgress;
+
+    // ── GitHub ────────────────────────────────────────────────────────────
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(BuildFromGitHubCommand))]
+    private bool _gitHubConfigured;
+
+    [ObservableProperty] private bool _gitHubChecking;
+    [ObservableProperty] private bool _gitHubNewer;
+    [ObservableProperty] private string? _gitHubStatus;
+    [ObservableProperty] private string? _gitHubReleaseUrl;
+
+    // GitHub build runner
+    public ObservableCollection<string> BuildLog { get; } = [];
+    private CancellationTokenSource? _buildCts;
+    private string? _buildArtifactPath;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(BuildFromGitHubCommand))]
+    private bool _isBuilding;
+
+    [ObservableProperty] private bool _showBuildOverlay;
+    [ObservableProperty] private bool _buildFinished;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ScanArtifactCommand))]
+    private bool _buildSucceeded;
 
     private CancellationTokenSource? _scanCts;
 
@@ -50,7 +79,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     public AppDetailViewModel(IStorageService storage, IScannerService scanner, ILogService log,
         IFtpService ftp, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog,
-        ISigningService signing, ISettingsService settings)
+        ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github)
     {
         _storage = storage;
         _scanner = scanner;
@@ -61,6 +90,8 @@ public partial class AppDetailViewModel : ObservableObject
         _dialog = dialog;
         _signing = signing;
         _settings = settings;
+        _session = session;
+        _github = github;
     }
 
     public void Initialize(AppEntry entry, MainViewModel main)
@@ -70,6 +101,117 @@ public partial class AppDetailViewModel : ObservableObject
         Versions = new ObservableCollection<AppVersion>(entry.Versions.AsEnumerable().Reverse());
         CheckChangelogEntries();
         RaiseWorkflowChanged();
+
+        GitHubStatus = null;
+        GitHubNewer = false;
+        GitHubConfigured = !string.IsNullOrWhiteSpace(_settings.LoadAppSettings(entry.Name).GitHubRepo);
+        if (GitHubConfigured) CheckGitHubCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private async Task CheckGitHub()
+    {
+        var s = _settings.LoadAppSettings(_entry.Name);
+        GitHubConfigured = !string.IsNullOrWhiteSpace(s.GitHubRepo);
+        if (!GitHubConfigured) return;
+
+        GitHubChecking = true;
+        GitHubNewer = false;
+        GitHubStatus = "Checking GitHub…";
+        try
+        {
+            // Per-app token overrides the account-wide connection; otherwise use the global token.
+            var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
+            var release = await _github.GetLatestReleaseAsync(s.GitHubRepo!, token);
+            if (release is null)
+            {
+                GitHubStatus = "No published releases on GitHub yet.";
+                return;
+            }
+            GitHubReleaseUrl = release.HtmlUrl;
+            var local = _entry.LatestVersion?.VersionNumber;
+            if (string.IsNullOrEmpty(local))
+            {
+                GitHubStatus = $"GitHub latest release: {release.TagName} — nothing scanned yet.";
+                GitHubNewer = true;
+            }
+            else if (GitHubService.IsNewer(release.TagName, local))
+            {
+                GitHubStatus = $"GitHub has {release.TagName} — newer than your scanned v{local}.";
+                GitHubNewer = true;
+            }
+            else
+            {
+                GitHubStatus = $"Up to date with GitHub ({release.TagName}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            GitHubStatus = $"GitHub check failed: {ex.Message}";
+        }
+        finally { GitHubChecking = false; }
+    }
+
+    private bool CanBuildFromGitHub() => _session.CanScan && GitHubConfigured && !IsBuilding;
+
+    [RelayCommand(CanExecute = nameof(CanBuildFromGitHub))]
+    private async Task BuildFromGitHub()
+    {
+        var s = _settings.LoadAppSettings(_entry.Name);
+        if (string.IsNullOrWhiteSpace(s.GitHubLocalPath) || string.IsNullOrWhiteSpace(s.GitHubBuildCommand))
+        {
+            _dialog.Alert("Build Not Configured",
+                "Set the local repo path and build command in Settings → GitHub first.");
+            return;
+        }
+
+        _buildArtifactPath = ResolveArtifact(s.GitHubLocalPath, s.GitHubArtifactPath);
+
+        BuildLog.Clear();
+        ShowBuildOverlay = true;
+        BuildFinished = false;
+        BuildSucceeded = false;
+        IsBuilding = true;
+        _buildCts = new CancellationTokenSource();
+        var progress = new Progress<string>(line => BuildLog.Add(line));
+        try
+        {
+            await _github.BuildAsync(s.GitHubLocalPath, s.GitHubBuildCommand, progress, _buildCts.Token);
+            BuildSucceeded = true;
+            BuildLog.Add(string.Empty);
+            BuildLog.Add($"✔ Build complete. Artifact: {_buildArtifactPath}");
+        }
+        catch (OperationCanceledException) { BuildLog.Add("Cancelled."); }
+        catch (Exception ex) { BuildSucceeded = false; BuildLog.Add($"✗ {ex.Message}"); }
+        finally
+        {
+            IsBuilding = false;
+            BuildFinished = true;
+            _buildCts?.Dispose();
+            _buildCts = null;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelBuild() => _buildCts?.Cancel();
+
+    [RelayCommand]
+    private void CloseBuild() { ShowBuildOverlay = false; BuildFinished = false; }
+
+    private bool CanScanArtifact() => BuildSucceeded && _buildArtifactPath is not null;
+
+    [RelayCommand(CanExecute = nameof(CanScanArtifact))]
+    private async Task ScanArtifact()
+    {
+        ShowBuildOverlay = false;
+        BuildFinished = false;
+        if (_buildArtifactPath is not null) await ScanFolder(_buildArtifactPath);
+    }
+
+    private static string ResolveArtifact(string localPath, string? artifact)
+    {
+        if (string.IsNullOrWhiteSpace(artifact)) return localPath;
+        return System.IO.Path.IsPathRooted(artifact) ? artifact : System.IO.Path.Combine(localPath, artifact);
     }
 
     // ── Workflow rail ─────────────────────────────────────────────────────
@@ -175,13 +317,13 @@ public partial class AppDetailViewModel : ObservableObject
     private bool CanPrimaryAction()
     {
         var a = ActiveVersion;
-        if (a is null || a.IsInitial) return true;            // Scan
+        if (a is null || a.IsInitial) return _session.CanScan;            // Scan
         return a.Status switch
         {
-            VersionStatus.Published => true,                  // Scan for update
-            VersionStatus.Review    => _entry.Versions.IndexOf(a) > 0,
+            VersionStatus.Published => _session.CanScan,                  // Scan for update
+            VersionStatus.Review    => _session.CanScan && _entry.Versions.IndexOf(a) > 0,
             VersionStatus.Scrapped  => false,
-            _                       => true,                  // Package
+            _                       => _session.CanPublish,              // Package / publish
         };
     }
 
@@ -209,6 +351,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     private bool CanViewDiff()
     {
+        if (!_session.CanScan) return false;
         if (SelectedVersion is null) return false;
         var idx = _entry.Versions.IndexOf(SelectedVersion);
         return idx > 0;
@@ -233,6 +376,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     private bool CanDeleteVersion()
     {
+        if (!_session.CanPublish) return false;
         if (SelectedVersion is null) return false;
         if (SelectedVersion != _entry.Versions.LastOrDefault()) return false;
         return SelectedVersion.Status != VersionStatus.Published;
@@ -248,7 +392,7 @@ public partial class AppDetailViewModel : ObservableObject
         }.ShowDialog();
     }
 
-    private bool CanSignFiles() => SelectedVersion is not null;
+    private bool CanSignFiles() => _session.CanPublish && SelectedVersion is not null;
 
     [RelayCommand(CanExecute = nameof(CanStartPacking))]
     private void StartPacking()
@@ -282,6 +426,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     private bool CanStartPacking()
     {
+        if (!_session.CanPublish) return false;
         if (SelectedVersion is null) return false;
         if (SelectedVersion.IsInitial) return false;
         if (SelectedVersion.Status == VersionStatus.Published) return false;
@@ -419,7 +564,8 @@ public partial class AppDetailViewModel : ObservableObject
         => _main.NavigateToRevise(_entry, SelectedVersion!);
 
     private bool CanReviseVersion()
-        => SelectedVersion is not null
+        => _session.CanPublish
+           && SelectedVersion is not null
            && !SelectedVersion.IsInitial
            && SelectedVersion.Status != VersionStatus.Published
            && SelectedVersion.Status != VersionStatus.Scrapped;
@@ -443,10 +589,11 @@ public partial class AppDetailViewModel : ObservableObject
     }
 
     private bool CanScrapVersion()
-        => SelectedVersion?.Status == VersionStatus.Retracted;
+        => _session.CanPublish && SelectedVersion?.Status == VersionStatus.Retracted;
 
     private bool CanRetractVersion()
-        => SelectedVersion is not null
+        => _session.CanPublish
+           && SelectedVersion is not null
            && SelectedVersion.Status == VersionStatus.Published
            && !IsRetracting;
 
@@ -459,12 +606,17 @@ public partial class AppDetailViewModel : ObservableObject
         _main.NavigateToVersionDiff(_entry, SelectedVersion!, diff);
     }
 
-    [RelayCommand]
-    private async Task ScanNow()
+    private bool CanScanNow() => _session.CanScan;
+
+    [RelayCommand(CanExecute = nameof(CanScanNow))]
+    private Task ScanNow() => ScanFolder(_entry.FolderPath);
+
+    // Scans an arbitrary folder through the normal pipeline (used by Scan Now and the GitHub build runner).
+    private async Task ScanFolder(string folderPath)
     {
-        if (!System.IO.Directory.Exists(_entry.FolderPath))
+        if (!System.IO.Directory.Exists(folderPath))
         {
-            _dialog.Alert("Scan Error", $"Folder not found:\n{_entry.FolderPath}");
+            _dialog.Alert("Scan Error", $"Folder not found:\n{folderPath}");
             return;
         }
 
@@ -477,7 +629,7 @@ public partial class AppDetailViewModel : ObservableObject
         {
             var scanProgress = new Progress<ScanProgress>(p => ScanProgress = p);
             files = await Task.Run(
-                () => _scanner.ScanDirectory(_entry.FolderPath, scanProgress, _scanCts.Token),
+                () => _scanner.ScanDirectory(folderPath, scanProgress, _scanCts.Token),
                 _scanCts.Token);
         }
         catch (OperationCanceledException)
@@ -497,11 +649,11 @@ public partial class AppDetailViewModel : ObservableObject
             _scanCts = null;
         }
 
-        string? detectedVersion = _scanner.DetectExeVersion(_entry.FolderPath, _entry.Name);
+        string? detectedVersion = _scanner.DetectExeVersion(folderPath, _entry.Name);
 
         if (detectedVersion is null)
         {
-            var exes = _scanner.FindRootExeFiles(_entry.FolderPath);
+            var exes = _scanner.FindRootExeFiles(folderPath);
             if (exes.Count > 1)
             {
                 var selectedPath = _dialog.OpenFile(
@@ -608,7 +760,9 @@ public partial class AppDetailViewModel : ObservableObject
         _dialog.ShowChangelogWindow(version.VersionNumber, content);
     }
 
-    [RelayCommand]
+    private bool CanDeleteApp() => _session.CanPublish;
+
+    [RelayCommand(CanExecute = nameof(CanDeleteApp))]
     private void DeleteApp()
     {
         if (!_dialog.Confirm("Delete Application",

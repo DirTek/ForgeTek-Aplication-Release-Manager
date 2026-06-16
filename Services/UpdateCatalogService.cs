@@ -49,9 +49,62 @@ public class UpdateCatalogService : IUpdateCatalogService
             ["date"]     = version.ScanDate.ToString("yyyy-MM-dd"),
             ["type"]     = version.PackageType == PackageType.Incremental ? "incremental" : "full",
             ["checksum"] = version.PackageChecksum ?? string.Empty,
+            ["channel"]  = version.Channel == UpdateChannel.Beta ? "beta" : "stable",
         };
 
+        // The top-level pointer (root[appKey]) tracks the latest STABLE release so existing
+        // stable-only clients never receive a beta; betas reach clients that read channels.beta.
+        RecomputeChannels(root, appKey, versionsObj);
+
         return root.ToJsonString(_writeOptions);
+    }
+
+    /// <summary>
+    /// Rewrites the per-channel pointers (and the legacy top-level pointer) from the version
+    /// history. Stable clients follow root[appKey]/channels.stable; beta clients follow
+    /// channels.beta, which is the newest version on any channel.
+    /// </summary>
+    private static void RecomputeChannels(JsonObject root, string appKey, JsonObject versionsObj,
+        string? pinnedPointer = null)
+    {
+        string? stableKey = null, stableUrl = null;
+        string? anyKey = null, anyUrl = null;
+
+        foreach (var kv in versionsObj)
+        {
+            if (kv.Value is not JsonObject entry) continue;
+            var url     = entry["url"]?.GetValue<string>() ?? string.Empty;
+            var channel = entry["channel"]?.GetValue<string>() ?? "stable";
+
+            anyKey = kv.Key; anyUrl = url;
+            if (!string.Equals(channel, "beta", StringComparison.OrdinalIgnoreCase))
+            {
+                stableKey = kv.Key; stableUrl = url;
+            }
+        }
+
+        // Top-level pointer: an explicit rollback pin wins; else latest stable, else newest overall.
+        var pointerKey = pinnedPointer ?? stableKey ?? anyKey;
+        var pointerUrl = pinnedPointer is not null
+            ? versionsObj[pinnedPointer]?["url"]?.GetValue<string>() ?? string.Empty
+            : (stableKey is not null ? stableUrl : anyUrl);
+        if (pointerKey is not null)
+        {
+            root[appKey] = pointerKey;
+            if (root["url"] is not JsonObject urlObj)
+            {
+                urlObj = new JsonObject();
+                root["url"] = urlObj;
+            }
+            urlObj[appKey] = pointerUrl;
+        }
+
+        var channels = new JsonObject();
+        if (stableKey is not null)
+            channels["stable"] = new JsonObject { ["version"] = stableKey, ["url"] = stableUrl };
+        if (anyKey is not null)
+            channels["beta"] = new JsonObject { ["version"] = anyKey, ["url"] = anyUrl };
+        root["channels"] = channels;
     }
 
     /// <summary>
@@ -74,22 +127,11 @@ public class UpdateCatalogService : IUpdateCatalogService
         if (versionsObj.Count == 0)
             return null;
 
-        // Prefer the explicitly supplied rollback target; fall back to insertion-order last.
-        var remainingKeys = versionsObj.Select(kv => kv.Key).ToList();
-        var latestKey = rollbackToVersion is not null && remainingKeys.Contains(rollbackToVersion)
-            ? rollbackToVersion
-            : remainingKeys.Last();
-        var latestEntry = versionsObj[latestKey]!.AsObject();
-        var latestUrl   = latestEntry["url"]?.GetValue<string>() ?? string.Empty;
-
-        root[appKey] = latestKey;
-
-        if (root["url"] is not JsonObject urlObj)
-        {
-            urlObj = new JsonObject();
-            root["url"] = urlObj;
-        }
-        urlObj[appKey] = latestUrl;
+        // Recompute channel pointers. An explicit rollback target (if it still exists) pins the
+        // top-level pointer; otherwise it follows the latest remaining stable.
+        var pin = rollbackToVersion is not null && versionsObj[rollbackToVersion] is JsonObject
+            ? rollbackToVersion : null;
+        RecomputeChannels(root, appKey, versionsObj, pin);
 
         return root.ToJsonString(_writeOptions);
     }

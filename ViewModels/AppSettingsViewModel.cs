@@ -61,10 +61,30 @@ public partial class AppSettingsViewModel : ObservableObject
 
     [ObservableProperty] private string _connectionTestResult = string.Empty;
 
-    public AppSettingsViewModel(ISettingsService settings, IFtpService ftp)
+    // ── GitHub ────────────────────────────────────────────────────────────
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(TestGitHubCommand))]
+    private string _gitHubRepo = string.Empty;
+
+    public string GitHubToken { get; set; } = string.Empty;
+
+    [ObservableProperty] private string _gitHubLocalPath = string.Empty;
+    [ObservableProperty] private string _gitHubBuildCommand = string.Empty;
+    [ObservableProperty] private string _gitHubArtifactPath = string.Empty;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(TestGitHubCommand))]
+    private bool _isTestingGitHub;
+
+    [ObservableProperty] private string _gitHubTestResult = string.Empty;
+
+    private readonly IGitHubService _github;
+
+    public AppSettingsViewModel(ISettingsService settings, IFtpService ftp, IGitHubService github)
     {
         _settings = settings;
         _ftp = ftp;
+        _github = github;
     }
 
     public void Initialize(AppEntry entry, MainViewModel main)
@@ -87,6 +107,13 @@ public partial class AppSettingsViewModel : ObservableObject
 
         UseStoreCert           = s.UseStoreCert;
         SelectedStoreThumbprint = s.StoreCertThumbprint;
+
+        GitHubRepo         = s.GitHubRepo         ?? string.Empty;
+        GitHubToken        = s.GitHubToken        ?? string.Empty;
+        GitHubLocalPath    = s.GitHubLocalPath    ?? string.Empty;
+        GitHubBuildCommand = s.GitHubBuildCommand ?? string.Empty;
+        GitHubArtifactPath = s.GitHubArtifactPath ?? string.Empty;
+
         RefreshStoreCerts();
     }
 
@@ -168,6 +195,37 @@ public partial class AppSettingsViewModel : ObservableObject
 
     private bool CanTestConnection() => !IsTestingConnection && !string.IsNullOrWhiteSpace(FtpHost);
 
+    [RelayCommand(CanExecute = nameof(CanTestGitHub))]
+    private async Task TestGitHubAsync()
+    {
+        IsTestingGitHub = true;
+        GitHubTestResult = string.Empty;
+        try
+        {
+            // Per-app token overrides the account connection; otherwise use the global token.
+            var token = string.IsNullOrWhiteSpace(GitHubToken) ? _settings.Global.GitHubToken : GitHubToken;
+            GitHubTestResult = await _github.ValidateAsync(GitHubRepo, token);
+        }
+        catch (Exception ex) { GitHubTestResult = $"✗ {ex.Message}"; }
+        finally { IsTestingGitHub = false; }
+    }
+
+    private bool CanTestGitHub() => !IsTestingGitHub && !string.IsNullOrWhiteSpace(GitHubRepo);
+
+    [RelayCommand]
+    private void BrowseGitHubLocalPath()
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select the local repo folder" };
+        if (dlg.ShowDialog() == true) GitHubLocalPath = dlg.FolderName;
+    }
+
+    [RelayCommand]
+    private void BrowseGitHubArtifactPath()
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select the build artifact folder" };
+        if (dlg.ShowDialog() == true) GitHubArtifactPath = dlg.FolderName;
+    }
+
     [RelayCommand]
     private void Save()
     {
@@ -189,6 +247,12 @@ public partial class AppSettingsViewModel : ObservableObject
 
             UseStoreCert        = UseStoreCert,
             StoreCertThumbprint = string.IsNullOrWhiteSpace(SelectedStoreThumbprint) ? null : SelectedStoreThumbprint,
+
+            GitHubRepo         = string.IsNullOrWhiteSpace(GitHubRepo)         ? null : GitHubRepo.Trim(),
+            GitHubToken        = string.IsNullOrWhiteSpace(GitHubToken)        ? null : GitHubToken,
+            GitHubLocalPath    = string.IsNullOrWhiteSpace(GitHubLocalPath)    ? null : GitHubLocalPath,
+            GitHubBuildCommand = string.IsNullOrWhiteSpace(GitHubBuildCommand) ? null : GitHubBuildCommand,
+            GitHubArtifactPath = string.IsNullOrWhiteSpace(GitHubArtifactPath) ? null : GitHubArtifactPath,
         });
         _main.NavigateToDetail(_entry);
     }

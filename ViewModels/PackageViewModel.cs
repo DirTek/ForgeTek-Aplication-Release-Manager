@@ -389,6 +389,7 @@ public partial class PackageViewModel : ObservableObject
         if (next > PackageStep.Ftp)
         {
             _version.Status = VersionStatus.Published;
+            _version.PublishedDate = DateTime.Now;
             _storage.Update(_entry);
             _main.NavigateToDetail(_entry);
             return;

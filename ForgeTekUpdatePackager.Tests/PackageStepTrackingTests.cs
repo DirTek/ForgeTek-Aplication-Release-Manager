@@ -18,9 +18,17 @@ public class PackageStepTrackingTests
         settingsMock.GetVersionOutputPath(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<AppSettings?>())
             .Returns(@"C:\output\TestApp\1.0");
 
+        var sessionMock = Substitute.For<ISessionService>();
+        var setupStorageMock = Substitute.For<ISetupStorageService>();
+        storageMock.GetAll().Returns(new List<AppEntry>());
+
         var sp = Substitute.For<IServiceProvider>();
         sp.GetService(typeof(IStorageService)).Returns(storageMock);
         sp.GetService(typeof(IDialogService)).Returns(dialogMock);
+        sp.GetService(typeof(ISessionService)).Returns(sessionMock);
+        // MainViewModel's ctor navigates to the dashboard, which is resolved from the provider.
+        sp.GetService(typeof(DashboardViewModel)).Returns(
+            new DashboardViewModel(storageMock, setupStorageMock, sessionMock, settingsMock));
 
         var vm = new PackageViewModel(
             storageMock,

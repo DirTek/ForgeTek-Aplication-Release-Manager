@@ -28,6 +28,13 @@ public class BackupService : IBackupService
                     progress.Report("  + settings/global.json");
                 }
 
+                // User database (so a backup can recover access after a lockout).
+                if (File.Exists(UserService.UsersFilePath))
+                {
+                    zip.CreateEntryFromFile(UserService.UsersFilePath, UserService.UsersBackupEntry);
+                    progress.Report($"  + {UserService.UsersBackupEntry}");
+                }
+
                 if (includeApps)
                 {
                     AddFolder(zip, rootFolder, Path.Combine(rootFolder, "apps"), ct, progress);

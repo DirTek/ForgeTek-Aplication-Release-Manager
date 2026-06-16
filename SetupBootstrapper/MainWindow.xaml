@@ -284,22 +284,34 @@
         </Grid>
 
         <!-- Footer -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button x:Name="CancelBtn" Content="Cancel"
-                    Style="{StaticResource SecondaryButton}"
-                    Click="Cancel_Click" Margin="0,0,8,0"
-                    IsEnabled="True"/>
-            <Button x:Name="BackBtn" Content="← Back"
-                    Style="{StaticResource SecondaryButton}"
-                    Click="BackBtn_Click" Visibility="Collapsed"
-                    Margin="0,0,8,0"/>
-            <Button x:Name="ActionBtn" Content="Next"
-                    Style="{StaticResource PrimaryButton}"
-                    Click="ActionBtn_Click" IsEnabled="False"/>
-            <Button x:Name="FinishBtn" Content="Finish"
-                    Style="{StaticResource PrimaryButton}"
-                    Click="Finish_Click" Visibility="Collapsed"/>
-        </StackPanel>
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Attribution watermark (set from the manifest; hidden when empty) -->
+            <TextBlock x:Name="WatermarkText" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="11" Opacity="0.7" Visibility="Collapsed"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       TextTrimming="CharacterEllipsis"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelBtn" Content="Cancel"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="Cancel_Click" Margin="0,0,8,0"
+                        IsEnabled="True"/>
+                <Button x:Name="BackBtn" Content="← Back"
+                        Style="{StaticResource SecondaryButton}"
+                        Click="BackBtn_Click" Visibility="Collapsed"
+                        Margin="0,0,8,0"/>
+                <Button x:Name="ActionBtn" Content="Next"
+                        Style="{StaticResource PrimaryButton}"
+                        Click="ActionBtn_Click" IsEnabled="False"/>
+                <Button x:Name="FinishBtn" Content="Finish"
+                        Style="{StaticResource PrimaryButton}"
+                        Click="Finish_Click" Visibility="Collapsed"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

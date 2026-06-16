@@ -7,6 +7,9 @@ public enum PackageStep { Sign, Manifest, Package, Json, Ftp }
 
 public enum VersionStatus { Review, Signed, Packed, Published, Retracted, Scrapped }
 
+/// <summary>Release channel a version is published to. Beta clients receive Beta + Stable; Stable clients receive Stable only.</summary>
+public enum UpdateChannel { Stable, Beta }
+
 /// <summary>Whether the package contains all non-debug files or only the diff (added+modified).</summary>
 public enum PackageType { Incremental, Full }
 
@@ -15,6 +18,12 @@ public partial class AppVersion : ObservableObject
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string VersionNumber { get; set; } = string.Empty;
     public DateTime ScanDate { get; set; }
+
+    /// <summary>When this version was published (status reached Published). Null until published.</summary>
+    public DateTime? PublishedDate { get; set; }
+
+    /// <summary>Release channel. Stable by default; Beta marks a pre-release that only beta clients receive.</summary>
+    public UpdateChannel Channel { get; set; } = UpdateChannel.Stable;
     public List<FileRecord> Files { get; set; } = [];
 
     /// <summary>True for the very first version — no diff, no packing needed.</summary>

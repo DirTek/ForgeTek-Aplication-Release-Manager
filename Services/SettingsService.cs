@@ -33,6 +33,7 @@ public class SettingsService : ISettingsService
             var g = JsonSerializer.Deserialize<GlobalSettings>(
                 File.ReadAllText(GlobalSettingsPath), JsonOptions) ?? new GlobalSettings();
             g.GlobalCertPassword = DecryptOrPassthrough(g.GlobalCertPassword);
+            g.GitHubToken        = DecryptOrPassthrough(g.GitHubToken);
             return g;
         }
         catch { return new GlobalSettings(); }
@@ -51,6 +52,10 @@ public class SettingsService : ISettingsService
             UseStoreCert       = Global.UseStoreCert,
             StoreCertThumbprint = Global.StoreCertThumbprint,
             KeepInCertStore    = Global.KeepInCertStore,
+            Theme              = Global.Theme,
+            GitHubClientId     = Global.GitHubClientId,
+            GitHubToken        = DpapiService.Protect(Global.GitHubToken),
+            GitHubLogin        = Global.GitHubLogin,
         };
         File.WriteAllText(GlobalSettingsPath, JsonSerializer.Serialize(storable, JsonOptions));
     }
@@ -72,6 +77,7 @@ public class SettingsService : ISettingsService
             s.FtpUsername         = DecryptOrPassthrough(s.FtpUsername);
             s.FtpRemotePath       = DecryptOrPassthrough(s.FtpRemotePath);
             s.BaseDownloadUrl     = DecryptOrPassthrough(s.BaseDownloadUrl);
+            s.GitHubToken         = DecryptOrPassthrough(s.GitHubToken);
             return s;
         }
         catch { return new AppSettings(); }
@@ -95,6 +101,11 @@ public class SettingsService : ISettingsService
             BaseDownloadUrl     = DpapiService.Protect(settings.BaseDownloadUrl),
             UseStoreCert        = settings.UseStoreCert,
             StoreCertThumbprint = settings.StoreCertThumbprint,
+            GitHubRepo          = settings.GitHubRepo,
+            GitHubToken         = DpapiService.Protect(settings.GitHubToken),
+            GitHubLocalPath     = settings.GitHubLocalPath,
+            GitHubBuildCommand  = settings.GitHubBuildCommand,
+            GitHubArtifactPath  = settings.GitHubArtifactPath,
         };
         File.WriteAllText(path, JsonSerializer.Serialize(storable, JsonOptions));
     }

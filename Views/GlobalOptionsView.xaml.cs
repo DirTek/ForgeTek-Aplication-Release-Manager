@@ -35,4 +35,22 @@ public partial class GlobalOptionsView : UserControl
             vm.GenerateCertCommand.NotifyCanExecuteChanged();
         }
     }
+
+    private void NewUserPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is GlobalOptionsViewModel vm)
+            vm.NewUserPassword = ((PasswordBox)sender).Password;
+    }
+
+    private void ResetPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is GlobalOptionsViewModel vm)
+            vm.ResetPasswordValue = ((PasswordBox)sender).Password;
+    }
+
+    private void GitHubPatBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is GlobalOptionsViewModel vm)
+            vm.GitHubPatValue = ((PasswordBox)sender).Password;
+    }
 }

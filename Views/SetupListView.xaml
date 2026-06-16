@@ -767,6 +767,14 @@
                             <CheckBox Content="Fixed-size window (no resizing)"
                                       FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,6,0,0"
                                       IsChecked="{Binding EditFixedSize}"/>
+
+                            <CheckBox Content="Show footer watermark in the installer"
+                                      FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,10,0,0"
+                                      IsChecked="{Binding EditShowFooterWatermark}"/>
+                            <TextBox Text="{Binding EditFooterWatermark, UpdateSourceTrigger=PropertyChanged}"
+                                     FontSize="11" Padding="6,4" Margin="0,6,0,0"
+                                     IsEnabled="{Binding EditShowFooterWatermark}"
+                                     ToolTip="Text shown small in the installer window's footer"/>
                         </StackPanel>
                     </Border>
 

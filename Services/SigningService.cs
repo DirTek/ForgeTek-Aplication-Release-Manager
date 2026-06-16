@@ -110,6 +110,10 @@ public class SigningService : ISigningService
         }
     }
 
+    // RFC3161 timestamp authority — without a timestamp, signatures stop validating once the
+    // signing certificate expires.
+    private const string TimestampUrl = "http://timestamp.digicert.com";
+
     private async Task SignWithCertAsync(
         string signToolPath,
         IReadOnlyList<string> filePaths,
@@ -124,31 +128,51 @@ public class SigningService : ISigningService
             var file = filePaths[i];
             progress.Report($"[{i + 1}/{filePaths.Count}] {Path.GetFileName(file)}");
 
-            var psi = new ProcessStartInfo
+            // Prefer a timestamped signature; fall back to untimestamped if the TSA can't be reached
+            // (e.g. offline) so signing still succeeds rather than failing outright.
+            var thumb = cert.Thumbprint;
+            var (code, msg) = await RunSignToolAsync(signToolPath,
+                $"sign /fd SHA256 /tr {TimestampUrl} /td SHA256 /sha1 {thumb} \"{file}\"", ct);
+
+            if (code == 0)
             {
-                FileName  = signToolPath,
-                Arguments = $"sign /fd SHA256 /sha1 {cert.Thumbprint} \"{file}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError  = true,
-                UseShellExecute = false,
-                CreateNoWindow  = true,
-            };
+                progress.Report("  ✓ Signed (timestamped)");
+                continue;
+            }
 
-            using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start signtool.exe.");
-            var readOut = proc.StandardOutput.ReadToEndAsync(ct);
-            var readErr = proc.StandardError.ReadToEndAsync(ct);
-            await proc.WaitForExitAsync(ct);
-            var stdout = await readOut;
-            var stderr = await readErr;
+            var (code2, msg2) = await RunSignToolAsync(signToolPath,
+                $"sign /fd SHA256 /sha1 {thumb} \"{file}\"", ct);
 
-            if (proc.ExitCode == 0)
-                progress.Report("  ✓ Signed");
+            if (code2 == 0)
+                progress.Report("  ⚠ Signed without timestamp — could not reach the timestamp server.");
             else
             {
-                var msg = (stderr.Length > 0 ? stderr : stdout).Trim();
-                progress.Report($"  ✗ Failed — {(msg.Length > 0 ? msg : $"exit code {proc.ExitCode}")}");
+                var detail = (msg2.Length > 0 ? msg2 : msg).Trim();
+                progress.Report($"  ✗ Failed — {(detail.Length > 0 ? detail : $"exit code {code2}")}");
             }
         }
+    }
+
+    private static async Task<(int ExitCode, string Output)> RunSignToolAsync(
+        string signToolPath, string arguments, CancellationToken ct)
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName  = signToolPath,
+            Arguments = arguments,
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute = false,
+            CreateNoWindow  = true,
+        };
+
+        using var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start signtool.exe.");
+        var readOut = proc.StandardOutput.ReadToEndAsync(ct);
+        var readErr = proc.StandardError.ReadToEndAsync(ct);
+        await proc.WaitForExitAsync(ct);
+        var stdout = await readOut;
+        var stderr = await readErr;
+        return (proc.ExitCode, stderr.Length > 0 ? stderr : stdout);
     }
 
     private async Task SignWithPfxAsync(

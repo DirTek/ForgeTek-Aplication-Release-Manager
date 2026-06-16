@@ -264,6 +264,80 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,0,0,28" TextWrapping="Wrap"/>
 
+                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,24"/>
+
+                <!-- ══ GITHUB ═══════════════════════════════════════════════════ -->
+                <TextBlock Text="GITHUB" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap" Margin="0,0,0,12">
+                    Set this app's repository to check for newer releases and build from inside the app.
+                    Authentication uses your account connection from Options → GitHub; the per-app token below is optional.
+                </TextBlock>
+
+                <TextBlock Text="REPOSITORY (owner/name)" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <TextBox Text="{Binding GitHubRepo, UpdateSourceTrigger=PropertyChanged}"
+                         Height="36" Margin="0,0,0,12" ToolTip="e.g. octocat/Hello-World"/>
+
+                <TextBlock Text="ADVANCED: PER-APP TOKEN (optional — overrides the account connection)"
+                           FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <PasswordBox x:Name="GitHubTokenBox" Height="36" Margin="0,0,0,12"
+                             PasswordChanged="GitHubTokenBox_PasswordChanged"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="Test connection" Style="{StaticResource SecondaryButton}"
+                            Padding="16,8" Command="{Binding TestGitHubCommand}"/>
+                    <TextBlock Text="Checking…" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Visibility="{Binding IsTestingGitHub, Converter={StaticResource BoolToVisibility}}"/>
+                </StackPanel>
+                <TextBlock Text="{Binding GitHubTestResult}" FontSize="12"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,0,20" TextWrapping="Wrap"/>
+
+                <TextBlock Text="BUILD RUNNER" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextWrapping="Wrap" Margin="0,0,0,10">
+                    The app runs "git pull" in the local clone, then your build command, then scans the artifact folder.
+                    Requires git and your project's build toolchain installed.
+                </TextBlock>
+
+                <TextBlock Text="LOCAL REPO PATH" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding GitHubLocalPath, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,8,0" ToolTip="A local working copy of the repo (already cloned)"/>
+                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Command="{Binding BrowseGitHubLocalPathCommand}"/>
+                </Grid>
+
+                <TextBlock Text="BUILD COMMAND (PowerShell)" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <TextBox Text="{Binding GitHubBuildCommand, UpdateSourceTrigger=PropertyChanged}"
+                         Height="36" Margin="0,0,0,12"
+                         ToolTip="e.g. dotnet publish -c Release -o publish"/>
+
+                <TextBlock Text="ARTIFACT FOLDER (scanned after build)" FontSize="10" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                <Grid Margin="0,0,0,28">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding GitHubArtifactPath, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" Margin="0,0,8,0"
+                             ToolTip="The folder your build produces (relative to the repo or absolute)"/>
+                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Command="{Binding BrowseGitHubArtifactPathCommand}"/>
+                </Grid>
+
             </StackPanel>
         </ScrollViewer>
 

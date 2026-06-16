@@ -15,4 +15,12 @@ public class GlobalSettings
 
     // UI appearance: "Dark" (default) or "Light".
     public string  Theme               { get; set; } = "Dark";
+
+    // ── GitHub account connection (OAuth device flow) ─────────────────────
+    /// <summary>OAuth App Client ID (public) used for the device-flow sign-in.</summary>
+    public string? GitHubClientId { get; set; }
+    /// <summary>Account access token from the device flow (DPAPI-encrypted at rest).</summary>
+    public string? GitHubToken    { get; set; }
+    /// <summary>The connected account login (e.g. "octocat"), for display.</summary>
+    public string? GitHubLogin    { get; set; }
 }

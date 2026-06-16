@@ -67,6 +67,9 @@ public partial class DiffViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasVersionMismatch))]
     private string _versionNumber = string.Empty;
 
+    /// <summary>When checked, this version is published to the Beta channel (pre-release).</summary>
+    [ObservableProperty] private bool _isBeta;
+
     public DiffViewModel(IStorageService storage, IDialogService dialog)
     {
         _storage = storage;
@@ -133,6 +136,7 @@ public partial class DiffViewModel : ObservableObject
         {
             VersionNumber = trimmed,
             ScanDate = DateTime.Now,
+            Channel = IsBeta ? UpdateChannel.Beta : UpdateChannel.Stable,
             Files = allFiles,
             HasDiff = true,
             AddedCount = Added.Count,

@@ -32,6 +32,11 @@ public partial class App : Application
         services.AddSingleton<IScannerService, ScannerService>();
         services.AddSingleton<ISigningService, SigningService>();
         services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<IUserService, UserService>();
+        services.AddSingleton<ISessionService, SessionService>();
+        services.AddSingleton<IProtectionStateService, ProtectionStateService>();
+        services.AddSingleton<IGitHubService, GitHubService>();
+        services.AddSingleton<IGitHubAuthService, GitHubAuthService>();
 
         // Dialog service (created per-need, wraps WPF dialogs)
         services.AddSingleton<IDialogService, DialogService>();
@@ -66,7 +71,40 @@ public partial class App : Application
         // Apply the saved theme before any window is shown so it paints correctly on first render.
         _services.GetRequiredService<IThemeService>().ApplySaved();
 
+        // Access control is opt-in. Protection is "on" when there are users OR a tamper-evident
+        // marker says so — so deleting users.json alone can't silently disable the login.
+        var users  = _services.GetRequiredService<IUserService>();
+        var marker = _services.GetRequiredService<IProtectionStateService>();
+
+        if (users.HasAnyUsers || marker.IsMarked)
+        {
+            // Don't let the app exit when a dialog closes (it's the only window open) — otherwise a
+            // successful sign-in would shut down before the main window is created.
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            if (!users.HasAnyUsers)
+            {
+                // Marker says protected but the user database is gone → fail closed.
+                var lockout = new Dialogs.LockoutWindow();
+                lockout.ShowDialog();   // restores + relaunches, or exits
+                Shutdown();
+                return;
+            }
+
+            var login = new Dialogs.LoginWindow(users);
+            if (login.ShowDialog() != true)
+            {
+                Shutdown();
+                return;
+            }
+            _services.GetRequiredService<ISessionService>().SignIn(login.AuthenticatedUser!);
+            marker.Mark();   // self-heal the marker in case only the registry side was cleared
+        }
+
         var vm = _services.GetRequiredService<MainViewModel>();
-        new MainWindow(vm).Show();
+        var window = new MainWindow(vm);
+        MainWindow = window;
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
+        window.Show();
     }
 }

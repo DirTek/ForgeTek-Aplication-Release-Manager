@@ -206,14 +206,35 @@
                 <StackPanel Visibility="{Binding ShowBottomButtons, Converter={StaticResource BoolToVisibility}}">
                     <Button Content="{Binding SetupsButtonText}" Style="{StaticResource SecondaryButton}"
                             Margin="12,8,12,4" Padding="0,10"
+                            Visibility="{Binding Session.CanManageSetups, Converter={StaticResource BoolToVisibility}}"
                             Click="Setups_Click"/>
                     <Button Content="Options" Style="{StaticResource SecondaryButton}"
                             Margin="12,4,12,4" Padding="0,10"
                             Click="Options_Click"/>
                     <Button Content="+ Add Application" Style="{StaticResource PrimaryButton}"
                             Margin="12,4,12,16" Padding="0,10"
+                            Visibility="{Binding Session.CanScan, Converter={StaticResource BoolToVisibility}}"
                             Click="AddApp_Click"/>
                 </StackPanel>
+
+                <!-- Signed-in user + sign out (only when access protection is on) -->
+                <Border Visibility="{Binding IsProtected, Converter={StaticResource BoolToVisibility}}"
+                        Margin="12,0,12,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentUserName}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Session.Current.Role}" FontSize="10"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Content="Sign out" Style="{StaticResource SecondaryButton}"
+                                Padding="10,6" FontSize="11" Click="SignOut_Click"/>
+                    </Grid>
+                </Border>
             </StackPanel>
         </Grid>
 

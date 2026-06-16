@@ -302,6 +302,8 @@ public class SetupService : ISetupService
             BackgroundGradientDirection = bundle.BackgroundGradientDirection,
             BackgroundImageName = ctx.BackgroundName,
             FixedSize = bundle.FixedSize,
+            FooterWatermark = bundle.ShowFooterWatermark && !string.IsNullOrWhiteSpace(bundle.FooterWatermark)
+                ? bundle.FooterWatermark.Trim() : null,
             Apps = ctx.ManifestApps,
             Redists = ctx.Redists,
         };
@@ -759,6 +761,7 @@ internal sealed class InstallManifest
     public string? BackgroundGradientDirection { get; set; }
     public string? BackgroundImageName { get; set; }
     public bool FixedSize { get; set; }
+    public string? FooterWatermark { get; set; }
     public List<InstallAppManifest> Apps { get; set; } = [];
     public List<InstallRedistManifest> Redists { get; set; } = [];
 }

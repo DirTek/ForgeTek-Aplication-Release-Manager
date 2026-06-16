@@ -18,6 +18,7 @@ public partial class AppSettingsView : UserControl
         {
             CertPasswordBox.Password = vm.DefaultCertPassword;
             FtpPasswordBox.Password  = vm.FtpPassword;
+            GitHubTokenBox.Password  = vm.GitHubToken;
         }
     }
 
@@ -31,5 +32,11 @@ public partial class AppSettingsView : UserControl
     {
         if (DataContext is AppSettingsViewModel vm)
             vm.FtpPassword = FtpPasswordBox.Password;
+    }
+
+    private void GitHubTokenBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is AppSettingsViewModel vm)
+            vm.GitHubToken = GitHubTokenBox.Password;
     }
 }

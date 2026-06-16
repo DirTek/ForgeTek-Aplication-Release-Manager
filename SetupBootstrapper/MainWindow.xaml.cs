@@ -72,6 +72,12 @@ public partial class MainWindow : Window
             TitleText.Text = _manifest.SetupName;
             SubtitleText.Text = $"Version {_manifest.SetupVersion}";
 
+            if (!string.IsNullOrWhiteSpace(_manifest.FooterWatermark))
+            {
+                WatermarkText.Text = _manifest.FooterWatermark;
+                WatermarkText.Visibility = Visibility.Visible;
+            }
+
             try
             {
                 using var assocIcon = System.Drawing.Icon.ExtractAssociatedIcon(exePath);
