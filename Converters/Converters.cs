@@ -70,6 +70,28 @@ public class StringMatchToVisibilityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>Converts a file path to whether it exists on disk. ConverterParameter selects the output:
+/// "missing" → bool true when the file is MISSING; "visible-missing" → Visible when missing;
+/// "visible-exists" → Visible when it exists; default → bool true when it exists.</summary>
+public class FileExistsConverter : IValueConverter
+{
+    public static readonly FileExistsConverter Instance = new();
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        var path = value as string;
+        var exists = !string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path);
+        return (parameter as string ?? string.Empty).ToLowerInvariant() switch
+        {
+            "missing" => !exists,
+            "visible-missing" => exists ? Visibility.Collapsed : Visibility.Visible,
+            "visible-exists" => exists ? Visibility.Visible : Visibility.Collapsed,
+            _ => exists,
+        };
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>Converts bool IsDebug=true to a subtle purple row background.</summary>
 public class DebugRowBackgroundConverter : IValueConverter
 {

@@ -62,17 +62,21 @@ internal sealed class S3Transport : IFileTransport
         catch (Exception ex) { return $"✗ {ex.Message}"; }
     }
 
-    public async Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress, CancellationToken ct = default)
+    public async Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
+        CancellationToken ct = default, IProgress<long>? bytesProgress = null)
     {
         using var client = CreateClient();
         progress.Report($"  ↑ {remotePath}");
-        await client.PutObjectAsync(new PutObjectRequest
+        var request = new PutObjectRequest
         {
             BucketName = _bucket,
             Key = remotePath,
             FilePath = localPath,
             DisablePayloadSigning = !string.IsNullOrWhiteSpace(_endpoint), // R2 rejects streaming-signed payloads
-        }, ct);
+        };
+        if (bytesProgress is not null)
+            request.StreamTransferProgress += (_, e) => bytesProgress.Report(e.TransferredBytes);
+        await client.PutObjectAsync(request, ct);
     }
 
     public async Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default)

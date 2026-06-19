@@ -29,7 +29,8 @@ internal sealed class FtpTransport : IFileTransport
     public Task<string> TestAsync(CancellationToken ct = default)
         => _ftp.TestConnectionAsync(_host, _port, _user, _pass, ct);
 
-    public Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress, CancellationToken ct = default)
+    public Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
+        CancellationToken ct = default, IProgress<long>? bytesProgress = null)
         => _ftp.UploadFilesAsync([(localPath, remotePath)], _host, _port, _user, _pass, progress, ct);
 
     public Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default)

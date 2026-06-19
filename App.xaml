@@ -20,6 +20,7 @@
         <conv:HexToBrushConverter          x:Key="HexToBrush"/>
         <conv:HexToColorConverter          x:Key="HexToColor"/>
         <conv:StringMatchToVisibilityConverter x:Key="StringMatchToVisibility"/>
+        <conv:FileExistsConverter          x:Key="FileExists"/>
 
         <conv:ProgressBarWidthConverter    x:Key="ProgressBarWidthConverter"/>
 

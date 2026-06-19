@@ -12,5 +12,7 @@ public interface ISetupStorageService
     // ── Generation history ("Past Bundles") ──────────────────────────────
     IReadOnlyList<GeneratedSetupRecord> GetHistory();
     void AddHistory(GeneratedSetupRecord record);
+    /// <summary>Persists changes to an existing history record (e.g. after publishing).</summary>
+    void UpdateHistory(GeneratedSetupRecord record);
     void ClearHistory();
 }

@@ -72,6 +72,11 @@ public class SetupBundle
     /// <summary>Also emit a plain "{Name}_Portable.zip" of the app files (no installer, no registry).</summary>
     public bool GeneratePortableZip { get; set; }
 
+    /// <summary>Where this bundle's generated setup is published — a target separate from the apps'
+    /// update-publish settings (e.g. updates on FTP, the installer on GitHub Releases). Null = not set.
+    /// Secret fields are DPAPI-protected at rest by SetupStorageService.</summary>
+    public PublishProfile? PublishProfile { get; set; }
+
     public string? LastGeneratedPath { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public DateTime? LastGeneratedDate { get; set; }

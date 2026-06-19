@@ -43,7 +43,10 @@ public class SetupStorageService : ISetupStorageService
                 var bundle = JsonSerializer.Deserialize<SetupBundle>(
                     File.ReadAllText(file), JsonOptions);
                 if (bundle is not null)
+                {
+                    if (bundle.PublishProfile is not null) UnprotectProfile(bundle.PublishProfile);
                     _bundles.Add(bundle);
+                }
             }
             catch (Exception ex)
             {
@@ -82,6 +85,14 @@ public class SetupStorageService : ISetupStorageService
         SaveHistory();
     }
 
+    public void UpdateHistory(GeneratedSetupRecord record)
+    {
+        var idx = _history.FindIndex(r => r.Id == record.Id);
+        if (idx >= 0) _history[idx] = record;
+        else _history.Add(record);
+        SaveHistory();
+    }
+
     public void ClearHistory()
     {
         _history.Clear();
@@ -96,11 +107,50 @@ public class SetupStorageService : ISetupStorageService
     {
         var path = FilePath(bundle.Name);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+        // DPAPI-protect the publish profile's secrets on disk while keeping the in-memory copy usable.
+        var plainProfile = bundle.PublishProfile;
+        if (plainProfile is not null) bundle.PublishProfile = ProtectProfile(plainProfile);
         File.WriteAllText(path, JsonSerializer.Serialize(bundle, JsonOptions));
+        bundle.PublishProfile = plainProfile;
 
         var idx = _bundles.FindIndex(b => b.Id == bundle.Id);
         if (idx >= 0) _bundles[idx] = bundle;
         else _bundles.Add(bundle);
+    }
+
+    // Mirrors SettingsService: encrypt the same FTP fields + SFTP/S3/GitHub secrets at rest.
+    private static PublishProfile ProtectProfile(PublishProfile p) => new()
+    {
+        PublishProvider = p.PublishProvider,
+        FtpHost = DpapiService.Protect(p.FtpHost), FtpPort = p.FtpPort,
+        FtpUsername = DpapiService.Protect(p.FtpUsername), FtpPassword = DpapiService.Protect(p.FtpPassword),
+        FtpRemotePath = DpapiService.Protect(p.FtpRemotePath), BaseDownloadUrl = DpapiService.Protect(p.BaseDownloadUrl),
+        SftpHost = p.SftpHost, SftpPort = p.SftpPort, SftpUsername = p.SftpUsername,
+        SftpPassword = DpapiService.Protect(p.SftpPassword), SftpRemotePath = p.SftpRemotePath,
+        SftpBaseDownloadUrl = p.SftpBaseDownloadUrl,
+        S3Endpoint = p.S3Endpoint, S3Region = p.S3Region, S3Bucket = p.S3Bucket, S3AccessKey = p.S3AccessKey,
+        S3SecretKey = DpapiService.Protect(p.S3SecretKey), S3Prefix = p.S3Prefix, S3PublicBaseUrl = p.S3PublicBaseUrl,
+        GitHubRepo = p.GitHubRepo, GitHubToken = DpapiService.Protect(p.GitHubToken),
+        GitHubReleaseTag = p.GitHubReleaseTag, GitHubCatalogTag = p.GitHubCatalogTag,
+    };
+
+    private static void UnprotectProfile(PublishProfile p)
+    {
+        p.FtpHost = DecryptOrPassthrough(p.FtpHost);
+        p.FtpUsername = DecryptOrPassthrough(p.FtpUsername);
+        p.FtpPassword = DecryptOrPassthrough(p.FtpPassword);
+        p.FtpRemotePath = DecryptOrPassthrough(p.FtpRemotePath);
+        p.BaseDownloadUrl = DecryptOrPassthrough(p.BaseDownloadUrl);
+        p.SftpPassword = DecryptOrPassthrough(p.SftpPassword);
+        p.S3SecretKey = DecryptOrPassthrough(p.S3SecretKey);
+        p.GitHubToken = DecryptOrPassthrough(p.GitHubToken);
+    }
+
+    private static string? DecryptOrPassthrough(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        return DpapiService.IsProtected(value) ? DpapiService.Unprotect(value) : value;
     }
 
     public void Delete(string id)

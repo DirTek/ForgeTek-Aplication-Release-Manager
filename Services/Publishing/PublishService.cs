@@ -75,6 +75,24 @@ public class PublishService : IPublishService
         await t.UploadFileAsync(catalogLocalPath, t.RemotePath(appKey, null, catalogFileName), progress, ct);
     }
 
+    public async Task<string> UploadArtifactAsync(AppSettings s, string appKey, string version,
+        string localPath, string fileName, IProgress<string> progress, CancellationToken ct = default,
+        IProgress<long>? bytesProgress = null)
+    {
+        var t = CreateTransport(s);
+        await t.UploadFileAsync(localPath, t.RemotePath(appKey, version, fileName), progress, ct, bytesProgress);
+        return t.DownloadUrl(appKey, version, fileName);
+    }
+
+    public async Task DeleteArtifactAsync(AppSettings s, string appKey, string version,
+        string fileName, IProgress<string> progress, CancellationToken ct = default)
+    {
+        var t = CreateTransport(s);
+        var remote = t.RemotePath(appKey, version, fileName);
+        await t.DeleteFileAsync(remote, ct);
+        progress.Report($"Removed {remote}");
+    }
+
     public async Task RetractAsync(AppSettings s, AppVersion v, string appKey,
         string packageFileName, string catalogFileName, string? rollbackToVersion,
         IProgress<string> progress, CancellationToken ct = default)

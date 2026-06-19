@@ -19,6 +19,8 @@ public partial class WingetManifestWindow : Window
     private readonly string _appKey;
     private readonly GeneratedSetupRecord _record;
     private AppSettings _appSettings;
+    // The bundle's own publish target (separate from update settings); used for Suggest/Upload URL.
+    private readonly AppSettings? _setupPublish;
 
     // Our generated installer is the ForgeTek bootstrapper, which accepts these silent switches.
     private const string SilentSwitch = "/VERYSILENT";
@@ -27,7 +29,8 @@ public partial class WingetManifestWindow : Window
     private string? _generatedFolder;
 
     public WingetManifestWindow(IWingetManifestService manifest, IPublishService publish,
-        ISettingsService settings, string appName, GeneratedSetupRecord record)
+        ISettingsService settings, string appName, GeneratedSetupRecord record,
+        PublishProfile? setupProfile = null)
     {
         InitializeComponent();
         _manifest = manifest;
@@ -37,6 +40,7 @@ public partial class WingetManifestWindow : Window
         _appKey = appName.ToLowerInvariant().Replace(" ", "");
         _record = record;
         _appSettings = settings.LoadAppSettings(appName);
+        _setupPublish = setupProfile?.ToAppSettings();
 
         Prefill();
     }
@@ -236,12 +240,19 @@ public partial class WingetManifestWindow : Window
         catch (ToolNotFoundException)
         {
             StatusText.Text = "wingetcreate not found";
-            Log("wingetcreate is not installed. Install it with:\n" +
-                "    winget install wingetcreate\n" +
-                "…then click Submit again, or open https://github.com/microsoft/winget-pkgs to submit the files manually.");
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                { FileName = "https://github.com/microsoft/winget-pkgs", UseShellExecute = true }); }
-            catch { }
+            var choice = MessageBox.Show(this,
+                "wingetcreate isn't installed. Install it now with winget?",
+                "Install wingetcreate", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (choice == MessageBoxResult.Yes)
+                await InstallWingetCreateAsync();
+            else
+            {
+                Log("To submit later, install wingetcreate (winget install Microsoft.WingetCreate), " +
+                    "or open https://github.com/microsoft/winget-pkgs to submit the files manually.");
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    { FileName = "https://github.com/microsoft/winget-pkgs", UseShellExecute = true }); }
+                catch { }
+            }
         }
         catch (Exception ex)
         {
@@ -249,23 +260,83 @@ public partial class WingetManifestWindow : Window
         }
     }
 
+    private async Task InstallWingetCreateAsync()
+    {
+        StatusText.Text = "Installing wingetcreate…";
+        Log("> winget install --id Microsoft.WingetCreate -e --source winget");
+        try
+        {
+            var progress = new Progress<string>(Append);
+            var result = await ProcessRunner.RunAsync("winget",
+                "install --id Microsoft.WingetCreate -e --source winget " +
+                "--accept-source-agreements --accept-package-agreements", progress: progress);
+            StatusText.Text = result.Succeeded
+                ? "✓ wingetcreate installed — click Submit again."
+                : "Install reported issues — see log.";
+        }
+        catch (ToolNotFoundException)
+        {
+            StatusText.Text = "winget not found";
+            Log("winget (App Installer) isn't available, so wingetcreate can't be installed automatically. " +
+                "Install \"App Installer\" from the Microsoft Store first.");
+        }
+        catch (Exception ex)
+        {
+            Warn($"Install failed: {ex.Message}");
+        }
+    }
+
     private void SuggestUrl_Click(object sender, RoutedEventArgs e)
     {
-        if (!_publish.IsConfigured(_appSettings))
+        if (_setupPublish is null)
         {
-            Warn($"No public publish target is configured for {_appName}. Configure FTP/SFTP/S3/GitHub Releases (with a public URL) in the app's settings, or paste the URL manually.");
+            Warn("No setup-publish target is configured for this bundle. Use \"Publish settings…\" (next to Generate), or paste the URL manually.");
             return;
         }
         try
         {
             var fileName = Path.GetFileName(_record.OutputPath);
-            var url = _publish.ResolveDownloadUrl(_appSettings, _appKey, VersionBox.Text.Trim(), fileName);
+            var url = _publish.ResolveDownloadUrl(_setupPublish, _appKey, VersionBox.Text.Trim(), fileName);
             InstallerUrlBox.Text = url;
-            StatusText.Text = $"Suggested URL from {_publish.ProviderName(_appSettings)} — verify the installer is uploaded there.";
+            StatusText.Text = $"Suggested URL from {_publish.ProviderName(_setupPublish)} — verify the installer is uploaded there.";
         }
         catch (Exception ex)
         {
             Warn($"Could not resolve a URL: {ex.Message}");
+        }
+    }
+
+    private async void UploadUrl_Click(object sender, RoutedEventArgs e)
+    {
+        if (_setupPublish is null)
+        {
+            Warn("No setup-publish target is configured for this bundle. Use \"Publish settings…\" (next to Generate), or paste the URL manually.");
+            return;
+        }
+        if (!File.Exists(_record.OutputPath))
+        {
+            Warn($"The setup file is missing:\n{_record.OutputPath}");
+            return;
+        }
+
+        UploadUrlBtn.IsEnabled = false;
+        StatusText.Text = "Uploading installer…";
+        try
+        {
+            var fileName = Path.GetFileName(_record.OutputPath);
+            var progress = new Progress<string>(Append);
+            var url = await _publish.UploadArtifactAsync(_setupPublish, _appKey, VersionBox.Text.Trim(),
+                _record.OutputPath, fileName, progress);
+            InstallerUrlBox.Text = url;
+            StatusText.Text = $"✓ Uploaded to {_publish.ProviderName(_setupPublish)}";
+        }
+        catch (Exception ex)
+        {
+            Warn($"Upload failed: {ex.Message}");
+        }
+        finally
+        {
+            UploadUrlBtn.IsEnabled = true;
         }
     }
 

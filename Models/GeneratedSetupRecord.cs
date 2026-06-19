@@ -20,6 +20,13 @@ public class GeneratedSetupRecord
     /// records generated before hashing was added — recomputed on demand from OutputPath.</summary>
     public string? Sha256 { get; set; }
 
+    /// <summary>Public URL the setup was published to (FTP/SFTP/S3/GitHub Releases), once uploaded.</summary>
+    public string? PublishedUrl { get; set; }
+    /// <summary>The provider the setup was published with (e.g. "SFTP"), for display.</summary>
+    public string? PublishedProvider { get; set; }
+    /// <summary>When the setup was last published. Null until published; cleared on unpublish.</summary>
+    public DateTime? PublishedDate { get; set; }
+
     /// <summary>When "Preserve old setups" was on and a prior file existed, the path it was renamed to.</summary>
     public string? ArchivedPath { get; set; }
 }

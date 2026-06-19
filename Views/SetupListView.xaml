@@ -164,6 +164,18 @@
                                                 <TextBlock Text="Generate" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Button>
+                                        <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                ToolTip="Publish the most recently generated setup for this bundle"
+                                                Command="{Binding DataContext.PublishBundleSetupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Publish settings…" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                ToolTip="Where this bundle's installer is published (separate from app updates)"
+                                                Command="{Binding DataContext.ConfigureSetupPublishCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
                                         <Button Content="Edit" Style="{StaticResource SecondaryButton}"
                                                 Padding="16,8" Margin="0,0,8,0"
                                                 Command="{Binding DataContext.EditSetupCommand,
@@ -267,6 +279,14 @@
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    TextTrimming="CharacterEllipsis"
                                                    Text="{Binding OutputPath}"/>
+                                        <!-- Setup file gone (moved/deleted) → can't be published. -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
+                                                    Visibility="{Binding OutputPath, Converter={StaticResource FileExists}, ConverterParameter=visible-missing}">
+                                            <TextBlock Text="&#xE7BA;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                                       Foreground="#FF6B6B" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock FontSize="11" Foreground="#FF6B6B"
+                                                       Text="Setup file is missing — re-generate to publish."/>
+                                        </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
                                                     Visibility="{Binding ArchivedPath, Converter={StaticResource BoolToVisibility}}">
                                             <TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" FontSize="10"
@@ -276,9 +296,29 @@
                                                        TextTrimming="CharacterEllipsis"
                                                        Text="{Binding ArchivedPath, StringFormat='Previous build kept: {0}'}"/>
                                         </StackPanel>
+                                        <!-- Publish status: where + when, with the public URL. -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
+                                                    Visibility="{Binding PublishedUrl, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                                       Foreground="{DynamicResource AddedBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource AddedBrush}"
+                                                       TextTrimming="CharacterEllipsis">
+                                                <Run Text="Published to "/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
+                                                <Run Text="{Binding PublishedDate, Mode=OneWay, StringFormat=' · {0:yyyy-MM-dd HH:mm} · '}"/>
+                                                <Run Text="{Binding PublishedUrl, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                IsEnabled="{Binding OutputPath, Converter={StaticResource FileExists}}"
+                                                ToolTip="Publish this setup to its target"
+                                                Command="{Binding DataContext.PublishSetupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
                                         <Button Content="Winget…" Style="{StaticResource SecondaryButton}"
                                                 Padding="16,8" Margin="0,0,8,0"
                                                 Command="{Binding DataContext.GenerateWingetManifestCommand,
@@ -1404,6 +1444,9 @@
                             <Button Content="Open Folder" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding OpenGeneratedFolderCommand}"/>
+                            <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
+                                    Padding="22,9" Margin="0,0,8,0"
+                                    Command="{Binding PublishSetupCommand}"/>
                             <Button Content="Winget manifest…" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding GenerateWingetManifestCommand}"/>

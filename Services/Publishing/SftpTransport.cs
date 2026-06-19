@@ -48,14 +48,16 @@ internal sealed class SftpTransport : IFileTransport
         catch (Exception ex) { return $"✗ {ex.Message}"; }
     }, ct);
 
-    public Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress, CancellationToken ct = default)
+    public Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
+        CancellationToken ct = default, IProgress<long>? bytesProgress = null)
         => Task.Run(() =>
         {
             using var client = Connect();
             EnsureRemoteDir(client, PosixDir(remotePath));
             progress.Report($"  ↑ {remotePath}");
             using var fs = File.OpenRead(localPath);
-            client.UploadFile(fs, remotePath, canOverride: true);
+            client.UploadFile(fs, remotePath, canOverride: true,
+                uploadCallback: bytesProgress is null ? null : uploaded => bytesProgress.Report((long)uploaded));
         }, ct);
 
     public Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default)

@@ -68,21 +68,41 @@ internal sealed class GitHubReleaseTransport : IFileTransport
         return idx < 0 ? (remotePath, remotePath) : (remotePath[..idx], remotePath[(idx + 1)..]);
     }
 
-    public async Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress, CancellationToken ct = default)
+    public async Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
+        CancellationToken ct = default, IProgress<long>? bytesProgress = null)
     {
         var (tag, file) = Split(remotePath);
         var releaseId = await EnsureReleaseAsync(tag, ct);
         await DeleteAssetIfExistsAsync(releaseId, file, ct);
 
         progress.Report($"  ↑ {file} → release {tag}");
-        await using var fs = File.OpenRead(localPath);
-        using var content = new StreamContent(fs);
-        content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+        var fs = File.OpenRead(localPath);
+        var total = fs.Length;
+        long lastPct = -1;
+        void OnSent(long sent)
+        {
+            bytesProgress?.Report(sent);
+            if (total <= 0) return;
+            var pct = sent * 100 / total;
+            if (pct >= lastPct + 5) { lastPct = pct; progress.Report($"    {pct}%  ({Human(sent)} / {Human(total)})"); }
+        }
+
+        // ProgressableStreamContent disposes the file stream.
+        using var content = new ProgressableStreamContent(fs, total, "application/octet-stream", OnSent);
         using var req = Req(HttpMethod.Post,
             $"https://uploads.github.com/repos/{_owner}/{_name}/releases/{releaseId}/assets?name={Uri.EscapeDataString(file)}");
         req.Content = content;
         using var resp = await Http.SendAsync(req, ct);
         resp.EnsureSuccessStatusCode();
+    }
+
+    private static string Human(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        double v = bytes;
+        var u = 0;
+        while (v >= 1024 && u < units.Length - 1) { v /= 1024; u++; }
+        return $"{v:0.#} {units[u]}";
     }
 
     public async Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default)

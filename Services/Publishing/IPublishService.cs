@@ -32,6 +32,17 @@ public interface IPublishService
         string catalogLocalPath, string catalogFileName,
         IProgress<string> progress, CancellationToken ct = default);
 
+    /// <summary>Uploads a single arbitrary file (e.g. a generated setup .exe) to the version's location
+    /// and returns its public download URL. Does not touch the update catalog. <paramref name="bytesProgress"/>
+    /// reports cumulative bytes uploaded (where the provider supports it) for a progress bar.</summary>
+    Task<string> UploadArtifactAsync(AppSettings s, string appKey, string version,
+        string localPath, string fileName,
+        IProgress<string> progress, CancellationToken ct = default, IProgress<long>? bytesProgress = null);
+
+    /// <summary>Removes a previously published artifact (e.g. a setup .exe) from the provider.</summary>
+    Task DeleteArtifactAsync(AppSettings s, string appKey, string version,
+        string fileName, IProgress<string> progress, CancellationToken ct = default);
+
     /// <summary>Removes a published version from the provider and rolls back / deletes the catalog.</summary>
     Task RetractAsync(AppSettings s, AppVersion v, string appKey,
         string packageFileName, string catalogFileName, string? rollbackToVersion,

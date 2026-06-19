@@ -12,7 +12,8 @@ public interface IFileTransport
 
     Task<string> TestAsync(CancellationToken ct = default);
 
-    Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress, CancellationToken ct = default);
+    Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
+        CancellationToken ct = default, IProgress<long>? bytesProgress = null);
     Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default);
     Task<string?> TryDownloadTextAsync(string remotePath, CancellationToken ct = default);
     Task DeleteFileAsync(string remotePath, CancellationToken ct = default);

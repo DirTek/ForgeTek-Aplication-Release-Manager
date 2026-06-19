@@ -1,0 +1,97 @@
+<Window x:Class="ForgeTekUpdatePackager.Dialogs.PublishSetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Publish Setup" Width="600" Height="480" MinWidth="520" MinHeight="380"
+        WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}"
+        Closing="Window_Closing">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Publish Setup" FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource TextBrush}"/>
+            <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+        </StackPanel>
+
+        <!-- Target info -->
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                Padding="12,10" Margin="0,0,0,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="Provider:" Width="70" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBlock x:Name="ProviderText" FontSize="12"
+                               Foreground="{DynamicResource TextBrush}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Target:" Width="70" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBlock x:Name="TargetText" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextBrush}"/>
+                </StackPanel>
+                <!-- GitHub Releases: the tag can differ per release, so it's editable here. -->
+                <StackPanel x:Name="TagRow" Orientation="Horizontal" Margin="0,8,0,0" Visibility="Collapsed">
+                    <TextBlock Text="Release tag:" Width="70" FontSize="12" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox x:Name="TagBox" Width="220" FontSize="12" TextChanged="Tag_TextChanged"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Log -->
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="6" Padding="10,8">
+            <DockPanel>
+                <ProgressBar x:Name="UploadBar" DockPanel.Dock="Top" Height="6" Minimum="0" Maximum="100"
+                             Margin="0,0,0,8" Visibility="Collapsed"/>
+                <ScrollViewer x:Name="LogScroller" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="LogText" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- Result URL -->
+        <Grid Grid.Row="3" Margin="0,12,0,0" x:Name="ResultPanel" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="UrlBox" Grid.Column="0" IsReadOnly="True"
+                     Foreground="{DynamicResource TextBrush}"/>
+            <Button Grid.Column="1" Content="Copy" Style="{StaticResource SecondaryButton}"
+                    Padding="14,6" Margin="8,0,0,0" Click="Copy_Click"/>
+            <Button Grid.Column="2" Content="Open" Style="{StaticResource SecondaryButton}"
+                    Padding="14,6" Margin="8,0,0,0" Click="Open_Click"/>
+        </Grid>
+
+        <!-- Actions -->
+        <Grid Grid.Row="4" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextTrimming="CharacterEllipsis"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="PublishBtn" Content="Publish" Style="{StaticResource PrimaryButton}"
+                        Padding="22,8" Click="Publish_Click"/>
+                <Button x:Name="UnpublishBtn" Content="Unpublish" Style="{StaticResource DangerButton}"
+                        Padding="22,8" Margin="8,0,0,0" Visibility="Collapsed" Click="Unpublish_Click"/>
+                <Button x:Name="CloseBtn" Content="Close" Style="{StaticResource SecondaryButton}"
+                        Padding="22,8" Margin="8,0,0,0" Click="Close_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

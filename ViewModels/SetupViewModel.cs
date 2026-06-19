@@ -1079,17 +1079,95 @@ SOFTWARE LICENSE
         }
 
         var appName = ResolvePrimaryAppName(record);
-        new WingetManifestWindow(_winget, _publish, _settings, appName, record)
+        var profile = ResolveBundle(record)?.PublishProfile;
+        new WingetManifestWindow(_winget, _publish, _settings, appName, record, profile)
         {
             Owner = System.Windows.Application.Current.MainWindow,
         }.ShowDialog();
     }
 
+    /// <summary>Uploads a generated setup to the BUNDLE's own publish target (separate from the apps'
+    /// update settings). From the success overlay no record is passed; from a Past Bundles card it's bound.</summary>
+    [RelayCommand]
+    private void PublishSetup(GeneratedSetupRecord? record)
+    {
+        record ??= _setupStorage.GetHistory()
+            .FirstOrDefault(r => string.Equals(r.OutputPath, _lastGeneratedSetupPath, StringComparison.OrdinalIgnoreCase))
+            ?? _setupStorage.GetHistory().FirstOrDefault();
+        if (record is null)
+        {
+            _dialog.Alert("No Setup", "Generate a setup first, then publish it.");
+            return;
+        }
+        if (!File.Exists(record.OutputPath))
+        {
+            _dialog.Alert("Setup Not Found", $"The setup file is missing:\n{record.OutputPath}");
+            return;
+        }
+
+        var appKey = ResolvePrimaryAppName(record).ToLowerInvariant().Replace(" ", "");
+        var profile = ResolveBundle(record)?.PublishProfile;
+        new PublishSetupWindow(_publish, _setupStorage, appKey, profile, record)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+
+        // The record's publish status may have changed; refresh the Past Bundles list to reflect it.
+        if (IsPastCategory) ReloadHistory();
+    }
+
+    /// <summary>Publishes a bundle's most recently generated setup — straight from the bundle card,
+    /// without re-generating. Falls back to a prompt when the bundle has never been generated.</summary>
+    [RelayCommand]
+    private void PublishBundleSetup(SetupBundleVm? vm)
+    {
+        var bundle = vm?.Bundle;
+        if (bundle is null)
+        {
+            _dialog.Alert("No Bundle", "Select a setup bundle first.");
+            return;
+        }
+        var forBundle = _setupStorage.GetHistory()
+            .Where(r => r.BundleId == bundle.Id)
+            .OrderByDescending(r => r.GeneratedDate)
+            .ToList();
+        // Prefer the newest build whose setup file still exists on disk.
+        var record = forBundle.FirstOrDefault(r => File.Exists(r.OutputPath));
+        if (record is null)
+        {
+            _dialog.Alert(forBundle.Count == 0 ? "No Setup Yet" : "Setup File Missing",
+                forBundle.Count == 0
+                    ? $"\"{bundle.Name}\" hasn't been generated yet. Generate it first, then publish."
+                    : $"The generated setup file for \"{bundle.Name}\" is missing (moved or deleted). Re-generate it, then publish.");
+            return;
+        }
+        PublishSetup(record);
+    }
+
+    /// <summary>Configures a bundle's own setup-publish target (separate from app update settings).</summary>
+    [RelayCommand]
+    private void ConfigureSetupPublish(SetupBundleVm? vm)
+    {
+        var bundle = vm?.Bundle ?? _editingBundle;
+        if (bundle is null)
+        {
+            _dialog.Alert("No Bundle", "Select a setup bundle first.");
+            return;
+        }
+        new SetupPublishSettingsWindow(_publish, _storage, _settings, _setupStorage, bundle)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    private SetupBundle? ResolveBundle(GeneratedSetupRecord record)
+        => Bundles.FirstOrDefault(b => b.Bundle.Id == record.BundleId)?.Bundle;
+
     // The setup is built from a bundle that may reference several apps; winget identifies one package,
     // so we use the bundle's launch app (else its first app). Falls back to the bundle name.
     private string ResolvePrimaryAppName(GeneratedSetupRecord record)
     {
-        var bundle = Bundles.FirstOrDefault(b => b.Bundle.Id == record.BundleId)?.Bundle;
+        var bundle = ResolveBundle(record);
         if (bundle is not null)
         {
             var appId = !string.IsNullOrWhiteSpace(bundle.LaunchAppId)
