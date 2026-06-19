@@ -353,6 +353,9 @@ public partial class MainWindow : Window
                 }
             }
 
+            // Custom actions: pre-install (after prerequisites, before any files are copied).
+            await RunActionsAsync(_manifest!.PreActions, rootDir, "Running pre-install actions…");
+
             // Step 2: Install app files. The copy loop runs on a background thread and reports
             // progress via Progress<T> (marshalled back to the UI thread). Doing the work on the
             // UI thread starves WPF's Render priority, so the progress bar never visibly moves.
@@ -488,6 +491,9 @@ public partial class MainWindow : Window
                     catch { }
                 }
             }
+
+            // Custom actions: post-install (after files + registry, before finalizing the install).
+            await RunActionsAsync(_manifest.PostActions, rootDir, "Running post-install actions…");
 
             // Step 3: Decide the uninstaller strategy.
             //  • Preferred: a small per-app Uninstall.exe (the AOT SetupUninstaller staged in the
@@ -689,6 +695,25 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             ShowError($"Installation failed: {ex.Message}");
+        }
+    }
+
+    // Runs a phase's custom actions in order on the progress page. A non-ignored failure throws,
+    // which DoInstall's catch turns into ShowError(...).
+    private async Task RunActionsAsync(List<InstallAction>? actions, string rootDir, string phase)
+    {
+        if (actions is null || actions.Count == 0)
+            return;
+
+        PageProgress.Visibility = Visibility.Visible;
+        var log = new Progress<string>(line => ProgressFileText.Text = line);
+
+        for (int i = 0; i < actions.Count; i++)
+        {
+            var a = actions[i];
+            ProgressStatus.Text = $"{phase} ({i + 1}/{actions.Count})";
+            ProgressFileText.Text = string.IsNullOrWhiteSpace(a.Label) ? a.Type : a.Label;
+            await ActionRunner.RunAsync(a, rootDir, _tempDir, log);
         }
     }
 

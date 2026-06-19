@@ -9,6 +9,9 @@ public class GeneratedSetupRecord
     public string Version { get; set; } = string.Empty;
     public DateTime GeneratedDate { get; set; } = DateTime.Now;
 
+    /// <summary>Who generated it — the signed-in user, or the Windows user when unprotected.</summary>
+    public string? GeneratedBy { get; set; }
+
     /// <summary>Full path of the generated Setup.exe.</summary>
     public string OutputPath { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }

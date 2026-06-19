@@ -17,6 +17,8 @@ public partial class SessionService : ObservableObject, ISessionService
 
     public bool IsProtected => _users.HasAnyUsers && Current is not null;
 
+    public string ActorName => Current?.Username ?? Environment.UserName;
+
     public void SignIn(AppUser user) => Current = user;
     public void SignOut() => Current = null;
 

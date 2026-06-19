@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -91,7 +93,7 @@ public partial class MainViewModel : ObservableObject
         NavigateToDetail(entry);
     }
 
-    public void NavigateToDetail(AppEntry entry)
+    public void NavigateToDetail(AppEntry entry, bool runPrimaryAction = false)
     {
         IsShowingOptions = false;
         IsShowingSetups = false;
@@ -100,6 +102,38 @@ public partial class MainViewModel : ObservableObject
         var vm = _services.GetRequiredService<AppDetailViewModel>();
         vm.Initialize(reloaded, this);
         SetSelected(entry.Id, vm);
+
+        // From the dashboard card's call-to-action: kick off the app's next step (scan/review/
+        // package/publish) rather than just landing on the page.
+        if (runPrimaryAction && vm.PrimaryActionCommand.CanExecute(null))
+            vm.PrimaryActionCommand.Execute(null);
+    }
+
+    /// <summary>After a scan, if the app is connected to GitHub and its changelog has no entry for
+    /// <paramref name="versionNumber"/>, offer to document the changes (opens the release-notes editor,
+    /// which can prepend the new section to the changelog).</summary>
+    public void PromptChangelogIfNeeded(AppEntry entry, string versionNumber)
+    {
+        var settings = _services.GetRequiredService<ISettingsService>();
+        var s = settings.LoadAppSettings(entry.Name);
+        if (string.IsNullOrWhiteSpace(s.GitHubRepo)) return;   // only for GitHub-connected apps
+
+        var changelog = _services.GetRequiredService<IChangelogService>();
+        var path = changelog.FindChangelogFile(entry.FolderPath);
+        if (path is not null && changelog.HasChangelogEntry(path, versionNumber))
+            return;   // already documented
+
+        if (!_dialog.Confirm("Update Changelog?",
+                $"v{versionNumber} isn't in the changelog yet.\n\nAdd its changes now?", "Add Changes"))
+            return;
+
+        var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? settings.Global.GitHubToken : s.GitHubToken;
+        new ReleaseNotesWindow(
+            _services.GetRequiredService<IGitHubService>(), changelog,
+            s.GitHubRepo!, token, entry.FolderPath, entry.Name, versionNumber)
+        {
+            Owner = Application.Current.MainWindow,
+        }.ShowDialog();
     }
 
     public void NavigateToScan(AppEntry entry, IReadOnlyList<FileRecord> files, string? detectedVersion = null)

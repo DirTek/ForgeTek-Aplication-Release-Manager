@@ -50,8 +50,25 @@
                                     Padding="10,4" FontSize="11" Margin="8,0,0,0"
                                     Command="{Binding BuildFromGitHubCommand}"
                                     Visibility="{Binding Session.CanScan, Converter={StaticResource BoolToVisibility}}"/>
+                            <Button Content="Release Notes" Style="{StaticResource SecondaryButton}"
+                                    Padding="10,4" FontSize="11" Margin="8,0,0,0"
+                                    Command="{Binding OpenReleaseNotesCommand}"/>
                         </StackPanel>
                     </Border>
+
+                    <!-- Last GitHub commit -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding HasLastCommit, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="&#xE81C;" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="620">
+                            <Run Text="Last commit: " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                            <Run Text="{Binding LastCommitSummary, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" FontSize="12"/>
+                            <Run Text="  —  " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
+                            <Run Text="{Binding LastCommitMeta, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">

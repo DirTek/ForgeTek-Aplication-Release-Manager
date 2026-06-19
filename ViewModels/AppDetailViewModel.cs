@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 using ForgeTekUpdatePackager.Dialogs;
 
 namespace ForgeTekUpdatePackager.ViewModels;
@@ -14,7 +15,7 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly IStorageService _storage;
     private readonly IScannerService _scanner;
     private readonly ILogService _log;
-    private readonly IFtpService _ftp;
+    private readonly IPublishService _publish;
     private readonly IUpdateCatalogService _catalog;
     private readonly IChangelogService _changelog;
     private readonly IDialogService _dialog;
@@ -78,13 +79,13 @@ public partial class AppDetailViewModel : ObservableObject
     private AppVersion? _selectedVersion;
 
     public AppDetailViewModel(IStorageService storage, IScannerService scanner, ILogService log,
-        IFtpService ftp, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog,
+        IPublishService publish, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog,
         ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github)
     {
         _storage = storage;
         _scanner = scanner;
         _log = log;
-        _ftp = ftp;
+        _publish = publish;
         _catalog = catalog;
         _changelog = changelog;
         _dialog = dialog;
@@ -104,8 +105,15 @@ public partial class AppDetailViewModel : ObservableObject
 
         GitHubStatus = null;
         GitHubNewer = false;
+        HasLastCommit = false;
+        LastCommitSummary = string.Empty;
+        LastCommitMeta = string.Empty;
         GitHubConfigured = !string.IsNullOrWhiteSpace(_settings.LoadAppSettings(entry.Name).GitHubRepo);
-        if (GitHubConfigured) CheckGitHubCommand.Execute(null);
+        if (GitHubConfigured)
+        {
+            CheckGitHubCommand.Execute(null);
+            _ = LoadLastCommitAsync();
+        }
     }
 
     [RelayCommand]
@@ -150,6 +158,44 @@ public partial class AppDetailViewModel : ObservableObject
             GitHubStatus = $"GitHub check failed: {ex.Message}";
         }
         finally { GitHubChecking = false; }
+    }
+
+    [ObservableProperty] private bool _hasLastCommit;
+    [ObservableProperty] private string _lastCommitSummary = string.Empty;
+    [ObservableProperty] private string _lastCommitMeta = string.Empty;
+
+    private async Task LoadLastCommitAsync()
+    {
+        try
+        {
+            var s = _settings.LoadAppSettings(_entry.Name);
+            if (string.IsNullOrWhiteSpace(s.GitHubRepo)) return;
+            var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
+            var commit = await _github.GetLastCommitAsync(s.GitHubRepo!, token);
+            if (commit is null || string.IsNullOrWhiteSpace(commit.Message)) return;
+            LastCommitSummary = commit.Message;
+            LastCommitMeta = commit.Meta;
+            HasLastCommit = true;
+        }
+        catch { /* offline / no access — just leave it hidden */ }
+    }
+
+    [RelayCommand]
+    private void OpenReleaseNotes()
+    {
+        var s = _settings.LoadAppSettings(_entry.Name);
+        if (string.IsNullOrWhiteSpace(s.GitHubRepo))
+        {
+            _dialog.Alert("GitHub Not Configured",
+                "Set this app's GitHub repository in Settings → GitHub first.");
+            return;
+        }
+        var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
+        new ReleaseNotesWindow(_github, _changelog, s.GitHubRepo!, token,
+            _entry.FolderPath, _entry.Name, _entry.LatestVersion?.VersionNumber)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
     }
 
     private bool CanBuildFromGitHub() => _session.CanScan && GitHubConfigured && !IsBuilding;
@@ -444,8 +490,8 @@ public partial class AppDetailViewModel : ObservableObject
         var hasPrevUpdate = prevVersion is not null && !prevVersion.IsInitial;
 
         var modeText = hasPrevUpdate
-            ? $"This will delete the uploaded files from FTP and mark v{v.VersionNumber} as retracted. The previous version (v{prevVersion!.VersionNumber}) will become the current release."
-            : $"This will delete the uploaded files from FTP and mark v{v.VersionNumber} as retracted. You can repack it later.";
+            ? $"This will delete the published files and mark v{v.VersionNumber} as retracted. The previous version (v{prevVersion!.VersionNumber}) will become the current release."
+            : $"This will delete the published files and mark v{v.VersionNumber} as retracted. You can repack it later.";
 
         if (!_dialog.Confirm("Retract Version",
                 $"Retract published version v{v.VersionNumber}?\n\n{modeText}\n\nThis cannot be undone.",
@@ -456,7 +502,7 @@ public partial class AppDetailViewModel : ObservableObject
         IsRetracting = true;
         try
         {
-            await Task.Run(() => RetractFtpAsync(v, hasPrevUpdate ? prevVersion!.VersionNumber : null));
+            await RetractRemoteAsync(v, hasPrevUpdate ? prevVersion!.VersionNumber : null);
         }
         finally
         {
@@ -482,6 +528,7 @@ public partial class AppDetailViewModel : ObservableObject
         v.HasPackage           = false;
         v.PackagePath          = null;
         v.PipelineStep         = null;
+        v.PublishProvider      = null;
         v.FtpPackageRemotePath = null;
         v.FtpCatalogRemotePath = null;
         v.FtpHost              = null;
@@ -498,65 +545,27 @@ public partial class AppDetailViewModel : ObservableObject
         SelectedVersion = null;
     }
 
-    private async Task RetractFtpAsync(AppVersion v, string? rollbackToVersion)
+    private async Task RetractRemoteAsync(AppVersion v, string? rollbackToVersion)
     {
-        if (string.IsNullOrWhiteSpace(v.FtpHost))
+        var s = _settings.LoadAppSettings(_entry.Name);
+        if (!_publish.IsConfigured(s))
         {
-            _log.Write("Retract", "No FTP host — skipping remote operations");
+            _log.Write("Retract", "No publish target configured — skipping remote operations");
             return;
         }
 
-        var host     = v.FtpHost;
-        var port     = v.FtpPort == 0 ? 21 : v.FtpPort;
-        var user     = v.FtpUsername ?? string.Empty;
-        var pass     = v.FtpPassword ?? string.Empty;
-        var progress = new Progress<string>(_ => { });
+        var appKey          = _entry.Name.ToLowerInvariant().Replace(" ", "");
+        var catalogFileName = $"{appKey}.json";
+        var packageFileName = !string.IsNullOrWhiteSpace(v.PackagePath)
+            ? Path.GetFileName(v.PackagePath!)
+            : Path.GetFileName(v.FtpPackageRemotePath ?? string.Empty);
+        var progress = new Progress<string>(msg => _log.Write("Retract", msg));
 
-        if (!string.IsNullOrWhiteSpace(v.FtpCatalogRemotePath))
+        try
         {
-            _log.Write("Retract", $"Downloading catalog: {v.FtpCatalogRemotePath}");
-            var existingJson = await _ftp.TryDownloadStringAsync(v.FtpCatalogRemotePath, host, port, user, pass);
-            var appKey       = _entry.Name.ToLowerInvariant().Replace(" ", "");
-            var updatedJson  = existingJson is not null
-                ? _catalog.RemoveVersion(appKey, v.VersionNumber, existingJson, rollbackToVersion)
-                : null;
-            try
-            {
-                if (updatedJson is not null)
-                {
-                    await _ftp.UploadStringAsync(updatedJson, v.FtpCatalogRemotePath, host, port, user, pass);
-                    _log.Write("Retract", $"Catalog rolled back: {v.FtpCatalogRemotePath}");
-                }
-                else
-                {
-                    await _ftp.DeleteFilesAsync([v.FtpCatalogRemotePath], host, port, user, pass, progress);
-                    _log.Write("Retract", $"Catalog deleted (no remaining versions): {v.FtpCatalogRemotePath}");
-                }
-            }
-            catch (Exception ex) { _log.Write("Retract", $"Catalog operation failed: {ex.Message}"); }
+            await _publish.RetractAsync(s, v, appKey, packageFileName, catalogFileName, rollbackToVersion, progress);
         }
-
-        if (!string.IsNullOrWhiteSpace(v.FtpPackageRemotePath))
-        {
-            try
-            {
-                await _ftp.DeleteFilesAsync([v.FtpPackageRemotePath], host, port, user, pass, progress);
-                _log.Write("Retract", $"Package deleted: {v.FtpPackageRemotePath}");
-            }
-            catch (Exception ex) { _log.Write("Retract", $"Package deletion failed: {ex.Message}"); }
-
-            var lastSlash = v.FtpPackageRemotePath.LastIndexOf('/');
-            if (lastSlash > 0)
-            {
-                var remoteVersionFolder = v.FtpPackageRemotePath[..lastSlash];
-                try
-                {
-                    await _ftp.DeleteDirectoryAsync(remoteVersionFolder, host, port, user, pass);
-                    _log.Write("Retract", $"Remote version folder deleted: {remoteVersionFolder}");
-                }
-                catch (Exception ex) { _log.Write("Retract", $"Remote folder deletion failed: {ex.Message}"); }
-            }
-        }
+        catch (Exception ex) { _log.Write("Retract", $"Remote retract failed: {ex.Message}"); }
     }
 
     [RelayCommand(CanExecute = nameof(CanReviseVersion))]

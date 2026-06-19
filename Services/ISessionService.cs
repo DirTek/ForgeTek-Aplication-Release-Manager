@@ -6,6 +6,10 @@ public interface ISessionService
 {
     AppUser? Current { get; }
 
+    /// <summary>The signed-in app user's name, or the Windows user when no one is signed in.
+    /// Used to attribute actions (publishes, setup generations) in activity feeds.</summary>
+    string ActorName { get; }
+
     /// <summary>True when access protection is on AND a user is signed in.</summary>
     bool IsProtected { get; }
 

@@ -178,6 +178,48 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
 
     public bool HasPreviousVersion => PreviousVersionText is not null;
 
+    // ── Publish-target connection status (filled in by the dashboard on load) ──────────────
+    // States: "Unknown" (not checked), "None" (no target configured), "Checking", "Online", "Offline".
+    private string _connectionState = "Unknown";
+    public string ConnectionState
+    {
+        get => _connectionState;
+        set
+        {
+            if (_connectionState == value) return;
+            _connectionState = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowConnection));
+            OnPropertyChanged(nameof(ConnectionText));
+            OnPropertyChanged(nameof(ConnectionBrush));
+        }
+    }
+
+    private string _connectionProvider = string.Empty;
+    public string ConnectionProvider
+    {
+        get => _connectionProvider;
+        set { _connectionProvider = value; OnPropertyChanged(); OnPropertyChanged(nameof(ConnectionText)); }
+    }
+
+    /// <summary>Only show the connection row once a target is configured (and being checked).</summary>
+    public bool ShowConnection => ConnectionState is "Checking" or "Online" or "Offline";
+
+    public string ConnectionText => ConnectionState switch
+    {
+        "Checking" => $"{ConnectionProvider}: checking…",
+        "Online"   => $"{ConnectionProvider}: online",
+        "Offline"  => $"{ConnectionProvider}: offline",
+        _          => string.Empty,
+    };
+
+    public Brush ConnectionBrush => ConnectionState switch
+    {
+        "Online"  => new SolidColorBrush(Color.FromRgb(0x30, 0xD1, 0x58)),  // green
+        "Offline" => new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A)),  // red
+        _         => new SolidColorBrush(Color.FromRgb(0x8E, 0x8E, 0x93)),  // grey (checking)
+    };
+
     private static SolidColorBrush ParseColor(string hex)
     {
         if (string.IsNullOrEmpty(hex)) hex = "#0A84FF";

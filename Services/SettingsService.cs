@@ -78,6 +78,8 @@ public class SettingsService : ISettingsService
             s.FtpRemotePath       = DecryptOrPassthrough(s.FtpRemotePath);
             s.BaseDownloadUrl     = DecryptOrPassthrough(s.BaseDownloadUrl);
             s.GitHubToken         = DecryptOrPassthrough(s.GitHubToken);
+            s.SftpPassword        = DecryptOrPassthrough(s.SftpPassword);
+            s.S3SecretKey         = DecryptOrPassthrough(s.S3SecretKey);
             return s;
         }
         catch { return new AppSettings(); }
@@ -93,12 +95,29 @@ public class SettingsService : ISettingsService
             DefaultCertPath     = settings.DefaultCertPath,
             DefaultCertPassword = DpapiService.Protect(settings.DefaultCertPassword),
             PackageExtension    = settings.PackageExtension,
+            PackageNameTemplate = settings.PackageNameTemplate,
+            PublishProvider     = settings.PublishProvider,
             FtpHost             = DpapiService.Protect(settings.FtpHost),
             FtpPort             = settings.FtpPort,
             FtpUsername         = DpapiService.Protect(settings.FtpUsername),
             FtpPassword         = DpapiService.Protect(settings.FtpPassword),
             FtpRemotePath       = DpapiService.Protect(settings.FtpRemotePath),
             BaseDownloadUrl     = DpapiService.Protect(settings.BaseDownloadUrl),
+            SftpHost            = settings.SftpHost,
+            SftpPort            = settings.SftpPort,
+            SftpUsername        = settings.SftpUsername,
+            SftpPassword        = DpapiService.Protect(settings.SftpPassword),
+            SftpRemotePath      = settings.SftpRemotePath,
+            SftpBaseDownloadUrl = settings.SftpBaseDownloadUrl,
+            S3Endpoint          = settings.S3Endpoint,
+            S3Region            = settings.S3Region,
+            S3Bucket            = settings.S3Bucket,
+            S3AccessKey         = settings.S3AccessKey,
+            S3SecretKey         = DpapiService.Protect(settings.S3SecretKey),
+            S3Prefix            = settings.S3Prefix,
+            S3PublicBaseUrl     = settings.S3PublicBaseUrl,
+            GitHubReleaseTag    = settings.GitHubReleaseTag,
+            GitHubCatalogTag    = settings.GitHubCatalogTag,
             UseStoreCert        = settings.UseStoreCert,
             StoreCertThumbprint = settings.StoreCertThumbprint,
             GitHubRepo          = settings.GitHubRepo,

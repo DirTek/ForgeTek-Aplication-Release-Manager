@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
@@ -13,6 +15,8 @@ public partial class DashboardViewModel : ObservableObject
     private readonly IStorageService _storage;
     private readonly ISetupStorageService _setupStorage;
     private readonly ISettingsService _settings;
+    private readonly IPublishService _publish;
+    private readonly IConnectionStatusCache _connCache;
     private MainViewModel _main = null!;
 
     public ISessionService Session { get; }
@@ -31,12 +35,74 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty] private string _gitHubStatusText = "Not connected";
 
     public DashboardViewModel(IStorageService storage, ISetupStorageService setupStorage,
-        ISessionService session, ISettingsService settings)
+        ISessionService session, ISettingsService settings, IPublishService publish,
+        IConnectionStatusCache connCache)
     {
         _storage = storage;
         _setupStorage = setupStorage;
         Session = session;
         _settings = settings;
+        _publish = publish;
+        _connCache = connCache;
+    }
+
+    // Tests each app's configured publish target on load and flags the card online/offline.
+    // Fire-and-forget: cards show "checking…" then flip as each result arrives. All network work
+    // runs on the thread pool (never the UI thread); results are marshalled back via the dispatcher.
+    private void CheckConnections()
+    {
+        // Gather targets on the UI thread (cheap file reads) and set the initial "checking" state.
+        var targets = new List<(AppEntryViewModel App, AppSettings Settings)>();
+        foreach (var app in Apps)
+        {
+            var s = _settings.LoadAppSettings(app.Entry.Name);
+            if (!_publish.IsConfigured(s))
+            {
+                app.ConnectionState = "None";
+                continue;
+            }
+
+            app.ConnectionProvider = _publish.ProviderName(s);
+
+            // Reuse this session's last result instead of re-testing the network on every visit.
+            var cached = _connCache.Get(app.Entry.Name);
+            if (cached is not null)
+            {
+                app.ConnectionState = cached;
+                continue;
+            }
+
+            app.ConnectionState = "Checking";
+            targets.Add((app, s));
+        }
+        if (targets.Count == 0) return;
+
+        // Capture the UI sync context (DispatcherSynchronizationContext) to post results back —
+        // avoids referencing WPF's Application/Dispatcher types directly.
+        var ui = SynchronizationContext.Current;
+
+        // Off the UI thread: each check is independent and bounded by its own timeout.
+        _ = Task.Run(() => Task.WhenAll(targets.Select(async t =>
+        {
+            string state;
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+                var result = await _publish.TestAsync(t.Settings, cts.Token).ConfigureAwait(false);
+                // Every transport reports failure as a leading "✗"; anything else is a success.
+                state = !string.IsNullOrWhiteSpace(result) && result.TrimStart().StartsWith('✗')
+                    ? "Offline" : "Online";
+            }
+            catch { state = "Offline"; }
+
+            _connCache.Set(t.App.Entry.Name, state);
+
+            var app = t.App;
+            if (ui is not null)
+                ui.Post(_ => app.ConnectionState = state, null);
+            else
+                app.ConnectionState = state;
+        })));
     }
 
     public void Initialize(MainViewModel main)
@@ -60,6 +126,17 @@ public partial class DashboardViewModel : ObservableObject
             : "GitHub: not connected";
 
         BuildActivity(entries);
+
+        CheckConnections();   // background; cards update as results arrive
+    }
+
+    /// <summary>Clears cached publish-target statuses and re-tests every app's connection.</summary>
+    [RelayCommand]
+    private void RecheckConnections()
+    {
+        foreach (var app in Apps)
+            _connCache.Invalidate(app.Entry.Name);
+        CheckConnections();
     }
 
     private void BuildActivity(IReadOnlyList<AppEntry> entries)
@@ -69,8 +146,8 @@ public partial class DashboardViewModel : ObservableObject
         // Setup generations (have real timestamps).
         foreach (var h in _setupStorage.GetHistory())
             items.Add(new ActivityItem("", $"Generated {h.BundleName} setup",
-                string.IsNullOrWhiteSpace(h.Version) ? "Setup bundle" : $"v{h.Version}", h.GeneratedDate,
-                IsSetup: true));
+                $"{(string.IsNullOrWhiteSpace(h.Version) ? "Setup bundle" : $"v{h.Version}")} · by {(string.IsNullOrWhiteSpace(h.GeneratedBy) ? Session.ActorName : h.GeneratedBy)}",
+                h.GeneratedDate, IsSetup: true));
 
         // Latest version event per app. Published versions carry a real PublishedDate;
         // everything else falls back to the scan timestamp.
@@ -86,7 +163,8 @@ public partial class DashboardViewModel : ObservableObject
                 _                       => ("", $"Scanned {e.Name} v{v.VersionNumber}"),
             };
             var when = v.Status == VersionStatus.Published ? (v.PublishedDate ?? v.ScanDate) : v.ScanDate;
-            items.Add(new ActivityItem(glyph, title, v.Status.ToString(), when, AppId: e.Id));
+            var who = !string.IsNullOrWhiteSpace(v.PublishedBy) ? v.PublishedBy! : Session.ActorName;
+            items.Add(new ActivityItem(glyph, title, $"{v.Status} · by {who}", when, AppId: e.Id));
         }
 
         RecentActivity.Clear();
@@ -99,6 +177,13 @@ public partial class DashboardViewModel : ObservableObject
     private void OpenApp(AppEntryViewModel? app)
     {
         if (app is not null) _main.NavigateToDetail(app.Entry);
+    }
+
+    /// <summary>Card call-to-action: open the app and immediately run its next step (scan/review/…).</summary>
+    [RelayCommand]
+    private void RunAppAction(AppEntryViewModel? app)
+    {
+        if (app is not null) _main.NavigateToDetail(app.Entry, runPrimaryAction: true);
     }
 
     [RelayCommand]

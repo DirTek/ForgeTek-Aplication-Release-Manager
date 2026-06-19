@@ -201,7 +201,13 @@
                 </UniformGrid>
 
                 <!-- Your apps -->
-                <TextBlock Text="YOUR APPS" Style="{StaticResource SectionHeader}" Margin="0,0,0,10"/>
+                <Grid Margin="0,0,0,10">
+                    <TextBlock Text="YOUR APPS" Style="{StaticResource SectionHeader}" VerticalAlignment="Center"/>
+                    <Button Content="Re-check connections" Style="{StaticResource SecondaryButton}"
+                            Padding="10,4" FontSize="11" HorizontalAlignment="Right"
+                            Command="{Binding RecheckConnectionsCommand}"
+                            ToolTip="Clear cached statuses and test each app's publish target again"/>
+                </Grid>
                 <ItemsControl ItemsSource="{Binding Apps}" Margin="0,0,0,24">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
@@ -221,6 +227,15 @@
                                     </DockPanel>
                                     <TextBlock Text="{Binding VersionLine}" FontSize="12" Margin="0,4,0,0"
                                                Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                                                Visibility="{Binding ShowConnection, Converter={StaticResource BoolToVisibility}}">
+                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                 Fill="{Binding ConnectionBrush}"/>
+                                        <TextBlock Text="{Binding ConnectionText}" FontSize="11" Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
                                     <Grid Margin="0,12,0,0">
                                         <Border CornerRadius="4" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Center"
                                                 Background="{DynamicResource SurfaceHoverBrush}">
@@ -229,7 +244,7 @@
                                         </Border>
                                         <Button Content="{Binding NextActionLabel}" Style="{StaticResource SecondaryButton}"
                                                 Padding="12,5" FontSize="11" HorizontalAlignment="Right"
-                                                Command="{Binding DataContext.OpenAppCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                Command="{Binding DataContext.RunAppActionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
                                     </Grid>
                                 </StackPanel>

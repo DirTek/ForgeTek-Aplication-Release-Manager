@@ -24,6 +24,22 @@ public class InstallManifest
     public string? FooterWatermark { get; set; }
     public List<InstallApp> Apps { get; set; } = [];
     public List<RedistInfo> Redists { get; set; } = [];
+    public List<InstallAction> PreActions { get; set; } = [];
+    public List<InstallAction> PostActions { get; set; } = [];
+}
+
+/// <summary>A custom install step (service control, script, executable, file cleanup). Field names
+/// mirror the generator's InstallActionManifest for camelCase JSON round-trip.</summary>
+public class InstallAction
+{
+    public string Type { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public string Arguments { get; set; } = string.Empty;
+    public string InlineScript { get; set; } = string.Empty;
+    public string? StagedFileName { get; set; }
+    public bool IgnoreFailure { get; set; }
+    public int TimeoutSeconds { get; set; }
 }
 
 public class InstallApp

@@ -1,6 +1,7 @@
 using Xunit;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 using ForgeTekUpdatePackager.ViewModels;
 
 namespace ForgeTekUpdatePackager.Tests;
@@ -74,20 +75,12 @@ public class PackageHelperTests
         Assert.Contains(result, f => f.Path == "file3.dll");
     }
 
-    // Reflection helpers to access private static methods
+    // Path/URL construction now lives in the publishing layer's shared helper.
     private static string InvokeBuildRemotePath(string? basePath, string appKey, string? version, string filename)
-    {
-        var method = typeof(PackageViewModel).GetMethod("BuildRemotePath",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        return (string)method!.Invoke(null, [basePath!, appKey, version, filename])!;
-    }
+        => PublishPaths.ServerPath(basePath, appKey, version, filename);
 
     private static string InvokeBuildDownloadUrl(string? baseUrl, string appKey, string version, string filename)
-    {
-        var method = typeof(PackageViewModel).GetMethod("BuildDownloadUrl",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        return (string)method!.Invoke(null, [baseUrl!, appKey, version, filename])!;
-    }
+        => PublishPaths.DownloadUrl(baseUrl, appKey, version, filename);
 
     private static IReadOnlyList<FileRecord> InvokeComputeIncrementalFiles(AppVersion version, AppVersion? baseVersion)
     {

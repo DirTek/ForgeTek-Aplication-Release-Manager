@@ -2,6 +2,7 @@ using Xunit;
 using NSubstitute;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 using ForgeTekUpdatePackager.ViewModels;
 
 namespace ForgeTekUpdatePackager.Tests;
@@ -28,7 +29,8 @@ public class PackageStepTrackingTests
         sp.GetService(typeof(ISessionService)).Returns(sessionMock);
         // MainViewModel's ctor navigates to the dashboard, which is resolved from the provider.
         sp.GetService(typeof(DashboardViewModel)).Returns(
-            new DashboardViewModel(storageMock, setupStorageMock, sessionMock, settingsMock));
+            new DashboardViewModel(storageMock, setupStorageMock, sessionMock, settingsMock,
+                Substitute.For<IPublishService>(), Substitute.For<IConnectionStatusCache>()));
 
         var vm = new PackageViewModel(
             storageMock,
@@ -37,7 +39,7 @@ public class PackageStepTrackingTests
             settingsMock,
             Substitute.For<ILogService>(),
             Substitute.For<IPackagingService>(),
-            Substitute.For<IFtpService>(),
+            Substitute.For<IPublishService>(),
             Substitute.For<IManifestService>(),
             Substitute.For<IUpdateCatalogService>(),
             dialogMock);

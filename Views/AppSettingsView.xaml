@@ -5,6 +5,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -21,328 +22,500 @@
             </StackPanel>
         </Border>
 
-        <!-- Body -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="28,24,28,0">
+        <!-- Pipeline template bar -->
+        <Border Grid.Row="1" Padding="28,12,28,12"
+                Background="{DynamicResource SidebarBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Template" FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="0,0,10,0"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <ComboBox Width="240" Height="32" VerticalContentAlignment="Center"
+                              ItemsSource="{Binding Templates}"
+                              SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
+                              DisplayMemberPath="Name"
+                              ToolTip="Reusable presets of build/packaging/publishing settings"/>
+                    <Button Content="Apply" Style="{StaticResource SecondaryButton}"
+                            Padding="14,6" Margin="8,0,0,0" FontSize="12"
+                            Command="{Binding ApplyTemplateCommand}"/>
+                    <Button Content="Save as…" Style="{StaticResource SecondaryButton}"
+                            Padding="14,6" Margin="8,0,0,0" FontSize="12"
+                            Command="{Binding SaveAsTemplateCommand}"/>
+                    <Button Content="Delete" Style="{StaticResource SecondaryButton}"
+                            Padding="14,6" Margin="8,0,0,0" FontSize="12"
+                            Command="{Binding DeleteTemplateCommand}"/>
+                    <TextBlock Text="{Binding TemplateStatus}" FontSize="11" VerticalAlignment="Center"
+                               Margin="14,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="360"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
 
-                <!-- OUTPUT FOLDER -->
-                <TextBlock Text="OUTPUT FOLDER" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+        <!-- Body: settings grouped into tabs -->
+        <TabControl Grid.Row="2" Margin="28,16,28,0">
 
-                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,6" TextWrapping="Wrap">
-                    <Run Text="Default: "/>
-                    <Run Text="{Binding DefaultOutputBase, Mode=OneWay}"
-                         Foreground="{DynamicResource TextBrush}"/>
-                    <Run Text="\{version}"/>
-                </TextBlock>
+            <!-- ══ GENERAL ══════════════════════════════════════════════════ -->
+            <TabItem Header="General">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,8,12,16">
 
-                <Grid Margin="0,0,0,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0"
-                             Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Margin="0,0,8,0"
-                            Command="{Binding BrowseOutputFolderCommand}"/>
-                    <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
-                            Padding="10,8"
-                            Command="{Binding ClearOutputFolderCommand}"/>
-                </Grid>
+                        <!-- OUTPUT FOLDER -->
+                        <TextBlock Text="OUTPUT FOLDER" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
-                <TextBlock Text="Leave blank to use the default. Version number is appended automatically."
-                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,28" TextWrapping="Wrap"/>
-
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
-
-                <!-- DEFAULT CERTIFICATE -->
-                <TextBlock Text="DEFAULT SIGNING CERTIFICATE" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-
-                <!-- Global cert override banner -->
-                <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
-                        Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
-                        Visibility="{Binding GlobalCertOverrideActive, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel>
-                        <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
-                                   Text="Global certificate active"/>
-                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,3,0,0" TextWrapping="Wrap">
-                            <Run Text="Using "/>
-                            <Run Text="{Binding GlobalCertOverrideName, Mode=OneWay}"
-                                 Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
-                            <Run Text=" from Options. These fields are disabled while the global certificate is active."/>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,6" TextWrapping="Wrap">
+                            <Run Text="Default: "/>
+                            <Run Text="{Binding DefaultOutputBase, Mode=OneWay}"
+                                 Foreground="{DynamicResource TextBrush}"/>
+                            <Run Text="\{version}"/>
                         </TextBlock>
+
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" Margin="0,0,8,0"
+                                    Command="{Binding BrowseOutputFolderCommand}"/>
+                            <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
+                                    Padding="10,8"
+                                    Command="{Binding ClearOutputFolderCommand}"/>
+                        </Grid>
+
+                        <TextBlock Text="Leave blank to use the default. Version number is appended automatically."
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,28" TextWrapping="Wrap"/>
+
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+
+                        <!-- PACKAGE EXTENSION -->
+                        <TextBlock Text="PACKAGE FILE EXTENSION" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,6" TextWrapping="Wrap">
+                            Customize the file extension used when packaging this app.
+                            Leave blank to use the default <Run Text=".ftu" Foreground="{DynamicResource TextBrush}"/>.
+                        </TextBlock>
+
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="160"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="." FontSize="15" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,2,0"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding PackageExtension, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36"/>
+                        </Grid>
+
+                        <TextBlock Text="Example: pkg, update, ftu — do not include the leading dot."
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,28" TextWrapping="Wrap"/>
+
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
+
+                        <!-- PACKAGE FILE NAME -->
+                        <TextBlock Text="PACKAGE FILE NAME" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,6" TextWrapping="Wrap">
+                            Name template for the generated package (extension added automatically).
+                            Blank uses the default <Run Text="{}{AppName}-{Version}" Foreground="{DynamicResource TextBrush}"/>.
+                        </TextBlock>
+                        <TextBox Text="{Binding PackageNameTemplate, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="36" Margin="0,0,0,4"
+                                 ToolTip="e.g. {AppName}_{Version}_{Channel}"/>
+                        <TextBlock Text="Variables: {AppName} {Version} {Channel} {Company} {Date} {Year} {Date:format}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,8" TextWrapping="Wrap"/>
                     </StackPanel>
-                </Border>
+                </ScrollViewer>
+            </TabItem>
 
-                <TextBlock Text="Pre-fills the certificate path on the Sign step for this app."
-                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,6" TextWrapping="Wrap"
-                           Visibility="{Binding GlobalCertOverrideInactive, Converter={StaticResource BoolToVisibility}}"/>
+            <!-- ══ SIGNING ══════════════════════════════════════════════════ -->
+            <TabItem Header="Signing">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,8,12,16">
 
-                <!-- Default cert path + Windows Store toggle -->
-                <Grid Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0"
-                             Text="{Binding DefaultCertPath, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Margin="0,0,8,0"
-                            Command="{Binding BrowseCertCommand}"/>
-                    <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
-                            Padding="10,8"
-                            Command="{Binding ClearCertCommand}"/>
-                </Grid>
+                        <TextBlock Text="DEFAULT SIGNING CERTIFICATE" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
-                <TextBlock Text="CERTIFICATE PASSWORD" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <!-- Global cert override banner -->
+                        <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,12"
+                                Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
+                                Visibility="{Binding GlobalCertOverrideActive, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel>
+                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}"
+                                           Text="Global certificate active"/>
+                                <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,3,0,0" TextWrapping="Wrap">
+                                    <Run Text="Using "/>
+                                    <Run Text="{Binding GlobalCertOverrideName, Mode=OneWay}"
+                                         Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
+                                    <Run Text=" from Options. These fields are disabled while the global certificate is active."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
 
-                <PasswordBox x:Name="CertPasswordBox" Height="36" Margin="0,0,0,6"
-                             IsEnabled="{Binding GlobalCertOverrideInactive}"
-                             PasswordChanged="CertPasswordBox_PasswordChanged"/>
+                        <TextBlock Text="Pre-fills the certificate path on the Sign step for this app."
+                                   FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,6" TextWrapping="Wrap"
+                                   Visibility="{Binding GlobalCertOverrideInactive, Converter={StaticResource BoolToVisibility}}"/>
 
-                <TextBlock Margin="0,0,0,6" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextWrapping="Wrap">
-                    <Run Text="Stored as plain text for now — encryption will be added later.  "/>
-                    <Run Text="Leave blank to enter the password manually each time."/>
-                </TextBlock>
+                        <!-- Default cert path + Windows Store toggle -->
+                        <Grid Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding DefaultCertPath, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" Margin="0,0,8,0"
+                                    Command="{Binding BrowseCertCommand}"/>
+                            <Button Grid.Column="2" Content="Clear" Style="{StaticResource SecondaryButton}"
+                                    Padding="10,8"
+                                    Command="{Binding ClearCertCommand}"/>
+                        </Grid>
 
-                <!-- Windows Store certificate source -->
-                <StackPanel Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
-                    <CheckBox IsChecked="{Binding UseStoreCert}" FontSize="13"
-                              Content="Use certificate from Windows Store"/>
-                    <StackPanel Margin="20,8,0,0"
-                                Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}">
-                        <Grid>
+                        <TextBlock Text="CERTIFICATE PASSWORD" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+
+                        <PasswordBox x:Name="CertPasswordBox" Height="36" Margin="0,0,0,6"
+                                     IsEnabled="{Binding GlobalCertOverrideInactive}"
+                                     PasswordChanged="CertPasswordBox_PasswordChanged"/>
+
+                        <TextBlock Margin="0,0,0,6" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap">
+                            <Run Text="Stored as plain text for now — encryption will be added later.  "/>
+                            <Run Text="Leave blank to enter the password manually each time."/>
+                        </TextBlock>
+
+                        <!-- Windows Store certificate source -->
+                        <StackPanel Margin="0,0,0,12" IsEnabled="{Binding GlobalCertOverrideInactive}">
+                            <CheckBox IsChecked="{Binding UseStoreCert}" FontSize="13"
+                                      Content="Use certificate from Windows Store"/>
+                            <StackPanel Margin="20,8,0,0"
+                                        Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ListBox Grid.Column="0" Height="100" Margin="0,0,8,0"
+                                             ItemsSource="{Binding StoreCertificates}"
+                                             SelectedValue="{Binding SelectedStoreThumbprint, Mode=TwoWay}"
+                                             SelectedValuePath="Thumbprint"
+                                             Background="{DynamicResource SurfaceBrush}" BorderThickness="0">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Subject}" FontSize="12"
+                                                               Foreground="{DynamicResource TextBrush}"/>
+                                                    <TextBlock Text="{Binding DisplayName}" FontSize="11"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                    <Button Grid.Column="1" Content="Refresh" Style="{StaticResource SecondaryButton}"
+                                            Padding="14,8" VerticalAlignment="Top"
+                                            Command="{Binding RefreshStoreCertListCommand}"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ══ PUBLISHING ═══════════════════════════════════════════════ -->
+            <TabItem Header="Publishing">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,8,12,16">
+
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,12" TextWrapping="Wrap">
+                            Where Step 5 publishes the package and update catalog. Choose a transport, then fill in its details.
+                        </TextBlock>
+
+                        <TextBlock Text="PROVIDER" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <ComboBox SelectedValue="{Binding PublishProvider, Mode=TwoWay}" SelectedValuePath="Tag"
+                                  Height="36" Margin="0,0,0,14" Width="240" HorizontalAlignment="Left">
+                            <ComboBoxItem Content="FTP" Tag="Ftp"/>
+                            <ComboBoxItem Content="SFTP (SSH)" Tag="Sftp"/>
+                            <ComboBoxItem Content="S3-compatible (S3 / R2 / MinIO)" Tag="S3"/>
+                            <ComboBoxItem Content="GitHub Releases" Tag="GitHubReleases"/>
+                        </ComboBox>
+
+                        <!-- ── FTP ── -->
+                        <StackPanel Visibility="{Binding IsFtp, Converter={StaticResource BoolToVisibility}}">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="HOST" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding FtpHost, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="PORT" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding FtpPort, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="USERNAME" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10"/>
+                            <TextBlock Text="FTP PASSWORD" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="FtpPasswordBox" Height="36" Margin="0,0,0,10"
+                                         PasswordChanged="FtpPasswordBox_PasswordChanged"/>
+                            <TextBlock Text="REMOTE BASE PATH" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding FtpRemotePath, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,4"/>
+                            <TextBlock Text="Root folder on the FTP server (e.g. /public/releases). App name and version are appended automatically."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,10" TextWrapping="Wrap"/>
+                            <TextBlock Text="BASE DOWNLOAD URL" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding BaseDownloadUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,4"/>
+                            <TextBlock Text="Public HTTP base URL (e.g. https://example.com/releases). Used to build the download link in the update catalog."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,14" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- ── SFTP ── -->
+                        <StackPanel Visibility="{Binding IsSftp, Converter={StaticResource BoolToVisibility}}">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="90"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="HOST" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding SftpHost, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="PORT" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding SftpPort, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="USERNAME" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding SftpUsername, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10"/>
+                            <TextBlock Text="PASSWORD" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="SftpPasswordBox" Height="36" Margin="0,0,0,10"
+                                         PasswordChanged="SftpPasswordBox_PasswordChanged"/>
+                            <TextBlock Text="REMOTE BASE PATH" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding SftpRemotePath, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10"/>
+                            <TextBlock Text="BASE DOWNLOAD URL" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding SftpBaseDownloadUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,14"/>
+                        </StackPanel>
+
+                        <!-- ── S3-compatible ── -->
+                        <StackPanel Visibility="{Binding IsS3, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Text="ENDPOINT (blank = AWS; set for R2 / MinIO)" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding S3Endpoint, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10" ToolTip="e.g. https://&lt;account&gt;.r2.cloudflarestorage.com"/>
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="160"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="BUCKET" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding S3Bucket, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="REGION" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                                    <TextBox Text="{Binding S3Region, UpdateSourceTrigger=PropertyChanged}" Height="36"
+                                             ToolTip="e.g. us-east-1 (or 'auto' for R2)"/>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="ACCESS KEY" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding S3AccessKey, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10"/>
+                            <TextBlock Text="SECRET KEY" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <PasswordBox x:Name="S3SecretKeyBox" Height="36" Margin="0,0,0,10"
+                                         PasswordChanged="S3SecretKeyBox_PasswordChanged"/>
+                            <TextBlock Text="KEY PREFIX (optional)" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding S3Prefix, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,10"/>
+                            <TextBlock Text="PUBLIC BASE URL" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding S3PublicBaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,4"/>
+                            <TextBlock Text="Public/CDN base URL objects are served from. Used to build catalog download links."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,14" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- ── GitHub Releases ── -->
+                        <StackPanel Visibility="{Binding IsGitHubReleases, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,10" TextWrapping="Wrap">
+                                Uses the repository and token from the GitHub tab. Packages attach to a per-version
+                                release; the catalog attaches to a fixed release so its URL stays stable for the updater.
+                            </TextBlock>
+                            <TextBlock Text="PACKAGE RELEASE TAG" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding GitHubReleaseTag, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,4" ToolTip="{} {version} is replaced with the version number"/>
+                            <TextBlock Text="Tag for each version's release. {version} is substituted (default v{version})."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,10" TextWrapping="Wrap"/>
+                            <TextBlock Text="CATALOG RELEASE TAG" FontSize="10" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding GitHubCatalogTag, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,0,4"/>
+                            <TextBlock Text="Fixed tag whose release hosts the update catalog (default 'updates')."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Margin="0,0,0,14" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Test connection -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <Button Content="Test Connection" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" Margin="0,0,12,0"
+                                    Command="{Binding TestConnectionCommand}"/>
+                            <TextBlock Text="Testing…" FontSize="13"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTestingConnection}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding ConnectionTestResult}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,8" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ══ GITHUB ═══════════════════════════════════════════════════ -->
+            <TabItem Header="GitHub">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,8,12,16">
+
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,0,0,12">
+                            Set this app's repository to check for newer releases and build from inside the app.
+                            Authentication uses your account connection from Options → GitHub; the per-app token below is optional.
+                        </TextBlock>
+
+                        <TextBlock Text="REPOSITORY (owner/name)" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding GitHubRepo, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="36" Margin="0,0,0,12" ToolTip="e.g. octocat/Hello-World"/>
+
+                        <TextBlock Text="ADVANCED: PER-APP TOKEN (optional — overrides the account connection)"
+                                   FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <PasswordBox x:Name="GitHubTokenBox" Height="36" Margin="0,0,0,12"
+                                     PasswordChanged="GitHubTokenBox_PasswordChanged"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="Test connection" Style="{StaticResource SecondaryButton}"
+                                    Padding="16,8" Command="{Binding TestGitHubCommand}"/>
+                            <TextBlock Text="Checking…" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Visibility="{Binding IsTestingGitHub, Converter={StaticResource BoolToVisibility}}"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding GitHubTestResult}" FontSize="12"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,20" TextWrapping="Wrap"/>
+
+                        <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,20"/>
+
+                        <TextBlock Text="BUILD RUNNER" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,0,0,10">
+                            The app runs "git pull" in the local clone, then your build command, then scans the artifact folder.
+                            Requires git and your project's build toolchain installed.
+                        </TextBlock>
+
+                        <TextBlock Text="LOCAL REPO PATH" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <ListBox Grid.Column="0" Height="100" Margin="0,0,8,0"
-                                     ItemsSource="{Binding StoreCertificates}"
-                                     SelectedValue="{Binding SelectedStoreThumbprint, Mode=TwoWay}"
-                                     SelectedValuePath="Thumbprint"
-                                     Background="{DynamicResource SurfaceBrush}" BorderThickness="0">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Subject}" FontSize="12"
-                                                       Foreground="{DynamicResource TextBrush}"/>
-                                            <TextBlock Text="{Binding DisplayName}" FontSize="11"
-                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            <Button Grid.Column="1" Content="Refresh" Style="{StaticResource SecondaryButton}"
-                                    Padding="14,8" VerticalAlignment="Top"
-                                    Command="{Binding RefreshStoreCertListCommand}"/>
+                            <TextBox Grid.Column="0" Text="{Binding GitHubLocalPath, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,8,0" ToolTip="A local working copy of the repo (already cloned)"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" Command="{Binding BrowseGitHubLocalPathCommand}"/>
+                        </Grid>
+
+                        <TextBlock Text="BUILD COMMAND (PowerShell)" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding GitHubBuildCommand, UpdateSourceTrigger=PropertyChanged}"
+                                 Height="36" Margin="0,0,0,12"
+                                 ToolTip="e.g. dotnet publish -c Release -o publish"/>
+
+                        <TextBlock Text="ARTIFACT FOLDER (scanned after build)" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding GitHubArtifactPath, UpdateSourceTrigger=PropertyChanged}"
+                                     Height="36" Margin="0,0,8,0"
+                                     ToolTip="The folder your build produces (relative to the repo or absolute)"/>
+                            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                    Padding="14,8" Command="{Binding BrowseGitHubArtifactPathCommand}"/>
                         </Grid>
                     </StackPanel>
-                </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
-
-                <!-- PACKAGE EXTENSION -->
-                <TextBlock Text="PACKAGE FILE EXTENSION" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-
-                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,6" TextWrapping="Wrap">
-                    Customize the file extension used when packaging this app.
-                    Leave blank to use the default <Run Text=".ftu" Foreground="{DynamicResource TextBrush}"/>.
-                </TextBlock>
-
-                <Grid Margin="0,0,0,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="160"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="." FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center" Margin="0,0,2,0"/>
-                    <TextBox Grid.Column="1"
-                             Text="{Binding PackageExtension, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36"/>
-                </Grid>
-
-                <TextBlock Text="Example: pkg, update, ftu — do not include the leading dot."
-                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,28" TextWrapping="Wrap"/>
-
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,28"/>
-
-                <!-- FTP SETTINGS -->
-                <TextBlock Text="FTP SETTINGS" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-
-                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,16" TextWrapping="Wrap">
-                    Used in Step 5 to upload the package and update catalog to your distribution server.
-                </TextBlock>
-
-                <!-- Host + Port -->
-                <Grid Margin="0,0,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="90"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                        <TextBlock Text="HOST" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                        <TextBox Text="{Binding FtpHost, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="PORT" FontSize="10" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                        <TextBox Text="{Binding FtpPort, UpdateSourceTrigger=PropertyChanged}" Height="36"/>
-                    </StackPanel>
-                </Grid>
-
-                <!-- Username -->
-                <TextBlock Text="USERNAME" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBox Text="{Binding FtpUsername, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" Margin="0,0,0,10"/>
-
-                <!-- FTP Password -->
-                <TextBlock Text="FTP PASSWORD" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <PasswordBox x:Name="FtpPasswordBox" Height="36" Margin="0,0,0,10"
-                             PasswordChanged="FtpPasswordBox_PasswordChanged"/>
-
-                <!-- Remote path -->
-                <TextBlock Text="REMOTE BASE PATH" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBox Text="{Binding FtpRemotePath, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" Margin="0,0,0,4"/>
-                <TextBlock Text="Root folder on the FTP server (e.g. /public/releases). App name and version are appended automatically."
-                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,10" TextWrapping="Wrap"/>
-
-                <!-- Base download URL -->
-                <TextBlock Text="BASE DOWNLOAD URL" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBox Text="{Binding BaseDownloadUrl, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" Margin="0,0,0,4"/>
-                <TextBlock Text="Public HTTP base URL (e.g. https://example.com/releases). Used to build the download link in the update catalog."
-                           FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,14" TextWrapping="Wrap"/>
-
-                <!-- Test connection -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                    <Button Content="Test Connection" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Margin="0,0,12,0"
-                            Command="{Binding TestConnectionCommand}"/>
-                    <TextBlock Text="Testing…" FontSize="13"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               VerticalAlignment="Center">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsTestingConnection}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-
-                <TextBlock Text="{Binding ConnectionTestResult}" FontSize="12"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,28" TextWrapping="Wrap"/>
-
-                <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Margin="0,0,0,24"/>
-
-                <!-- ══ GITHUB ═══════════════════════════════════════════════════ -->
-                <TextBlock Text="GITHUB" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextWrapping="Wrap" Margin="0,0,0,12">
-                    Set this app's repository to check for newer releases and build from inside the app.
-                    Authentication uses your account connection from Options → GitHub; the per-app token below is optional.
-                </TextBlock>
-
-                <TextBlock Text="REPOSITORY (owner/name)" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBox Text="{Binding GitHubRepo, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" Margin="0,0,0,12" ToolTip="e.g. octocat/Hello-World"/>
-
-                <TextBlock Text="ADVANCED: PER-APP TOKEN (optional — overrides the account connection)"
-                           FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <PasswordBox x:Name="GitHubTokenBox" Height="36" Margin="0,0,0,12"
-                             PasswordChanged="GitHubTokenBox_PasswordChanged"/>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                    <Button Content="Test connection" Style="{StaticResource SecondaryButton}"
-                            Padding="16,8" Command="{Binding TestGitHubCommand}"/>
-                    <TextBlock Text="Checking…" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"
-                               Foreground="{DynamicResource TextSecondaryBrush}"
-                               Visibility="{Binding IsTestingGitHub, Converter={StaticResource BoolToVisibility}}"/>
-                </StackPanel>
-                <TextBlock Text="{Binding GitHubTestResult}" FontSize="12"
-                           Foreground="{DynamicResource TextSecondaryBrush}"
-                           Margin="0,0,0,20" TextWrapping="Wrap"/>
-
-                <TextBlock Text="BUILD RUNNER" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextWrapping="Wrap" Margin="0,0,0,10">
-                    The app runs "git pull" in the local clone, then your build command, then scans the artifact folder.
-                    Requires git and your project's build toolchain installed.
-                </TextBlock>
-
-                <TextBlock Text="LOCAL REPO PATH" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <Grid Margin="0,0,0,12">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding GitHubLocalPath, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36" Margin="0,0,8,0" ToolTip="A local working copy of the repo (already cloned)"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Command="{Binding BrowseGitHubLocalPathCommand}"/>
-                </Grid>
-
-                <TextBlock Text="BUILD COMMAND (PowerShell)" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <TextBox Text="{Binding GitHubBuildCommand, UpdateSourceTrigger=PropertyChanged}"
-                         Height="36" Margin="0,0,0,12"
-                         ToolTip="e.g. dotnet publish -c Release -o publish"/>
-
-                <TextBlock Text="ARTIFACT FOLDER (scanned after build)" FontSize="10" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
-                <Grid Margin="0,0,0,28">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0" Text="{Binding GitHubArtifactPath, UpdateSourceTrigger=PropertyChanged}"
-                             Height="36" Margin="0,0,8,0"
-                             ToolTip="The folder your build produces (relative to the repo or absolute)"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
-                            Padding="14,8" Command="{Binding BrowseGitHubArtifactPathCommand}"/>
-                </Grid>
-
-            </StackPanel>
-        </ScrollViewer>
+        </TabControl>
 
         <!-- Footer -->
-        <Border Grid.Row="2" Background="{DynamicResource SidebarBrush}"
+        <Border Grid.Row="3" Background="{DynamicResource SidebarBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

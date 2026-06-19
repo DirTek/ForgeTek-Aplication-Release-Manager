@@ -63,4 +63,27 @@ public class ChangelogService : IChangelogService
         }
         return result.Count > 0 ? string.Join(Environment.NewLine, result) : null;
     }
+
+    public string BuildChangelog(string? existing, string versionSection, string appName)
+    {
+        versionSection = versionSection.Trim();
+
+        if (string.IsNullOrWhiteSpace(existing))
+        {
+            var subject = string.IsNullOrWhiteSpace(appName) ? "this project" : appName.Trim();
+            return $"# Changelog\n\nAll notable changes to {subject} are documented in this file.\n\n{versionSection}\n";
+        }
+
+        var text = existing.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = text.Split('\n');
+
+        // Insert above the first existing version heading ("## …"), keeping any "# Changelog" preamble.
+        var idx = Array.FindIndex(lines, l => Regex.IsMatch(l, @"^\s{0,3}##\s"));
+        if (idx < 0)
+            return text.TrimEnd() + "\n\n" + versionSection + "\n";
+
+        var before = string.Join("\n", lines.Take(idx)).TrimEnd();
+        var after  = string.Join("\n", lines.Skip(idx)).TrimEnd();
+        return before + "\n\n" + versionSection + "\n\n" + after + "\n";
+    }
 }

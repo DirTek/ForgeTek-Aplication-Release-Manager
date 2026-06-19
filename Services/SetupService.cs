@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using ForgeTekUpdatePackager.Helpers;
 using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.Services;
@@ -27,15 +28,17 @@ public class SetupService : ISetupService
     private readonly ILogService _log;
     private readonly ISigningService _signing;
     private readonly ISetupStorageService _setupStorage;
+    private readonly ISessionService _session;
 
     public SetupService(IStorageService storage, ISettingsService settings, ILogService log,
-        ISigningService signing, ISetupStorageService setupStorage)
+        ISigningService signing, ISetupStorageService setupStorage, ISessionService session)
     {
         _storage = storage;
         _settings = settings;
         _log = log;
         _signing = signing;
         _setupStorage = setupStorage;
+        _session = session;
     }
 
     // Generation is an ordered set of steps over a shared SetupGenContext. Each step is small and
@@ -66,12 +69,14 @@ public class SetupService : ISetupService
         {
             await CollectAppsAsync(ctx);     // → ctx.ManifestApps (+ staged app files)
             await CollectRedistsAsync(ctx);  // → ctx.Redists (+ staged redist exes)
+            await StageActionsAsync(ctx);    // → ctx.PreActions/PostActions (+ staged action files)
             StageImages(ctx);                // → ctx.BannerName, ctx.BackgroundName
             await BuildManifestAsync(ctx);   // writes install.json
             StageUninstaller(ctx);           // stages the AOT uninstaller (if built)
             CreateZip(ctx);                  // → ctx.ZipPath
             await BuildSetupExeAsync(ctx);   // → ctx.SetupPath (bootstrapper + appended payload)
             await SignOutputAsync(ctx);      // signs ctx.SetupPath (if requested)
+            BuildPortableZip(ctx);           // optional plain {Name}_Portable.zip of the app files
 
             RecordHistory(ctx);
 
@@ -115,6 +120,8 @@ public class SetupService : ISetupService
 
         public List<InstallAppManifest> ManifestApps { get; } = [];
         public List<InstallRedistManifest> Redists { get; } = [];
+        public List<InstallActionManifest> PreActions { get; } = [];
+        public List<InstallActionManifest> PostActions { get; } = [];
         public string? BannerName { get; set; }
         public string? BackgroundName { get; set; }
         public string ZipPath { get; set; } = string.Empty;
@@ -245,6 +252,64 @@ public class SetupService : ISetupService
         }
     }
 
+    // Builds the Pre/Post action manifests and stages any referenced local script/exe files under
+    // actions/ so the bootstrapper can run them. Inline-PS, Service*, and DeleteFiles carry no file.
+    private async Task StageActionsAsync(SetupGenContext ctx)
+    {
+        var (bundle, progress, ct) = (ctx.Bundle, ctx.Progress, ctx.Ct);
+        if (bundle.CustomActions.Count == 0)
+            return;
+
+        progress.Report(new SetupProgressInfo(58, "Staging custom actions…"));
+        var actionsDir = Path.Combine(ctx.StagingDir, "actions");
+        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var action in bundle.CustomActions)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            string? stagedName = null;
+
+            // RunExecutable / RunPowerShell may reference a local file to bundle into the package.
+            var stagesFile = action.Type is CustomActionType.RunExecutable or CustomActionType.RunPowerShell;
+            if (stagesFile && !string.IsNullOrWhiteSpace(action.Target) && File.Exists(action.Target))
+            {
+                Directory.CreateDirectory(actionsDir);
+
+                // Keep the original name where possible; de-dupe collisions.
+                var baseName = StorageService.Sanitize(Path.GetFileName(action.Target));
+                stagedName = baseName;
+                var n = 1;
+                while (!usedNames.Add(stagedName))
+                    stagedName = $"{Path.GetFileNameWithoutExtension(baseName)}-{n++}{Path.GetExtension(baseName)}";
+
+                await using (var src = File.OpenRead(action.Target))
+                await using (var dst = File.Create(Path.Combine(actionsDir, stagedName)))
+                    await src.CopyToAsync(dst, ct);
+            }
+
+            var manifestAction = new InstallActionManifest
+            {
+                Type = action.Type.ToString(),
+                Label = string.IsNullOrWhiteSpace(action.Label) ? action.Type.ToString() : action.Label.Trim(),
+                Target = action.Target?.Trim() ?? string.Empty,
+                Arguments = action.Arguments?.Trim() ?? string.Empty,
+                InlineScript = action.InlineScript ?? string.Empty,
+                StagedFileName = stagedName,
+                IgnoreFailure = action.IgnoreFailure,
+                TimeoutSeconds = action.TimeoutSeconds,
+            };
+
+            if (action.Timing == CustomActionTiming.PreInstall)
+                ctx.PreActions.Add(manifestAction);
+            else
+                ctx.PostActions.Add(manifestAction);
+        }
+
+        progress.Report(new SetupProgressInfo(59,
+            $"✓ {bundle.CustomActions.Count} custom action(s) staged."));
+    }
+
     // Copies the optional banner and full-window background images into the staging root.
     private void StageImages(SetupGenContext ctx)
     {
@@ -303,9 +368,11 @@ public class SetupService : ISetupService
             BackgroundImageName = ctx.BackgroundName,
             FixedSize = bundle.FixedSize,
             FooterWatermark = bundle.ShowFooterWatermark && !string.IsNullOrWhiteSpace(bundle.FooterWatermark)
-                ? bundle.FooterWatermark.Trim() : null,
+                ? MacroEngine.Resolve(bundle.FooterWatermark.Trim(), BundleVars(bundle)) : null,
             Apps = ctx.ManifestApps,
             Redists = ctx.Redists,
+            PreActions = ctx.PreActions,
+            PostActions = ctx.PostActions,
         };
 
         var manifestJson = JsonSerializer.Serialize(installManifest, JsonOptions);
@@ -343,7 +410,7 @@ public class SetupService : ISetupService
         progress.Report(new SetupProgressInfo(90, "Building setup executable…"));
 
         Directory.CreateDirectory(bundle.OutputFolder);
-        ctx.SetupPath = Path.Combine(bundle.OutputFolder, $"{StorageService.Sanitize(bundle.Name)}Setup.exe");
+        ctx.SetupPath = Path.Combine(bundle.OutputFolder, $"{ResolveSetupFileName(bundle)}.exe");
 
         // "Preserve old setups": if a prior build is at the destination, rename it to
         // "{name}Setup-{previous generation date}.exe" before we overwrite it.
@@ -378,6 +445,58 @@ public class SetupService : ISetupService
         VerifyFooter(ctx.SetupPath);
     }
 
+    // Zips the staged app files into "{base}_Portable.zip" in the output folder — no bootstrapper,
+    // no install.json, no redists. The base name reuses the file-name template (with a trailing
+    // "Setup" stripped) so a portable build sits naturally next to the installer.
+    private void BuildPortableZip(SetupGenContext ctx)
+    {
+        var bundle = ctx.Bundle;
+        if (!bundle.GeneratePortableZip) return;
+
+        var appsDir = Path.Combine(ctx.StagingDir, "apps");
+        if (!Directory.Exists(appsDir)) return;
+
+        var portablePath = Path.Combine(bundle.OutputFolder, $"{ResolvePortableFileName(bundle)}.zip");
+        if (File.Exists(portablePath))
+            try { File.Delete(portablePath); } catch { }
+
+        ZipFile.CreateFromDirectory(appsDir, portablePath, CompressionLevel.Optimal, includeBaseDirectory: false);
+        ctx.Progress.Report(new SetupProgressInfo(99,
+            $"✔ Portable package → {portablePath} ({new FileInfo(portablePath).Length / 1024.0:F1} KB)"));
+    }
+
+    // Portable zip base name: resolved file-name template (or bundle name), with a trailing "Setup"
+    // removed and "_Portable" appended.
+    private string ResolvePortableFileName(SetupBundle bundle)
+    {
+        var raw = string.IsNullOrWhiteSpace(bundle.FileNameTemplate)
+            ? bundle.Name
+            : MacroEngine.Resolve(bundle.FileNameTemplate, BundleVars(bundle));
+        if (string.IsNullOrWhiteSpace(raw)) raw = bundle.Name;
+
+        raw = raw.Trim();
+        if (raw.EndsWith("Setup", StringComparison.OrdinalIgnoreCase))
+            raw = raw[..^"Setup".Length];
+        raw = raw.TrimEnd(' ', '_', '-');
+        if (string.IsNullOrWhiteSpace(raw)) raw = bundle.Name;
+
+        return StorageService.Sanitize($"{raw}_Portable");
+    }
+
+    // Build-variable set available to a bundle's templated fields (file name, footer).
+    private Dictionary<string, string> BundleVars(SetupBundle bundle)
+        => MacroEngine.StandardVars(bundle.Name, bundle.Version, channel: null, company: _settings.Global.CompanyName);
+
+    // Resolves the output EXE base name (no extension) from the bundle's template, sanitized.
+    private string ResolveSetupFileName(SetupBundle bundle)
+    {
+        var raw = string.IsNullOrWhiteSpace(bundle.FileNameTemplate)
+            ? bundle.Name + "Setup"
+            : MacroEngine.Resolve(bundle.FileNameTemplate, BundleVars(bundle));
+        if (string.IsNullOrWhiteSpace(raw)) raw = bundle.Name + "Setup";
+        return StorageService.Sanitize(raw);
+    }
+
     // Renames an existing Setup.exe to "{base}-{stamp}.exe" so it isn't overwritten. The stamp is the
     // file's previous generation date when known, else its last-write time. Returns the new path.
     // Appends a "Past Bundles" history entry for the setup just generated.
@@ -392,6 +511,7 @@ public class SetupService : ISetupService
                 BundleName    = ctx.Bundle.Name,
                 Version       = ctx.Bundle.Version,
                 GeneratedDate = DateTime.Now,
+                GeneratedBy   = _session.ActorName,
                 OutputPath    = ctx.SetupPath,
                 FileSizeBytes = size,
                 ArchivedPath  = ctx.ArchivedPath,
@@ -764,6 +884,21 @@ internal sealed class InstallManifest
     public string? FooterWatermark { get; set; }
     public List<InstallAppManifest> Apps { get; set; } = [];
     public List<InstallRedistManifest> Redists { get; set; } = [];
+    public List<InstallActionManifest> PreActions { get; set; } = [];
+    public List<InstallActionManifest> PostActions { get; set; } = [];
+}
+
+internal sealed class InstallActionManifest
+{
+    public string Type { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public string Arguments { get; set; } = string.Empty;
+    public string InlineScript { get; set; } = string.Empty;
+    /// <summary>File name staged under "actions/" (set when Target was a local file).</summary>
+    public string? StagedFileName { get; set; }
+    public bool IgnoreFailure { get; set; }
+    public int TimeoutSeconds { get; set; }
 }
 
 internal sealed class InstallAppManifest

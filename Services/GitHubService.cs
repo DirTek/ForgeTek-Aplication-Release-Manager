@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ForgeTekUpdatePackager.Services;
 
@@ -64,6 +66,204 @@ public class GitHubService : IGitHubService
             return $"✗ {ex.Message}";
         }
     }
+
+    // ── Release notes ───────────────────────────────────────────────────────
+    public async Task<IReadOnlyList<string>> GetTagsAsync(string repo, string? token, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        using var req = Authed(HttpMethod.Get, $"repos/{owner}/{name}/tags?per_page=100", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var tags = new List<string>();
+        foreach (var el in doc.RootElement.EnumerateArray())
+            if (el.TryGetProperty("name", out var n) && n.GetString() is { } tag)
+                tags.Add(tag);
+        return tags;
+    }
+
+    public async Task<IReadOnlyList<string>> GetBranchesAsync(string repo, string? token, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        using var req = Authed(HttpMethod.Get, $"repos/{owner}/{name}/branches?per_page=100", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var branches = new List<string>();
+        foreach (var el in doc.RootElement.EnumerateArray())
+            if (el.TryGetProperty("name", out var n) && n.GetString() is { } b)
+                branches.Add(b);
+        return branches;
+    }
+
+    public async Task<IReadOnlyList<CommitChange>> GetCompareChangesAsync(
+        string repo, string? token, string fromRef, string toRef, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        using var req = Authed(HttpMethod.Get,
+            $"repos/{owner}/{name}/compare/{Uri.EscapeDataString(fromRef)}...{Uri.EscapeDataString(toRef)}", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException($"Could not compare {fromRef}...{toRef} — check both refs exist.");
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var root = doc.RootElement;
+        return root.TryGetProperty("commits", out var commits) ? ExtractChanges(commits) : [];
+    }
+
+    public async Task<IReadOnlyList<CommitChange>> GetRecentChangesAsync(
+        string repo, string? token, string branch, int count, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        var perPage = Math.Clamp(count, 1, 100);
+        using var req = Authed(HttpMethod.Get,
+            $"repos/{owner}/{name}/commits?sha={Uri.EscapeDataString(branch)}&per_page={perPage}", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException($"Could not list commits on '{branch}' — check the branch name.");
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        return ExtractChanges(doc.RootElement);
+    }
+
+    public async Task<RepoCommit?> GetLastCommitAsync(string repo, string? token, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        using var req = Authed(HttpMethod.Get, $"repos/{owner}/{name}/commits?per_page=1", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var arr = doc.RootElement;
+        if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
+
+        var c = arr[0];
+        var commit = c.TryGetProperty("commit", out var cm) ? cm : default;
+        var message = commit.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : "";
+        var firstLine = message.Split('\n')[0].Trim();
+        var author = commit.TryGetProperty("author", out var au) && au.TryGetProperty("name", out var an)
+            ? an.GetString() ?? "" : "";
+        DateTime? date = commit.TryGetProperty("author", out var ad) && ad.TryGetProperty("date", out var dt)
+            && dt.TryGetDateTime(out var parsed) ? parsed.ToLocalTime() : null;
+
+        return new RepoCommit(firstLine, author, date);
+    }
+
+    // Summarizes each commit in an array (compare or commits endpoint): first message line,
+    // conventional prefix stripped, with a best-guess bucket. Skips noisy merge-commit lines.
+    private static List<CommitChange> ExtractChanges(JsonElement commitsArray)
+    {
+        var changes = new List<CommitChange>();
+        foreach (var c in commitsArray.EnumerateArray())
+        {
+            var message = c.TryGetProperty("commit", out var commit) &&
+                          commit.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : "";
+            var firstLine = message.Split('\n')[0].Trim();
+            if (firstLine.Length == 0) continue;
+            if (firstLine.StartsWith("Merge branch", StringComparison.OrdinalIgnoreCase) ||
+                firstLine.StartsWith("Merge remote-tracking", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var (category, text) = Categorize(firstLine);
+            var suggested = category switch { "feat" => "Added", "fix" => "Fixed", _ => "" };
+            changes.Add(new CommitChange(suggested, text));
+        }
+        return changes;
+    }
+
+    public async Task PublishReleaseNotesAsync(
+        string repo, string? token, string tag, string body, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new InvalidOperationException("Publishing release notes needs a token with write access to the repo.");
+
+        var (owner, name) = SplitRepo(repo);
+
+        // Update the existing release for this tag if there is one, else create it.
+        using (var getReq = Authed(HttpMethod.Get, $"repos/{owner}/{name}/releases/tags/{Uri.EscapeDataString(tag)}", token))
+        using (var getResp = await Http.SendAsync(getReq, ct))
+        {
+            if (getResp.IsSuccessStatusCode)
+            {
+                using var doc = await JsonDocument.ParseAsync(await getResp.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+                var id = doc.RootElement.GetProperty("id").GetInt64();
+                using var patch = Authed(HttpMethod.Patch, $"repos/{owner}/{name}/releases/{id}", token);
+                patch.Content = JsonBody(new { body });
+                using var patchResp = await Http.SendAsync(patch, ct);
+                patchResp.EnsureSuccessStatusCode();
+                return;
+            }
+        }
+
+        using var post = Authed(HttpMethod.Post, $"repos/{owner}/{name}/releases", token);
+        post.Content = JsonBody(new { tag_name = tag, name = tag, body });
+        using var postResp = await Http.SendAsync(post, ct);
+        if (postResp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — the token needs write ('repo') scope.");
+        postResp.EnsureSuccessStatusCode();
+    }
+
+    private static (string Category, string Text) Categorize(string firstLine)
+    {
+        // Conventional-commit prefix → category; strip the prefix for display.
+        var m = Regex.Match(firstLine, @"^(?<type>feat|fix|docs|chore|refactor|perf|style|test|build|ci)(\([^)]*\))?!?:\s*(?<rest>.+)$",
+            RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var type = m.Groups["type"].Value.ToLowerInvariant();
+            var rest = m.Groups["rest"].Value.Trim();
+            var category = type switch { "feat" => "feat", "fix" => "fix", _ => "change" };
+            return (category, Capitalize(rest));
+        }
+        return ("change", firstLine);
+    }
+
+    private static void AppendSection(StringBuilder sb, string header, List<string> items)
+    {
+        if (items.Count == 0) return;
+        sb.AppendLine($"### {header}");
+        foreach (var item in items)
+            sb.AppendLine($"- {item}");
+        sb.AppendLine();
+    }
+
+    private static string Capitalize(string s)
+        => string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
+    private static HttpRequestMessage Authed(HttpMethod method, string url, string? token)
+    {
+        var req = new HttpRequestMessage(method, url);
+        if (!string.IsNullOrWhiteSpace(token))
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.Trim());
+        return req;
+    }
+
+    private static StringContent JsonBody(object payload)
+        => new(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
     // ── Build runner ──────────────────────────────────────────────────────
     public async Task BuildAsync(string localPath, string buildCommand, IProgress<string> progress, CancellationToken ct = default)

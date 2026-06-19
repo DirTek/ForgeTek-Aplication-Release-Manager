@@ -22,6 +22,9 @@ public partial class AppVersion : ObservableObject
     /// <summary>When this version was published (status reached Published). Null until published.</summary>
     public DateTime? PublishedDate { get; set; }
 
+    /// <summary>Who published it — the signed-in user, or the Windows user when unprotected.</summary>
+    public string? PublishedBy { get; set; }
+
     /// <summary>Release channel. Stable by default; Beta marks a pre-release that only beta clients receive.</summary>
     public UpdateChannel Channel { get; set; } = UpdateChannel.Stable;
     public List<FileRecord> Files { get; set; } = [];
@@ -42,6 +45,9 @@ public partial class AppVersion : ObservableObject
 
     /// <summary>Tracks the last completed pipeline step so packaging can resume.</summary>
     public PackageStep? PipelineStep { get; set; }
+
+    /// <summary>Transport used to publish this version ("Ftp"/"Sftp"/"S3"/"GitHubReleases"). Drives retract.</summary>
+    public string? PublishProvider { get; set; }
 
     /// <summary>FTP remote path of the uploaded .ftu package file — set after a successful upload.</summary>
     public string? FtpPackageRemotePath { get; set; }

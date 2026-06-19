@@ -187,7 +187,7 @@ SOFTWARE LICENSE
 
     // ── Editor wizard (guided steps) ──────────────────────────────────────
     // The edit screen is a Next/Back wizard. Step circles are also clickable.
-    public static readonly string[] EditStepLabels = { "General", "Apps", "Signing", "Appearance", "Launch" };
+    public static readonly string[] EditStepLabels = { "General", "Apps", "Signing", "Appearance", "Launch", "Actions" };
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EditStep1State))]
@@ -195,6 +195,7 @@ SOFTWARE LICENSE
     [NotifyPropertyChangedFor(nameof(EditStep3State))]
     [NotifyPropertyChangedFor(nameof(EditStep4State))]
     [NotifyPropertyChangedFor(nameof(EditStep5State))]
+    [NotifyPropertyChangedFor(nameof(EditStep6State))]
     [NotifyPropertyChangedFor(nameof(EditStepTitle))]
     [NotifyPropertyChangedFor(nameof(IsFirstStep))]
     [NotifyPropertyChangedFor(nameof(IsLastStep))]
@@ -204,6 +205,7 @@ SOFTWARE LICENSE
     [NotifyPropertyChangedFor(nameof(IsSigningStep))]
     [NotifyPropertyChangedFor(nameof(IsAppearanceStep))]
     [NotifyPropertyChangedFor(nameof(IsLaunchStep))]
+    [NotifyPropertyChangedFor(nameof(IsActionsStep))]
     [NotifyCanExecuteChangedFor(nameof(NextStepCommand))]
     [NotifyCanExecuteChangedFor(nameof(PrevStepCommand))]
     private int _editStepIndex;
@@ -216,6 +218,7 @@ SOFTWARE LICENSE
     public bool IsSigningStep    => EditStepIndex == 2;
     public bool IsAppearanceStep => EditStepIndex == 3;
     public bool IsLaunchStep     => EditStepIndex == 4;
+    public bool IsActionsStep    => EditStepIndex == 5;
     public string EditStepTitle =>
         $"Step {EditStepIndex + 1} of {EditStepLabels.Length} · {EditStepLabels[EditStepIndex]}";
 
@@ -227,6 +230,7 @@ SOFTWARE LICENSE
     public string EditStep3State => EditStepState(2);
     public string EditStep4State => EditStepState(3);
     public string EditStep5State => EditStepState(4);
+    public string EditStep6State => EditStepState(5);
 
     [RelayCommand(CanExecute = nameof(CanNextStep))]
     private void NextStep() { if (!IsLastStep) EditStepIndex++; }
@@ -254,6 +258,9 @@ SOFTWARE LICENSE
     [NotifyCanExecuteChangedFor(nameof(SaveSetupCommand))]
     [NotifyPropertyChangedFor(nameof(ShowSaveHint))]
     private string _editOutputFolder = string.Empty;
+
+    [ObservableProperty] private string _editFileNameTemplate = string.Empty;
+    [ObservableProperty] private bool _editGeneratePortableZip;
 
     /// <summary>Shown on the last step when Save is blocked, since the missing fields live on Step 1.</summary>
     public bool ShowSaveHint => IsLastStep && !CanSaveSetup();
@@ -299,6 +306,13 @@ SOFTWARE LICENSE
     public ObservableCollection<SetupBundleVm> Bundles { get; } = [];
     public ObservableCollection<SetupBundleAppItem> AvailableApps { get; } = [];
     public ObservableCollection<RedistItem> WorkingRedists { get; } = [];
+
+    // Custom install actions (bundle-level, pre/post). Authored on the "Actions" wizard step.
+    public ObservableCollection<CustomActionItem> CustomActions { get; } = [];
+    public string[] ActionTypeOptions { get; } =
+        Enum.GetNames<CustomActionType>();
+    public string[] ActionTimingOptions { get; } =
+        Enum.GetNames<CustomActionTiming>();
 
     public SetupViewModel(ISetupStorageService setupStorage, IStorageService storage,
         ISetupService setupService, IDialogService dialog, ILogService log,
@@ -364,6 +378,25 @@ SOFTWARE LICENSE
     }
 
     [RelayCommand]
+    private void AddCustomAction()
+        => CustomActions.Add(new CustomActionItem());
+
+    [RelayCommand]
+    private void RemoveCustomAction(CustomActionItem? item)
+    {
+        if (item is not null) CustomActions.Remove(item);
+    }
+
+    [RelayCommand]
+    private void BrowseActionTarget(CustomActionItem? item)
+    {
+        if (item is null) return;
+        var path = _dialog.OpenFile("Select the script or executable to run",
+            "Scripts & executables (*.ps1;*.exe;*.bat;*.cmd)|*.ps1;*.exe;*.bat;*.cmd|All files (*.*)|*.*");
+        if (path is not null) item.Target = path;
+    }
+
+    [RelayCommand]
     private void CloseSetups()
     {
         if (_main.SelectedApp is not null)
@@ -387,6 +420,8 @@ SOFTWARE LICENSE
         EditName = string.Empty;
         EditVersion = string.Empty;
         EditOutputFolder = string.Empty;
+        EditFileNameTemplate = string.Empty;
+        EditGeneratePortableZip = false;
         EditPreserveOldSetups = false;
         EditSignOutput = false;
         EditEulaText = DefaultEulaText;
@@ -403,6 +438,7 @@ SOFTWARE LICENSE
         EditFooterWatermark = "Installer by ForgeTek Release Manager";
         AvailableApps.Clear();
         WorkingRedists.Clear();
+        CustomActions.Clear();
 
         foreach (var app in _storage.GetAll())
             AvailableApps.Add(MakeAppItem(app, null));
@@ -497,6 +533,8 @@ SOFTWARE LICENSE
         EditName = bundle.Name;
         EditVersion = bundle.Version;
         EditOutputFolder = bundle.OutputFolder;
+        EditFileNameTemplate = bundle.FileNameTemplate ?? string.Empty;
+        EditGeneratePortableZip = bundle.GeneratePortableZip;
         EditPreserveOldSetups = bundle.PreserveOldSetups;
         EditSignOutput = bundle.SignOutput;
         EditEulaText = string.IsNullOrWhiteSpace(bundle.EulaText) ? DefaultEulaText : bundle.EulaText;
@@ -513,6 +551,19 @@ SOFTWARE LICENSE
             ? "Installer by ForgeTek Release Manager" : bundle.FooterWatermark;
         AvailableApps.Clear();
         WorkingRedists.Clear();
+        CustomActions.Clear();
+        foreach (var a in bundle.CustomActions)
+            CustomActions.Add(new CustomActionItem
+            {
+                Type = a.Type.ToString(),
+                Timing = a.Timing.ToString(),
+                Label = a.Label,
+                Target = a.Target,
+                Arguments = a.Arguments,
+                InlineScript = a.InlineScript,
+                IgnoreFailure = a.IgnoreFailure,
+                TimeoutSeconds = a.TimeoutSeconds,
+            });
 
         foreach (var app in _storage.GetAll())
         {
@@ -776,6 +827,8 @@ SOFTWARE LICENSE
         bundle.Name = EditName;
         bundle.Version = EditVersion;
         bundle.OutputFolder = EditOutputFolder;
+        bundle.FileNameTemplate = string.IsNullOrWhiteSpace(EditFileNameTemplate) ? null : EditFileNameTemplate.Trim();
+        bundle.GeneratePortableZip = EditGeneratePortableZip;
         bundle.PreserveOldSetups = EditPreserveOldSetups;
         bundle.SignOutput = EditSignOutput;
         bundle.EulaText = EditEulaText;
@@ -805,6 +858,21 @@ SOFTWARE LICENSE
                 DetectionKeyPath = r.DetectionKeyPath,
                 DetectionValueName = r.DetectionValueName,
                 DetectionExpectedValue = r.DetectionExpectedValue,
+            })
+            .ToList();
+
+        bundle.CustomActions = CustomActions
+            .Where(a => !string.IsNullOrWhiteSpace(a.Target) || !string.IsNullOrWhiteSpace(a.InlineScript))
+            .Select(a => new SetupCustomAction
+            {
+                Type = Enum.TryParse<CustomActionType>(a.Type, out var t) ? t : CustomActionType.RunPowerShell,
+                Timing = Enum.TryParse<CustomActionTiming>(a.Timing, out var tm) ? tm : CustomActionTiming.PostInstall,
+                Label = a.Label?.Trim() ?? string.Empty,
+                Target = a.Target?.Trim() ?? string.Empty,
+                Arguments = a.Arguments?.Trim() ?? string.Empty,
+                InlineScript = a.InlineScript ?? string.Empty,
+                IgnoreFailure = a.IgnoreFailure,
+                TimeoutSeconds = a.TimeoutSeconds < 0 ? 0 : a.TimeoutSeconds,
             })
             .ToList();
 
@@ -998,6 +1066,41 @@ public partial class RedistItem : ObservableObject
     [ObservableProperty] private string _detectionKeyPath = string.Empty;
     [ObservableProperty] private string _detectionValueName = string.Empty;
     [ObservableProperty] private string _detectionExpectedValue = string.Empty;
+}
+
+public partial class CustomActionItem : ObservableObject
+{
+    // Type/Timing are string-backed for easy ComboBox binding (enum names).
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsServiceAction))]
+    [NotifyPropertyChangedFor(nameof(IsPowerShellAction))]
+    [NotifyPropertyChangedFor(nameof(IsExecutableAction))]
+    [NotifyPropertyChangedFor(nameof(IsDeleteAction))]
+    [NotifyPropertyChangedFor(nameof(TargetLabel))]
+    private string _type = nameof(CustomActionType.RunPowerShell);
+
+    [ObservableProperty] private string _timing = nameof(CustomActionTiming.PostInstall);
+    [ObservableProperty] private string _label = string.Empty;
+    [ObservableProperty] private string _target = string.Empty;
+    [ObservableProperty] private string _arguments = string.Empty;
+    [ObservableProperty] private string _inlineScript = string.Empty;
+    [ObservableProperty] private bool _ignoreFailure;
+    [ObservableProperty] private int _timeoutSeconds = 60;
+
+    public bool IsServiceAction    => Type is nameof(CustomActionType.ServiceStop) or nameof(CustomActionType.ServiceStart);
+    public bool IsPowerShellAction => Type == nameof(CustomActionType.RunPowerShell);
+    public bool IsExecutableAction => Type == nameof(CustomActionType.RunExecutable);
+    public bool IsDeleteAction     => Type == nameof(CustomActionType.DeleteFiles);
+
+    /// <summary>Context-sensitive caption for the Target field.</summary>
+    public string TargetLabel => Type switch
+    {
+        nameof(CustomActionType.ServiceStop) or nameof(CustomActionType.ServiceStart) => "Service name",
+        nameof(CustomActionType.RunExecutable) => "Executable (bundled or absolute path)",
+        nameof(CustomActionType.RunPowerShell) => "Script file (.ps1) — optional if using inline script",
+        nameof(CustomActionType.DeleteFiles) => "Paths to delete (semicolon-separated; [InstallDir] allowed)",
+        _ => "Target",
+    };
 }
 
 public partial class RegistryItem : ObservableObject

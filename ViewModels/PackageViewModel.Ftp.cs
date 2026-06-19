@@ -18,44 +18,36 @@ public partial class PackageViewModel
     {
         IsUploading = true;
         IsFtpComplete = false;
+        var providerName = _publish.ProviderName(_appSettings);
         Log.Add(string.Empty);
-        Log.Add($"Uploading to {_ftpHost} …");
-        _log.Write("FTP", $"=== Upload session start — {_ftpHost}:{_ftpPort} ===");
+        Log.Add($"Publishing via {providerName} …");
+        _log.Write("Publish", $"=== Publish session start — {providerName} ===");
 
         _cts = new CancellationTokenSource();
-        var progress = new Progress<string>(msg => { Log.Add(msg); _log.Write("FTP", msg); });
+        var progress = new Progress<string>(msg => { Log.Add(msg); _log.Write("Publish", msg); });
         try
         {
             if (_version.PackagePath is null)
                 throw new InvalidOperationException("Package path is null — build the package first.");
 
-            var uploads = new (string Local, string Remote)[]
-            {
-                (_version.PackagePath, PackageRemotePath),
-                (_catalogOutputPath,    CatalogRemotePath),
-            };
-
-            var host = _ftpHost ?? throw new InvalidOperationException("FTP host is not configured.");
-            await Task.Run(() => _ftpService.UploadFilesAsync(
-                uploads.Select(u => (u.Local, u.Remote)),
-                host, _ftpPort, _ftpUsername, _ftpPassword, progress, _cts.Token));
+            await _publish.UploadReleaseAsync(_appSettings, _appKey, _version.VersionNumber,
+                _version.PackagePath, PackageFileName,
+                _catalogOutputPath, CatalogFileName,
+                progress, _cts.Token);
 
             Log.Add(string.Empty);
-            Log.Add("✔  All files uploaded.");
+            Log.Add("✔  All files published.");
 
+            _version.PublishProvider      = _appSettings.PublishProvider;
             _version.FtpPackageRemotePath = PackageRemotePath;
             _version.FtpCatalogRemotePath = CatalogRemotePath;
-            _version.FtpHost              = _ftpHost;
-            _version.FtpPort              = _ftpPort;
-            _version.FtpUsername          = _ftpUsername;
-            _version.FtpPassword          = _ftpPassword;
             _version.PipelineStep         = PackageStep.Ftp;
             _storage.Update(_entry);
 
             IsFtpComplete = true;
             _main.RefreshSidebar(_entry);
         }
-        catch (OperationCanceledException) { Log.Add("Upload stopped."); }
+        catch (OperationCanceledException) { Log.Add("Publish stopped."); }
         catch (Exception ex)              { Log.Add($"✗  {ex.Message}"); }
         finally { _cts.Dispose(); _cts = null; IsUploading = false; }
     }

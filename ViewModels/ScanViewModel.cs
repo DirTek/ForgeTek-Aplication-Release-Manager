@@ -166,6 +166,7 @@ public partial class ScanViewModel : ObservableObject
 
         _entry.Versions.Add(version);
         _main.NavigateToDetail(_entry);
+        _main.PromptChangelogIfNeeded(_entry, trimmed);
     }
 
     [RelayCommand]

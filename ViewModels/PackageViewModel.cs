@@ -2,8 +2,10 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeTekUpdatePackager.Helpers;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 
 namespace ForgeTekUpdatePackager.ViewModels;
 
@@ -15,7 +17,7 @@ public partial class PackageViewModel : ObservableObject
     private readonly IScannerService _scanner;
     private readonly IManifestService _manifest;
     private readonly IPackagingService _packaging;
-    private readonly IFtpService _ftpService;
+    private readonly IPublishService _publish;
     private readonly IUpdateCatalogService _catalog;
     private readonly ILogService _log;
     private readonly ISettingsService _settings;
@@ -28,16 +30,11 @@ public partial class PackageViewModel : ObservableObject
     private IReadOnlyList<FileRecord> _fullFiles = [];
     private string _appKey = string.Empty;
     private string _catalogOutputPath = string.Empty;
-    private string? _ftpHost;
-    private int     _ftpPort;
-    private string  _ftpUsername = string.Empty;
-    private string  _ftpPassword = string.Empty;
-    private string? _ftpRemotePath;
-    private string? _baseDownloadUrl;
+    private AppSettings _appSettings = new();
     private CancellationTokenSource? _cts;
 
     public PackageViewModel(IStorageService storage, ISigningService signing, IScannerService scanner,
-        ISettingsService settings, ILogService log, IPackagingService packaging, IFtpService ftpService,
+        ISettingsService settings, ILogService log, IPackagingService packaging, IPublishService publish,
         IManifestService manifest, IUpdateCatalogService catalog, IDialogService dialog)
     {
         _storage = storage;
@@ -46,7 +43,7 @@ public partial class PackageViewModel : ObservableObject
         _settings = settings;
         _log = log;
         _packaging = packaging;
-        _ftpService = ftpService;
+        _publish = publish;
         _manifest = manifest;
         _catalog = catalog;
         _dialog = dialog;
@@ -78,13 +75,22 @@ public partial class PackageViewModel : ObservableObject
         }
 
         var appSettings = _settings.LoadAppSettings(entry.Name);
+        _appSettings = appSettings;
         var versionDir  = _settings.GetVersionOutputPath(entry.Name, version.VersionNumber, appSettings);
         var ext         = string.IsNullOrWhiteSpace(appSettings.PackageExtension)
                               ? "ftu"
                               : appSettings.PackageExtension.TrimStart('.');
 
         ManifestOutputPath = Path.Combine(versionDir, "manifest.json");
-        PackageOutputPath   = Path.Combine(versionDir, $"{entry.Name}-{version.VersionNumber}.{ext}");
+
+        var nameVars = MacroEngine.StandardVars(
+            entry.Name, version.VersionNumber, version.Channel.ToString(), _settings.Global.CompanyName);
+        var packageBaseName = string.IsNullOrWhiteSpace(appSettings.PackageNameTemplate)
+            ? $"{entry.Name}-{version.VersionNumber}"
+            : MacroEngine.Resolve(appSettings.PackageNameTemplate, nameVars);
+        packageBaseName = StorageService.Sanitize(packageBaseName);
+        if (string.IsNullOrWhiteSpace(packageBaseName)) packageBaseName = $"{entry.Name}-{version.VersionNumber}";
+        PackageOutputPath   = Path.Combine(versionDir, $"{packageBaseName}.{ext}");
 
         var releaseAppDir = Path.GetDirectoryName(versionDir) ?? string.Empty;
         _catalogOutputPath = Path.Combine(releaseAppDir, $"{_appKey}.json");
@@ -114,13 +120,6 @@ public partial class PackageViewModel : ObservableObject
             if (!string.IsNullOrWhiteSpace(appSettings.DefaultCertPassword))
                 PfxPassword = appSettings.DefaultCertPassword;
         }
-
-        _ftpHost         = appSettings.FtpHost;
-        _ftpPort         = appSettings.FtpPort == 0 ? 21 : appSettings.FtpPort;
-        _ftpUsername     = appSettings.FtpUsername ?? string.Empty;
-        _ftpPassword     = appSettings.FtpPassword ?? string.Empty;
-        _ftpRemotePath   = appSettings.FtpRemotePath;
-        _baseDownloadUrl = appSettings.BaseDownloadUrl;
 
         var savedStep = version.PipelineStep;
         if (startFrom is not null)
@@ -152,37 +151,9 @@ public partial class PackageViewModel : ObservableObject
         return nonDebug.Where(f => !baseMap.TryGetValue(f.Path, out var bf) || bf.Checksum != f.Checksum).ToList();
     }
 
-    private static string BuildRemotePath(string? basePath, string appKey, string? version, string filename)
-    {
-        var serverPath = basePath ?? string.Empty;
-        if (serverPath.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase) ||
-            serverPath.StartsWith("ftps://", StringComparison.OrdinalIgnoreCase))
-        {
-            var afterScheme = serverPath[(serverPath.IndexOf("//") + 2)..];
-            var slashIdx = afterScheme.IndexOf('/');
-            serverPath = slashIdx >= 0 ? afterScheme[slashIdx..] : "/";
-        }
-
-        var parts = new List<string>();
-        if (!string.IsNullOrWhiteSpace(serverPath)) parts.Add(serverPath.TrimEnd('/'));
-        parts.Add(appKey);
-        if (version is not null) parts.Add(version);
-        parts.Add(filename);
-        return "/" + string.Join("/", parts).TrimStart('/');
-    }
-
-    private static string BuildDownloadUrl(string? baseUrl, string appKey, string version, string filename)
-    {
-        if (string.IsNullOrWhiteSpace(baseUrl))
-            return $"{appKey}/{version}/{filename}";
-
-        var url = baseUrl.Trim().TrimEnd('/');
-        if (url.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase) ||
-            url.StartsWith("ftps://", StringComparison.OrdinalIgnoreCase))
-            url = "https://" + url[(url.IndexOf("//") + 2)..];
-
-        return $"{url}/{appKey}/{version}/{filename}";
-    }
+    // ── Publish target file names ─────────────────────────────────────────
+    private string PackageFileName => Path.GetFileName(PackageOutputPath);
+    private string CatalogFileName => $"{_appKey}.json";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSignCurrent))]
@@ -243,7 +214,7 @@ public partial class PackageViewModel : ObservableObject
         PackageStep.Manifest => "Step 2 of 5 — Build Manifest",
         PackageStep.Package  => "Step 3 of 5 — Package",
         PackageStep.Json     => "Step 4 of 5 — Generate Update Catalog",
-        PackageStep.Ftp      => "Step 5 of 5 — Upload to FTP",
+        PackageStep.Ftp      => "Step 5 of 5 — Publish",
         _                    => string.Empty,
     };
 
@@ -356,11 +327,11 @@ public partial class PackageViewModel : ObservableObject
     public string AppName      => _entry.Name;
     public string VersionLabel => $"v{_version.VersionNumber}  •  {_version.ScanDate:yyyy-MM-dd HH:mm}";
 
-    public bool HasFtpSettings => !string.IsNullOrWhiteSpace(_ftpHost);
+    public bool HasFtpSettings => _publish.IsConfigured(_appSettings);
 
     public string FtpSummary => HasFtpSettings
-        ? $"{_ftpHost}:{_ftpPort}"
-        : "No FTP credentials configured — open App Settings to add them.";
+        ? $"Publishing via {_publish.ProviderName(_appSettings)}"
+        : "No publish target configured — open App Settings to add one.";
 
     public ObservableCollection<string> Log { get; } = [];
 
@@ -390,6 +361,7 @@ public partial class PackageViewModel : ObservableObject
         {
             _version.Status = VersionStatus.Published;
             _version.PublishedDate = DateTime.Now;
+            _version.PublishedBy = _main.Session.ActorName;
             _storage.Update(_entry);
             _main.NavigateToDetail(_entry);
             return;

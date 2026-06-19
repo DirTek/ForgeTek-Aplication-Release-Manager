@@ -15,9 +15,9 @@ public partial class PackageViewModel
     private bool _isJsonComplete;
 
     public string CatalogLocalPath  => _catalogOutputPath;
-    public string CatalogRemotePath => BuildRemotePath(_ftpRemotePath, _appKey, null, $"{_appKey}.json");
-    public string PackageRemotePath => BuildRemotePath(_ftpRemotePath, _appKey, _version.VersionNumber, Path.GetFileName(PackageOutputPath));
-    public string PackageDownloadUrl => BuildDownloadUrl(_baseDownloadUrl, _appKey, _version.VersionNumber, Path.GetFileName(PackageOutputPath));
+    public string CatalogRemotePath => _publish.RemoteTarget(_appSettings, _appKey, null, CatalogFileName);
+    public string PackageRemotePath => _publish.RemoteTarget(_appSettings, _appKey, _version.VersionNumber, PackageFileName);
+    public string PackageDownloadUrl => _publish.ResolveDownloadUrl(_appSettings, _appKey, _version.VersionNumber, PackageFileName);
 
     [RelayCommand(CanExecute = nameof(CanGenerateJson))]
     private async Task GenerateUpdateJsonAsync()
@@ -39,20 +39,19 @@ public partial class PackageViewModel
             }
             else if (HasFtpSettings)
             {
-                Log.Add("Checking FTP for existing catalog…");
-                using var ftpCheckCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-                ftpCheckCts.CancelAfter(TimeSpan.FromSeconds(20));
+                Log.Add($"Checking {_publish.ProviderName(_appSettings)} for existing catalog…");
+                using var checkCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                checkCts.CancelAfter(TimeSpan.FromSeconds(30));
                 try
                 {
-                    existingJson = await Task.Run(() => _ftpService.TryDownloadStringAsync(
-                        CatalogRemotePath, _ftpHost ?? throw new InvalidOperationException("FTP host not configured."), _ftpPort, _ftpUsername, _ftpPassword, ftpCheckCts.Token));
+                    existingJson = await _publish.TryGetCatalogAsync(_appSettings, _appKey, CatalogFileName, checkCts.Token);
                     Log.Add(existingJson is not null
-                        ? "Downloaded existing catalog from FTP."
-                        : "No existing catalog on FTP — creating new.");
+                        ? "Downloaded existing catalog from the publish target."
+                        : "No existing catalog at the publish target — creating new.");
                 }
                 catch (OperationCanceledException) when (!_cts.IsCancellationRequested)
                 {
-                    Log.Add("FTP check timed out — creating new catalog.");
+                    Log.Add("Catalog check timed out — creating new catalog.");
                 }
             }
             else

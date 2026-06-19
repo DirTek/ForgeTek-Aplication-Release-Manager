@@ -320,6 +320,7 @@
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="56"/>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="56"/>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="56"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="56"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -360,12 +361,20 @@
                             <TextBlock Text="5" Style="{StaticResource StepGlyph}" Tag="{Binding EditStep5State}"/>
                         </Border>
                     </Button>
+                    <Rectangle Grid.Row="0" Grid.Column="9" Style="{StaticResource StepConnector}" Tag="{Binding EditStep5State}"/>
+                    <Button Grid.Row="0" Grid.Column="10" Style="{StaticResource StepButton}"
+                            Command="{Binding GoToStepCommand}" CommandParameter="5">
+                        <Border Style="{StaticResource StepCircle}" Tag="{Binding EditStep6State}">
+                            <TextBlock Text="6" Style="{StaticResource StepGlyph}" Tag="{Binding EditStep6State}"/>
+                        </Border>
+                    </Button>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="General"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep1State}"/>
                     <TextBlock Grid.Row="1" Grid.Column="2" Text="Apps"       Style="{StaticResource StepLabel}" Tag="{Binding EditStep2State}"/>
                     <TextBlock Grid.Row="1" Grid.Column="4" Text="Signing"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep3State}"/>
                     <TextBlock Grid.Row="1" Grid.Column="6" Text="Appearance" Style="{StaticResource StepLabel}" Tag="{Binding EditStep4State}"/>
                     <TextBlock Grid.Row="1" Grid.Column="8" Text="Launch"     Style="{StaticResource StepLabel}" Tag="{Binding EditStep5State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="10" Text="Actions"   Style="{StaticResource StepLabel}" Tag="{Binding EditStep6State}"/>
                 </Grid>
             </Border>
 
@@ -411,8 +420,21 @@
                         </Grid>
                     </StackPanel>
 
+                    <!-- Output File Name (build variables) -->
+                    <StackPanel Margin="0,0,0,16">
+                        <TextBlock Text="Output File Name" FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding EditFileNameTemplate, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="e.g. {AppName}_{Version}_Setup — blank uses {AppName}Setup"/>
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="0,4,0,0">
+                            Blank uses “{AppName}Setup”. The .exe extension is added automatically.
+                            Variables: {AppName} {Version} {Company} {Date} {Year} {Date:format}
+                        </TextBlock>
+                    </StackPanel>
+
                     <!-- Preserve old setups -->
-                    <StackPanel Margin="0,0,0,24">
+                    <StackPanel Margin="0,0,0,16">
                         <CheckBox IsChecked="{Binding EditPreserveOldSetups}" FontSize="13"
                                   Foreground="{DynamicResource TextBrush}"
                                   Content="Preserve old setups"/>
@@ -420,6 +442,18 @@
                                    TextWrapping="Wrap" Margin="24,4,0,0">
                             Before overwriting an existing setup in the output folder, rename the old one to
                             “{name}Setup-{date}.exe” so previous builds are kept as backups.
+                        </TextBlock>
+                    </StackPanel>
+
+                    <!-- Portable package -->
+                    <StackPanel Margin="0,0,0,24">
+                        <CheckBox IsChecked="{Binding EditGeneratePortableZip}" FontSize="13"
+                                  Foreground="{DynamicResource TextBrush}"
+                                  Content="Also generate a portable ZIP"/>
+                        <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   TextWrapping="Wrap" Margin="24,4,0,0">
+                            Writes “{name}_Portable.zip” of the app files next to the setup — no installer,
+                            no registry, no prerequisites. Good for tools that run unpacked.
                         </TextBlock>
                     </StackPanel>
 
@@ -970,6 +1004,110 @@
                     </ItemsControl>
 
                         </StackPanel>
+                </ScrollViewer>
+
+                <!-- ── STEP 6 · CUSTOM ACTIONS ── -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0"
+                              Visibility="{Binding IsActionsStep, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="Custom Install Actions" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
+                        <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Margin="0,0,0,12" TextWrapping="Wrap">
+                            Steps the installer runs beyond copying files — stop/start a Windows service, run a
+                            script or executable, or delete files. Pre-install actions run before files are copied;
+                            post-install after. Scripts/executables you point to are bundled into the setup and run
+                            elevated. Use [InstallDir] to refer to the install folder.
+                        </TextBlock>
+
+                        <Button Content="+ Add action" Style="{StaticResource SecondaryButton}"
+                                Padding="14,8" HorizontalAlignment="Left" Margin="0,0,0,12"
+                                Command="{Binding AddCustomActionCommand}"/>
+
+                        <ItemsControl ItemsSource="{Binding CustomActions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                                            Padding="12,10" Margin="0,0,0,10">
+                                        <StackPanel>
+                                            <!-- Row: type, timing, remove -->
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ComboBox Grid.Column="0" Width="150" FontSize="11"
+                                                          ItemsSource="{Binding DataContext.ActionTypeOptions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          SelectedItem="{Binding Type, Mode=TwoWay}"
+                                                          ToolTip="What this action does"/>
+                                                <ComboBox Grid.Column="1" Width="130" FontSize="11" Margin="8,0,0,0"
+                                                          ItemsSource="{Binding DataContext.ActionTimingOptions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          SelectedItem="{Binding Timing, Mode=TwoWay}"
+                                                          ToolTip="When it runs"/>
+                                                <Button Grid.Column="3" Content="Remove" Style="{StaticResource SecondaryButton}"
+                                                        Padding="12,4" FontSize="11"
+                                                        Command="{Binding DataContext.RemoveCustomActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"/>
+                                            </Grid>
+
+                                            <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="11" Padding="4,3" Margin="0,0,0,6"
+                                                     ToolTip="Label shown in the installer progress UI"
+                                                     Tag="Label (shown during install)"/>
+
+                                            <!-- Target (caption is contextual) -->
+                                            <TextBlock Text="{Binding TargetLabel}" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                                            <Grid Margin="0,0,0,6">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0" Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
+                                                         FontSize="11" Padding="4,3"/>
+                                                <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                                        Padding="12,4" Margin="8,0,0,0" FontSize="11"
+                                                        Command="{Binding DataContext.BrowseActionTargetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsServiceAction, Converter={StaticResource InvertVisibility}}"/>
+                                            </Grid>
+
+                                            <!-- Arguments (executables) -->
+                                            <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="11" Padding="4,3" Margin="0,0,0,6"
+                                                     ToolTip="Arguments passed to the executable / script"
+                                                     Visibility="{Binding IsExecutableAction, Converter={StaticResource BoolToVisibility}}"/>
+
+                                            <!-- Inline PowerShell -->
+                                            <TextBox Text="{Binding InlineScript, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="11" Padding="4,3" Margin="0,0,0,6"
+                                                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     ToolTip="Inline PowerShell (used when no .ps1 file is set above)"
+                                                     Visibility="{Binding IsPowerShellAction, Converter={StaticResource BoolToVisibility}}"/>
+
+                                            <!-- Options row -->
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox Content="Continue install if this fails"
+                                                          IsChecked="{Binding IgnoreFailure}" FontSize="11"
+                                                          VerticalAlignment="Center"/>
+                                                <TextBlock Text="Timeout (s):" FontSize="11" Margin="20,0,6,0"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           Visibility="{Binding IsDeleteAction, Converter={StaticResource InvertVisibility}}"/>
+                                                <TextBox Width="60" FontSize="11" Padding="4,3"
+                                                         Text="{Binding TimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                         ToolTip="0 = wait indefinitely"
+                                                         Visibility="{Binding IsDeleteAction, Converter={StaticResource InvertVisibility}}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </ScrollViewer>
 
             </Grid>

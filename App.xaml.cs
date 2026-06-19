@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using ForgeTekUpdatePackager.Services;
+using ForgeTekUpdatePackager.Services.Publishing;
 using ForgeTekUpdatePackager.ViewModels;
 
 namespace ForgeTekUpdatePackager;
@@ -46,12 +47,15 @@ public partial class App : Application
         services.AddTransient<IFtpService, FtpService>();
         services.AddTransient<IManifestService, ManifestService>();
         services.AddTransient<IUpdateCatalogService, UpdateCatalogService>();
+        services.AddTransient<IPublishService, PublishService>();
         services.AddTransient<ICertificateService, CertificateService>();
         services.AddTransient<IBackupService, BackupService>();
         services.AddTransient<IChangelogService, ChangelogService>();
 
         // Setup services
         services.AddSingleton<ISetupStorageService, SetupStorageService>();
+        services.AddSingleton<ISettingsTemplateService, SettingsTemplateService>();
+        services.AddSingleton<IConnectionStatusCache, ConnectionStatusCache>();
         services.AddTransient<ISetupService, SetupService>();
 
         // ViewModels

@@ -29,7 +29,10 @@ public class LogService : ILogService
             var collected = new List<string>();
             foreach (var f in files)
             {
-                var lines = File.ReadAllLines(f.FullName);
+                // Each daily file is named yyyy-MM-dd.log; the lines themselves only carry a time,
+                // so prefix the file's date to make the viewer show a full date + time stamp.
+                var date = Path.GetFileNameWithoutExtension(f.Name);
+                var lines = File.ReadAllLines(f.FullName).Select(l => $"{date} {l}").ToArray();
                 // Prepend older-file blocks ahead of what we've already gathered.
                 collected.InsertRange(0, lines);
                 if (collected.Count >= maxLines) break;

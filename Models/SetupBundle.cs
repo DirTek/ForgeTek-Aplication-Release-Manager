@@ -6,6 +6,10 @@ public class SetupBundle
     public string Name { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string OutputFolder { get; set; } = string.Empty;
+
+    /// <summary>Optional output EXE name template with build variables (e.g. "{AppName}_{Version}_Setup").
+    /// Blank uses the default "{AppName}Setup". The ".exe" extension is added automatically.</summary>
+    public string? FileNameTemplate { get; set; }
     public List<SetupAppRef> Apps { get; set; } = [];
     public List<RedistEntry> Redists { get; set; } = [];
     public bool SignOutput { get; set; }
@@ -42,6 +46,12 @@ public class SetupBundle
     /// <summary>Before overwriting an existing Setup.exe at the output folder, rename the old one to
     /// "{name}Setup-{previous generation date}.exe" so prior builds are kept as backups.</summary>
     public bool PreserveOldSetups { get; set; }
+
+    /// <summary>Pre/Post-install custom actions run by the installer (services, scripts, cleanup).</summary>
+    public List<SetupCustomAction> CustomActions { get; set; } = [];
+
+    /// <summary>Also emit a plain "{Name}_Portable.zip" of the app files (no installer, no registry).</summary>
+    public bool GeneratePortableZip { get; set; }
 
     public string? LastGeneratedPath { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
