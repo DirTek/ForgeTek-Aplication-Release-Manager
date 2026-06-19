@@ -278,11 +278,18 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <Button Grid.Column="2" Content="Open Folder" Style="{StaticResource SecondaryButton}"
-                                            Padding="16,8" VerticalAlignment="Center"
-                                            Command="{Binding DataContext.OpenSetupFolderCommand,
-                                                RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="Winget…" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8" Margin="0,0,8,0"
+                                                Command="{Binding DataContext.GenerateWingetManifestCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                        <Button Content="Open Folder" Style="{StaticResource SecondaryButton}"
+                                                Padding="16,8"
+                                                Command="{Binding DataContext.OpenSetupFolderCommand,
+                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -544,6 +551,20 @@
                                                       FontSize="11" Margin="16,0,0,0"
                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                       VerticalAlignment="Center"/>
+                                            <CheckBox IsChecked="{Binding IsOptional}"
+                                                      Content="Optional"
+                                                      ToolTip="Let the end user deselect this app during install"
+                                                      FontSize="11" Margin="16,0,0,0"
+                                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                                      VerticalAlignment="Center"/>
+                                            <CheckBox IsChecked="{Binding DefaultSelected}"
+                                                      Content="Checked by default"
+                                                      ToolTip="Whether the install-time checkbox starts checked"
+                                                      FontSize="11" Margin="12,0,0,0"
+                                                      IsEnabled="{Binding IsOptional}"
+                                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                                      VerticalAlignment="Center"
+                                                      Visibility="{Binding IsOptional, Converter={StaticResource BoolToVisibility}}"/>
                                         </StackPanel>
 
                                         <!-- Row 3: Registry entries -->
@@ -802,13 +823,91 @@
                                       FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,6,0,0"
                                       IsChecked="{Binding EditFixedSize}"/>
 
-                            <CheckBox Content="Show footer watermark in the installer"
-                                      FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,10,0,0"
-                                      IsChecked="{Binding EditShowFooterWatermark}"/>
-                            <TextBox Text="{Binding EditFooterWatermark, UpdateSourceTrigger=PropertyChanged}"
-                                     FontSize="11" Padding="6,4" Margin="0,6,0,0"
-                                     IsEnabled="{Binding EditShowFooterWatermark}"
-                                     ToolTip="Text shown small in the installer window's footer"/>
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,12,0,0"
+                                       Text="A small &quot;Installer by ForgeTek Release Manager&quot; attribution is shown in the installer footer."/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ══ COLORS & BUTTONS ═══════════════════════════════════ -->
+                    <TextBlock Text="Colors &amp; Buttons" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
+
+                    <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                            Padding="12,10" Margin="0,0,0,24">
+                        <StackPanel>
+                            <TextBlock Text="Leave a color empty to keep the installer's built-in dark theme."
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                            <!-- Accent (button fill) -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Button fill:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditAccentColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditAccentColor, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Accent hover -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Button hover:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditAccentHoverColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditAccentHoverColor, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Button text -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Button text:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditButtonTextColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditButtonTextColor, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Window text -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Window text:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditTextColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditTextColor, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Surface / panels -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="Panels:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <TextBox Width="110" FontSize="11" Padding="6,4"
+                                         Text="{Binding EditSurfaceColor, UpdateSourceTrigger=PropertyChanged}"/>
+                                <colorpicker:PortableColorPicker ShowAlpha="False"
+                                        Width="30" Height="22" Margin="8,0,0,0"
+                                        Style="{StaticResource DefaultColorPickerStyle}"
+                                        SelectedColor="{Binding EditSurfaceColor, Converter={StaticResource HexToColor}, Mode=TwoWay}"/>
+                            </StackPanel>
+
+                            <!-- Button shape -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Button shape:" FontSize="12" Width="90"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                <ComboBox Width="150" FontSize="11"
+                                          ItemsSource="{Binding ButtonShapes}"
+                                          SelectedItem="{Binding EditButtonShape}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 
@@ -876,6 +975,73 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+
+                    <!-- ══ AFTER INSTALL COMPLETES ════════════════════════════ -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="After Install Completes" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                        <Button Content="+ Add action" Style="{StaticResource SecondaryButton}"
+                                Padding="12,4" Margin="12,0,0,0" FontSize="11"
+                                Command="{Binding AddCompletionActionCommand}"/>
+                    </StackPanel>
+
+                    <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="0,0,0,12" TextWrapping="Wrap">
+                        Shown as checkboxes the user can toggle on the final page (URLs open in the browser; files open with their default app).
+                    </TextBlock>
+
+                    <ItemsControl ItemsSource="{Binding CompletionActions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CompletionActionItem}">
+                                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                                        Padding="12,10" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <ComboBox Width="120" FontSize="11"
+                                                      ItemsSource="{Binding DataContext.CompletionActionKinds,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedItem="{Binding Kind}"/>
+                                            <Button Content="Remove" Style="{StaticResource SecondaryButton}"
+                                                    Padding="12,4" Margin="12,0,0,0" FontSize="10"
+                                                    HorizontalAlignment="Right"
+                                                    Command="{Binding DataContext.RemoveCompletionActionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </StackPanel>
+
+                                        <TextBlock Text="Checkbox label (e.g. Visit our website)" FontSize="10"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                                        <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
+                                                 FontSize="11" Padding="6,4" Margin="0,0,0,6"/>
+
+                                        <TextBlock Text="{Binding TargetLabel}" FontSize="10"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,2"/>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
+                                                     FontSize="11" Padding="6,4"/>
+                                            <Button Grid.Column="1" Content="Browse…"
+                                                    Style="{StaticResource SecondaryButton}"
+                                                    Padding="12,4" Margin="6,0,0,0" FontSize="10"
+                                                    Visibility="{Binding IsFileAction, Converter={StaticResource BoolToVisibility}}"
+                                                    Command="{Binding DataContext.BrowseCompletionTargetCommand,
+                                                        RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                        </Grid>
+
+                                        <CheckBox IsChecked="{Binding DefaultChecked}"
+                                                  Content="Checked by default"
+                                                  FontSize="11"
+                                                  Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
                     <!-- ══ REDISTRIBUTABLES ═══════════════════════════════════ -->
                     <TextBlock Text="Redistributables" FontSize="14" FontWeight="SemiBold"
@@ -1238,6 +1404,9 @@
                             <Button Content="Open Folder" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding OpenGeneratedFolderCommand}"/>
+                            <Button Content="Winget manifest…" Style="{StaticResource SecondaryButton}"
+                                    Padding="22,9" Margin="0,0,8,0"
+                                    Command="{Binding GenerateWingetManifestCommand}"/>
                             <Button Content="Done" Style="{StaticResource PrimaryButton}"
                                     Padding="28,9"
                                     Command="{Binding CloseGenerationResultCommand}"/>

@@ -12,10 +12,14 @@
         <SolidColorBrush x:Key="TextSecondaryBrush" Color="#98989D"/>
         <SolidColorBrush x:Key="BorderBrush" Color="#3A3A3C"/>
         <SolidColorBrush x:Key="AddedBrush" Color="#30D158"/>
+        <!-- Primary-button text, kept separate from body text so a custom button color stays legible. -->
+        <SolidColorBrush x:Key="ButtonTextBrush" Color="#FFFFFF"/>
+        <!-- Button corner radius; overridden at runtime from the bundle's ButtonShape. -->
+        <CornerRadius x:Key="ButtonCornerRadius">6</CornerRadius>
 
         <Style TargetType="Button" x:Key="PrimaryButton">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonTextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="FontSize" Value="13"/>
@@ -24,7 +28,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="{DynamicResource ButtonCornerRadius}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -44,8 +48,8 @@
         </Style>
 
         <Style TargetType="Button" x:Key="SecondaryButton">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="FontSize" Value="13"/>
@@ -54,7 +58,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                CornerRadius="{DynamicResource ButtonCornerRadius}" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -75,12 +79,12 @@
 
         <Style TargetType="Button" x:Key="DangerButton" BasedOn="{StaticResource SecondaryButton}">
             <Setter Property="Background" Value="#FF453A"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         </Style>
 
         <Style TargetType="ProgressBar">
-            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Height" Value="6"/>
             <Setter Property="Template">

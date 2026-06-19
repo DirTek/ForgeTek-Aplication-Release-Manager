@@ -26,7 +26,7 @@
         <StackPanel Grid.Row="1" Margin="0,0,0,20">
             <TextBlock x:Name="TitleText" Text="ForgeTek Setup"
                        FontSize="22" FontWeight="Bold"
-                       Foreground="{StaticResource TextBrush}"/>
+                       Foreground="{DynamicResource TextBrush}"/>
             <TextBlock x:Name="SubtitleText" Text=""
                        FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
                        Margin="0,4,0,0"/>
@@ -47,8 +47,8 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <TextBlock Text="License Agreement" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextBrush}" Margin="0,0,0,10"/>
-                        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+                        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                                 Padding="14,10" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <TextBlock x:Name="EulaBody" TextWrapping="Wrap" FontSize="12"
@@ -58,7 +58,7 @@
                         </Border>
                     </Grid>
                     <CheckBox x:Name="EulaAcceptCheck" Content="I accept the terms of the License Agreement"
-                              FontSize="13" Foreground="{StaticResource TextBrush}"
+                              FontSize="13" Foreground="{DynamicResource TextBrush}"
                               Margin="0,14,0,0" Grid.Row="1"
                               Checked="EulaAcceptCheck_Changed" Unchecked="EulaAcceptCheck_Changed"/>
                 </Grid>
@@ -74,7 +74,7 @@
 
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="Select installation location:" FontSize="13"
-                               Foreground="{StaticResource TextBrush}" Margin="0,0,0,6"/>
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
                     <TextBlock x:Name="DefaultPathText" FontSize="12"
                                Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,10"/>
 
@@ -86,7 +86,7 @@
                         <TextBox x:Name="InstallPathBox" Grid.Column="0"
                                  Text="" FontSize="13"
                                  IsReadOnly="False"
-                                 Background="{StaticResource SurfaceBrush}"
+                                 Background="{DynamicResource SurfaceBrush}"
                                  Foreground="#D0D0D0"
                                  CaretBrush="#D0D0D0"
                                  BorderBrush="{StaticResource BorderBrush}"
@@ -99,23 +99,33 @@
                 </StackPanel>
 
                 <TextBlock Grid.Row="1" Text="Applications to install:" FontSize="13"
-                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,6"/>
+                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
 
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="AppList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Background="{StaticResource SurfaceBrush}"
+                                <Border Background="{DynamicResource SurfaceBrush}"
                                         CornerRadius="6" Padding="12,10" Margin="0,0,0,6">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0">
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontSize="13" FontWeight="SemiBold"
-                                                       Foreground="{StaticResource TextBrush}"/>
+                                        <!-- Install this app? Required apps are checked + locked. -->
+                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                  IsEnabled="{Binding CanDeselect}"
+                                                  VerticalAlignment="Top" Margin="0,1,12,0"/>
+                                        <StackPanel Grid.Column="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="13" FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextBrush}"/>
+                                                <TextBlock Text="Required" FontSize="10"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           VerticalAlignment="Center" Margin="8,1,0,0"
+                                                           Visibility="{Binding RequiredHintVisibility}"/>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding SubPath}"
                                                        FontSize="11"
                                                        Foreground="{StaticResource TextSecondaryBrush}"
@@ -137,14 +147,14 @@
             <!-- ═══ PREREQUISITES PAGE ═══ -->
             <StackPanel x:Name="PagePrereq" Visibility="Collapsed">
                 <TextBlock Text="Prerequisites" FontSize="14" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,10"/>
+                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
                 <TextBlock x:Name="PrereqSummaryText" FontSize="13"
                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,14"/>
 
                 <ItemsControl x:Name="PrereqList" Margin="0,0,0,6">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                            <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                                     Padding="12,10" Margin="0,0,0,6">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -156,7 +166,7 @@
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Name}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextBrush}"/>
+                                                   Foreground="{DynamicResource TextBrush}"/>
                                         <TextBlock Text="{Binding StatusText}"
                                                    FontSize="11"
                                                    Foreground="{StaticResource TextSecondaryBrush}"
@@ -177,7 +187,7 @@
             <!-- ═══ REDIST PROGRESS PAGE ═══ -->
             <StackPanel x:Name="PageRedist" Visibility="Collapsed">
                 <TextBlock x:Name="RedistStatus" Text="Installing prerequisites..."
-                           FontSize="13" Foreground="{StaticResource TextBrush}"
+                           FontSize="13" Foreground="{DynamicResource TextBrush}"
                            Margin="0,0,0,12"/>
                 <ProgressBar x:Name="RedistProgress" Height="6"/>
                 <TextBlock x:Name="RedistFileText" Text=""
@@ -188,7 +198,7 @@
             <!-- ═══ FILE INSTALL PROGRESS PAGE ═══ -->
             <StackPanel x:Name="PageProgress" Visibility="Collapsed">
                 <TextBlock x:Name="ProgressStatus" Text="Installing applications..."
-                           FontSize="13" Foreground="{StaticResource TextBrush}"
+                           FontSize="13" Foreground="{DynamicResource TextBrush}"
                            Margin="0,0,0,12"/>
                 <ProgressBar x:Name="InstallProgress" Height="6"/>
                 <TextBlock x:Name="ProgressFileText" Text=""
@@ -201,7 +211,7 @@
                         VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock Text="Uninstall Application"
                            FontSize="20" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}"
+                           Foreground="{DynamicResource TextBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,0,0,12"/>
                 <TextBlock x:Name="UninstallInfoText"
@@ -219,7 +229,7 @@
             <StackPanel x:Name="PageUninstallProgress" Visibility="Collapsed"
                         VerticalAlignment="Center" HorizontalAlignment="Center">
                 <TextBlock x:Name="UninstallStatusText" Text="Uninstalling..."
-                           FontSize="14" Foreground="{StaticResource TextBrush}"
+                           FontSize="14" Foreground="{DynamicResource TextBrush}"
                            HorizontalAlignment="Center" Margin="0,0,0,12"/>
                 <ProgressBar x:Name="UninstallProgress" Height="6" Width="300"/>
             </StackPanel>
@@ -246,11 +256,11 @@
             <!-- ═══ MAINTENANCE PAGE (Repair / Remove) ═══ -->
             <StackPanel x:Name="PageMaintenance" Visibility="Collapsed">
                 <TextBlock Text="Maintenance" FontSize="16" FontWeight="Bold"
-                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8"/>
+                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                 <TextBlock x:Name="MaintenanceInfoText"
                            FontSize="13" Foreground="{StaticResource TextSecondaryBrush}"
                            TextWrapping="Wrap" Margin="0,0,0,14"/>
-                <Border Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                         Padding="14,10" Margin="0,0,0,18">
                     <StackPanel x:Name="MaintenanceAppList"/>
                 </Border>
@@ -277,9 +287,19 @@
                            HorizontalAlignment="Center"
                            TextWrapping="Wrap" TextAlignment="Center"/>
                 <CheckBox x:Name="LaunchCheckbox" Content="Launch after closing"
-                          Foreground="{StaticResource TextBrush}"
+                          Foreground="{DynamicResource TextBrush}"
                           Margin="0,20,0,0" HorizontalAlignment="Center"
                           Visibility="Collapsed"/>
+                <!-- Optional finish actions (open website / readme) as toggleable checkboxes. -->
+                <ItemsControl x:Name="CompletionActionList" HorizontalAlignment="Center" Margin="0,8,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Label}" IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                      Foreground="{DynamicResource TextBrush}"
+                                      HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
         </Grid>
 

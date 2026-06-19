@@ -16,6 +16,10 @@ public class GeneratedSetupRecord
     public string OutputPath { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
 
+    /// <summary>SHA256 of the generated Setup.exe (uppercase hex, winget convention). Null for
+    /// records generated before hashing was added — recomputed on demand from OutputPath.</summary>
+    public string? Sha256 { get; set; }
+
     /// <summary>When "Preserve old setups" was on and a prior file existed, the path it was renamed to.</summary>
     public string? ArchivedPath { get; set; }
 }

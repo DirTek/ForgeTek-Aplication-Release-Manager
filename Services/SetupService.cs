@@ -23,6 +23,10 @@ public class SetupService : ISetupService
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
+    /// <summary>Fixed attribution shown in every generated installer's footer. Intentionally not
+    /// operator-editable so the ForgeTek watermark can't be removed or rebranded from a bundle.</summary>
+    private const string ForgeTekWatermark = "Installer by ForgeTek Release Manager";
+
     private readonly IStorageService _storage;
     private readonly ISettingsService _settings;
     private readonly ILogService _log;
@@ -189,6 +193,8 @@ public class SetupService : ISetupService
                 LaunchExeName = appRef.LaunchExeName,
                 IconFileName = appRef.SetupIconPath,
                 CreateShortcut = appRef.CreateShortcut,
+                IsRequired = !appRef.IsOptional,
+                IsSelected = appRef.IsOptional ? appRef.DefaultSelected : true,
                 RunAsAdminExes = appRef.RunAsAdminExes,
                 RegistryEntries = appRef.RegistryEntries.Select(r => new RegistryEntryManifestInternal
                 {
@@ -367,12 +373,27 @@ public class SetupService : ISetupService
             BackgroundGradientDirection = bundle.BackgroundGradientDirection,
             BackgroundImageName = ctx.BackgroundName,
             FixedSize = bundle.FixedSize,
-            FooterWatermark = bundle.ShowFooterWatermark && !string.IsNullOrWhiteSpace(bundle.FooterWatermark)
-                ? MacroEngine.Resolve(bundle.FooterWatermark.Trim(), BundleVars(bundle)) : null,
+            FooterWatermark = ForgeTekWatermark,
+            AccentColor = NullIfBlank(bundle.AccentColor),
+            AccentHoverColor = NullIfBlank(bundle.AccentHoverColor),
+            ButtonTextColor = NullIfBlank(bundle.ButtonTextColor),
+            TextColor = NullIfBlank(bundle.TextColor),
+            SurfaceColor = NullIfBlank(bundle.SurfaceColor),
+            ButtonShape = string.IsNullOrWhiteSpace(bundle.ButtonShape) ? "Rounded" : bundle.ButtonShape.Trim(),
             Apps = ctx.ManifestApps,
             Redists = ctx.Redists,
             PreActions = ctx.PreActions,
             PostActions = ctx.PostActions,
+            CompletionActions = bundle.CompletionActions
+                .Where(a => !string.IsNullOrWhiteSpace(a.Target))
+                .Select(a => new CompletionActionManifest
+                {
+                    Type = a.Kind.ToString(),
+                    Label = string.IsNullOrWhiteSpace(a.Label) ? a.Target.Trim() : a.Label.Trim(),
+                    Target = a.Target.Trim(),
+                    DefaultChecked = a.DefaultChecked,
+                })
+                .ToList(),
         };
 
         var manifestJson = JsonSerializer.Serialize(installManifest, JsonOptions);
@@ -487,6 +508,10 @@ public class SetupService : ISetupService
     private Dictionary<string, string> BundleVars(SetupBundle bundle)
         => MacroEngine.StandardVars(bundle.Name, bundle.Version, channel: null, company: _settings.Global.CompanyName);
 
+    // Trims a value, returning null when it is blank (keeps optional theme colors out of the manifest).
+    private static string? NullIfBlank(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     // Resolves the output EXE base name (no extension) from the bundle's template, sanitized.
     private string ResolveSetupFileName(SetupBundle bundle)
     {
@@ -504,7 +529,15 @@ public class SetupService : ISetupService
     {
         try
         {
-            var size = File.Exists(ctx.SetupPath) ? new FileInfo(ctx.SetupPath).Length : 0;
+            var exists = File.Exists(ctx.SetupPath);
+            var size = exists ? new FileInfo(ctx.SetupPath).Length : 0;
+            // SHA256 of the installer (winget needs it; also useful for verification).
+            string? sha256 = null;
+            if (exists)
+            {
+                try { sha256 = HashUtil.Sha256File(ctx.SetupPath); }
+                catch (Exception ex) { _log.Write("SetupGen", $"Could not hash setup: {ex.Message}"); }
+            }
             _setupStorage.AddHistory(new GeneratedSetupRecord
             {
                 BundleId      = ctx.Bundle.Id,
@@ -514,6 +547,7 @@ public class SetupService : ISetupService
                 GeneratedBy   = _session.ActorName,
                 OutputPath    = ctx.SetupPath,
                 FileSizeBytes = size,
+                Sha256        = sha256,
                 ArchivedPath  = ctx.ArchivedPath,
             });
         }
@@ -882,10 +916,26 @@ internal sealed class InstallManifest
     public string? BackgroundImageName { get; set; }
     public bool FixedSize { get; set; }
     public string? FooterWatermark { get; set; }
+    // Color theme + button style (null = keep the installer's built-in dark palette).
+    public string? AccentColor { get; set; }
+    public string? AccentHoverColor { get; set; }
+    public string? ButtonTextColor { get; set; }
+    public string? TextColor { get; set; }
+    public string? SurfaceColor { get; set; }
+    public string ButtonShape { get; set; } = "Rounded";
     public List<InstallAppManifest> Apps { get; set; } = [];
     public List<InstallRedistManifest> Redists { get; set; } = [];
     public List<InstallActionManifest> PreActions { get; set; } = [];
     public List<InstallActionManifest> PostActions { get; set; } = [];
+    public List<CompletionActionManifest> CompletionActions { get; set; } = [];
+}
+
+internal sealed class CompletionActionManifest
+{
+    public string Type { get; set; } = string.Empty;   // "OpenUrl" | "OpenFile"
+    public string Label { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public bool DefaultChecked { get; set; } = true;
 }
 
 internal sealed class InstallActionManifest
@@ -908,6 +958,10 @@ internal sealed class InstallAppManifest
     public string? LaunchExeName { get; set; }
     public string? IconFileName { get; set; }
     public bool CreateShortcut { get; set; }
+    /// <summary>False = obligatory (shown checked + locked). True = the user may deselect it.</summary>
+    public bool IsRequired { get; set; } = true;
+    /// <summary>Initial checkbox state for optional apps (always true for required apps).</summary>
+    public bool IsSelected { get; set; } = true;
     public List<string> RunAsAdminExes { get; set; } = [];
     public List<RegistryEntryManifestInternal> RegistryEntries { get; set; } = [];
 }

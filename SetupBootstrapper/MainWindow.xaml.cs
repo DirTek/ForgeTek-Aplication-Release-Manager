@@ -100,6 +100,8 @@ public partial class MainWindow : Window
                 Name = a.Name,
                 SubPath = Path.Combine(rootDir, a.DefaultInstallDir),
                 CreateShortcut = a.CreateShortcut,
+                IsRequired = a.IsRequired,
+                IsSelected = a.IsRequired || a.IsSelected,
             }).ToList();
             AppList.ItemsSource = appItems;
 
@@ -288,17 +290,31 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Capture shortcut preferences from the Path page
+        // Capture shortcut preferences + which apps the user chose to install (optional apps can be
+        // deselected on the Path page; required apps are always selected).
         var shortcutRequests = new List<(string Name, string InstallDir, bool Create)>();
+        var selectedAppNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (AppList.ItemsSource is IList<InstallAppItem> items)
         {
             foreach (var item in items)
             {
+                if (!item.IsSelected)
+                    continue;
+                selectedAppNames.Add(item.Name);
                 var dir = Path.Combine(rootDir,
                     _manifest?.Apps.FirstOrDefault(a => a.Name == item.Name)?.DefaultInstallDir ?? item.Name);
                 shortcutRequests.Add((item.Name, dir, item.CreateShortcut));
             }
         }
+        else
+        {
+            // Silent install (no Path page shown): install every app the manifest marks selected.
+            foreach (var a in _manifest?.Apps ?? [])
+                if (a.IsRequired || a.IsSelected)
+                    selectedAppNames.Add(a.Name);
+        }
+
+        bool IsAppSelected(string name) => selectedAppNames.Contains(name);
 
         try
         {
@@ -390,6 +406,8 @@ public partial class MainWindow : Window
 
                 foreach (var app in _manifest!.Apps)
                 {
+                    if (!IsAppSelected(app.Name)) continue;
+
                     var sourceAppDir = Path.Combine(appsDir, app.DefaultInstallDir);
                     var targetAppDir = Path.Combine(rootDir, app.DefaultInstallDir);
 
@@ -453,6 +471,8 @@ public partial class MainWindow : Window
             // Step 2b: Write per-app registry entries
             foreach (var app in _manifest!.Apps)
             {
+                if (!IsAppSelected(app.Name)) continue;
+
                 var appDir = Path.Combine(rootDir, app.DefaultInstallDir);
                 foreach (var reg in app.RegistryEntries)
                 {
@@ -690,7 +710,7 @@ public partial class MainWindow : Window
             InstallProgress.Value = 100;
             ProgressFileText.Text = string.Empty;
 
-            ShowCompletePage(rootDir);
+            ShowCompletePage(rootDir, selectedAppNames);
         }
         catch (Exception ex)
         {
@@ -753,7 +773,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ShowCompletePage(string installDir)
+    private void ShowCompletePage(string installDir, ICollection<string>? installedAppNames = null)
     {
         _installed = true;
         PageProgress.Visibility = Visibility.Collapsed;
@@ -763,8 +783,23 @@ public partial class MainWindow : Window
         ActionBtn.Visibility = Visibility.Collapsed;
         FinishBtn.Visibility = Visibility.Visible;
 
-        var appNames = string.Join(", ", _manifest!.Apps.Select(a => a.Name));
+        var installedApps = _manifest!.Apps
+            .Where(a => installedAppNames is null || installedAppNames.Contains(a.Name))
+            .Select(a => a.Name);
+        var appNames = string.Join(", ", installedApps);
         CompleteText.Text = $"{_manifest.SetupName} has been installed to:\n{installDir}\n\n{appNames}";
+
+        // Finish-page actions (open website / readme) as toggleable checkboxes.
+        CompletionActionList.ItemsSource = _manifest.CompletionActions
+            .Where(a => !string.IsNullOrWhiteSpace(a.Target))
+            .Select(a => new CompletionItem
+            {
+                Label = string.IsNullOrWhiteSpace(a.Label) ? a.Target : a.Label,
+                Target = a.Target,
+                Type = a.Type,
+                IsChecked = a.DefaultChecked,
+            })
+            .ToList();
 
         // Offer to launch the bundle's chosen app (if any) on the final page.
         if (ResolveLaunchExe(installDir) is not null)
@@ -835,6 +870,27 @@ public partial class MainWindow : Window
 
             if (_manifest.FixedSize)
                 ResizeMode = ResizeMode.NoResize;
+
+            // Color theme: override the app brushes that DynamicResource consumers reference.
+            var res = System.Windows.Application.Current.Resources;
+            void SetBrush(string key, string? hex)
+            {
+                if (ParseColor(hex) is { } c)
+                    res[key] = new System.Windows.Media.SolidColorBrush(c);
+            }
+            SetBrush("AccentBrush", _manifest.AccentColor);
+            SetBrush("AccentHoverBrush", _manifest.AccentHoverColor ?? _manifest.AccentColor);
+            SetBrush("ButtonTextBrush", _manifest.ButtonTextColor);
+            SetBrush("TextBrush", _manifest.TextColor);
+            SetBrush("SurfaceBrush", _manifest.SurfaceColor);
+
+            // Button shape preset → corner radius.
+            res["ButtonCornerRadius"] = _manifest.ButtonShape switch
+            {
+                "Square" => new CornerRadius(0),
+                "Pill" => new CornerRadius(18),
+                _ => new CornerRadius(6),
+            };
         }
         catch { }
     }
@@ -1173,15 +1229,31 @@ public partial class MainWindow : Window
 
     private void Finish_Click(object sender, RoutedEventArgs e)
     {
+        var installDir = InstallPathBox.Text.Trim();
+
         if (LaunchCheckbox.IsChecked == true)
         {
-            var exe = ResolveLaunchExe(InstallPathBox.Text.Trim());
+            var exe = ResolveLaunchExe(installDir);
             if (exe is not null)
             {
                 try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = exe, UseShellExecute = true }); }
                 catch { }
             }
         }
+
+        // Run any checked finish actions (open website / readme). [InstallDir] resolves to the root.
+        if (CompletionActionList.ItemsSource is IEnumerable<CompletionItem> actions)
+        {
+            foreach (var a in actions)
+            {
+                if (!a.IsChecked || string.IsNullOrWhiteSpace(a.Target))
+                    continue;
+                var target = a.Target.Replace("[InstallDir]", installDir);
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = target, UseShellExecute = true }); }
+                catch { }
+            }
+        }
+
         Close();
     }
 
@@ -1291,6 +1363,23 @@ internal sealed class InstallAppItem
     public string Name { get; set; } = string.Empty;
     public string SubPath { get; set; } = string.Empty;
     public bool CreateShortcut { get; set; } = true;
+    /// <summary>Whether the user has this app selected for install. Required apps stay true.</summary>
+    public bool IsSelected { get; set; } = true;
+    /// <summary>False = the user may deselect this app. True = obligatory.</summary>
+    public bool IsRequired { get; set; } = true;
+    /// <summary>Checkbox is enabled only for optional apps.</summary>
+    public bool CanDeselect => !IsRequired;
+    /// <summary>Shows the small "Required" hint next to obligatory apps.</summary>
+    public Visibility RequiredHintVisibility => IsRequired ? Visibility.Visible : Visibility.Collapsed;
+}
+
+/// <summary>A finish-page action (open website / readme) bound to a toggleable checkbox.</summary>
+internal sealed class CompletionItem
+{
+    public string Label { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;   // "OpenUrl" | "OpenFile"
+    public bool IsChecked { get; set; } = true;
 }
 
 internal sealed class RedistDetectionResult

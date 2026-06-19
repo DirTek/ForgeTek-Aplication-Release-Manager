@@ -39,16 +39,35 @@ public class SetupBundle
     /// <summary>Lock the setup window to a fixed size (no resizing).</summary>
     public bool FixedSize { get; set; }
 
-    /// <summary>Show a small attribution watermark in the installer window footer.</summary>
-    public bool   ShowFooterWatermark { get; set; } = true;
-    /// <summary>Text of the footer watermark (editable).</summary>
-    public string FooterWatermark     { get; set; } = "Installer by ForgeTek Release Manager";
+    // ── Setup color theme + button style ──────────────────────────────────────
+    // All nullable; when null the installer keeps its built-in dark palette.
+    /// <summary>Primary button fill, progress bar, and highlight color (hex #RRGGBB).</summary>
+    public string? AccentColor { get; set; }
+    /// <summary>Button hover fill (hex #RRGGBB). Falls back to the accent color when null.</summary>
+    public string? AccentHoverColor { get; set; }
+    /// <summary>Primary button text/foreground color (hex #RRGGBB).</summary>
+    public string? ButtonTextColor { get; set; }
+    /// <summary>Main window text color (hex #RRGGBB).</summary>
+    public string? TextColor { get; set; }
+    /// <summary>Cards/panels/secondary-button surface color (hex #RRGGBB).</summary>
+    public string? SurfaceColor { get; set; }
+    /// <summary>Button corner style: "Rounded" (default), "Square", or "Pill".</summary>
+    public string ButtonShape { get; set; } = "Rounded";
+
+    // The installer footer attribution ("Installer by ForgeTek Release Manager") is fixed and applied
+    // at generation time (SetupService.ForgeTekWatermark). It is intentionally not stored per-bundle
+    // or operator-editable, so it can't be removed or rebranded.
+
     /// <summary>Before overwriting an existing Setup.exe at the output folder, rename the old one to
     /// "{name}Setup-{previous generation date}.exe" so prior builds are kept as backups.</summary>
     public bool PreserveOldSetups { get; set; }
 
     /// <summary>Pre/Post-install custom actions run by the installer (services, scripts, cleanup).</summary>
     public List<SetupCustomAction> CustomActions { get; set; } = [];
+
+    /// <summary>Optional links shown as checkboxes on the installer's final page (open a website,
+    /// open a readme). The user toggles which ones run when the setup finishes.</summary>
+    public List<SetupCompletionAction> CompletionActions { get; set; } = [];
 
     /// <summary>Also emit a plain "{Name}_Portable.zip" of the app files (no installer, no registry).</summary>
     public bool GeneratePortableZip { get; set; }

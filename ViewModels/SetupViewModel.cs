@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Models;
 using ForgeTekUpdatePackager.Services;
 
@@ -16,6 +17,8 @@ public partial class SetupViewModel : ObservableObject
     private readonly IDialogService _dialog;
     private readonly ILogService _log;
     private readonly ISettingsService _settings;
+    private readonly IWingetManifestService _winget;
+    private readonly Services.Publishing.IPublishService _publish;
     private MainViewModel _main = null!;
     private SetupBundle? _editingBundle;
 
@@ -284,11 +287,18 @@ SOFTWARE LICENSE
     [ObservableProperty] private string _editBgGradientDir = "Vertical";
     [ObservableProperty] private string? _editBackgroundImage;
     [ObservableProperty] private bool _editFixedSize;
-    [ObservableProperty] private bool _editShowFooterWatermark = true;
-    [ObservableProperty] private string _editFooterWatermark = "Installer by ForgeTek Release Manager";
+
+    // ── Setup color theme + button style (blank = keep the installer's dark default) ──
+    [ObservableProperty] private string _editAccentColor = string.Empty;
+    [ObservableProperty] private string _editAccentHoverColor = string.Empty;
+    [ObservableProperty] private string _editButtonTextColor = string.Empty;
+    [ObservableProperty] private string _editTextColor = string.Empty;
+    [ObservableProperty] private string _editSurfaceColor = string.Empty;
+    [ObservableProperty] private string _editButtonShape = "Rounded";
 
     public string[] BackgroundModes { get; } = ["Default", "Solid", "Gradient", "Image"];
     public string[] GradientDirections { get; } = ["Vertical", "Horizontal", "Diagonal"];
+    public string[] ButtonShapes { get; } = ["Rounded", "Square", "Pill"];
 
     public string SigningConfigInfo
     {
@@ -314,9 +324,15 @@ SOFTWARE LICENSE
     public string[] ActionTimingOptions { get; } =
         Enum.GetNames<CustomActionTiming>();
 
+    // Finish-page actions (open website / readme) shown as toggleable checkboxes. Authored on "Launch".
+    public ObservableCollection<CompletionActionItem> CompletionActions { get; } = [];
+    public string[] CompletionActionKinds { get; } =
+        Enum.GetNames<CompletionActionKind>();
+
     public SetupViewModel(ISetupStorageService setupStorage, IStorageService storage,
         ISetupService setupService, IDialogService dialog, ILogService log,
-        ISettingsService settings)
+        ISettingsService settings, IWingetManifestService winget,
+        Services.Publishing.IPublishService publish)
     {
         _setupStorage = setupStorage;
         _storage = storage;
@@ -324,6 +340,8 @@ SOFTWARE LICENSE
         _dialog = dialog;
         _log = log;
         _settings = settings;
+        _winget = winget;
+        _publish = publish;
         Reload();
     }
 
@@ -397,6 +415,29 @@ SOFTWARE LICENSE
     }
 
     [RelayCommand]
+    private void AddCompletionAction()
+        => CompletionActions.Add(new CompletionActionItem());
+
+    [RelayCommand]
+    private void RemoveCompletionAction(CompletionActionItem? item)
+    {
+        if (item is not null) CompletionActions.Remove(item);
+    }
+
+    [RelayCommand]
+    private void BrowseCompletionTarget(CompletionActionItem? item)
+    {
+        if (item is null) return;
+        var path = _dialog.OpenFile("Select the file to open after install",
+            "Documents (*.txt;*.md;*.pdf;*.html;*.htm)|*.txt;*.md;*.pdf;*.html;*.htm|All files (*.*)|*.*");
+        if (path is not null) item.Target = path;
+    }
+
+    // Trims a value, returning null when blank (keeps optional theme colors out of the bundle).
+    private static string? NullIfBlank(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    [RelayCommand]
     private void CloseSetups()
     {
         if (_main.SelectedApp is not null)
@@ -434,11 +475,16 @@ SOFTWARE LICENSE
         EditBgGradientDir = "Vertical";
         EditBackgroundImage = null;
         EditFixedSize = false;
-        EditShowFooterWatermark = true;
-        EditFooterWatermark = "Installer by ForgeTek Release Manager";
+        EditAccentColor = string.Empty;
+        EditAccentHoverColor = string.Empty;
+        EditButtonTextColor = string.Empty;
+        EditTextColor = string.Empty;
+        EditSurfaceColor = string.Empty;
+        EditButtonShape = "Rounded";
         AvailableApps.Clear();
         WorkingRedists.Clear();
         CustomActions.Clear();
+        CompletionActions.Clear();
 
         foreach (var app in _storage.GetAll())
             AvailableApps.Add(MakeAppItem(app, null));
@@ -459,6 +505,8 @@ SOFTWARE LICENSE
             LaunchExeName = existing?.LaunchExeName,
             SetupIcon = existing?.SetupIconPath,
             CreateShortcut = existing?.CreateShortcut ?? true,
+            IsOptional = existing?.IsOptional ?? false,
+            DefaultSelected = existing?.DefaultSelected ?? true,
         };
 
         if (existing is not null)
@@ -546,9 +594,12 @@ SOFTWARE LICENSE
         EditBgGradientDir = string.IsNullOrWhiteSpace(bundle.BackgroundGradientDirection) ? "Vertical" : bundle.BackgroundGradientDirection;
         EditBackgroundImage = bundle.BackgroundImage;
         EditFixedSize = bundle.FixedSize;
-        EditShowFooterWatermark = bundle.ShowFooterWatermark;
-        EditFooterWatermark = string.IsNullOrWhiteSpace(bundle.FooterWatermark)
-            ? "Installer by ForgeTek Release Manager" : bundle.FooterWatermark;
+        EditAccentColor = bundle.AccentColor ?? string.Empty;
+        EditAccentHoverColor = bundle.AccentHoverColor ?? string.Empty;
+        EditButtonTextColor = bundle.ButtonTextColor ?? string.Empty;
+        EditTextColor = bundle.TextColor ?? string.Empty;
+        EditSurfaceColor = bundle.SurfaceColor ?? string.Empty;
+        EditButtonShape = string.IsNullOrWhiteSpace(bundle.ButtonShape) ? "Rounded" : bundle.ButtonShape;
         AvailableApps.Clear();
         WorkingRedists.Clear();
         CustomActions.Clear();
@@ -563,6 +614,16 @@ SOFTWARE LICENSE
                 InlineScript = a.InlineScript,
                 IgnoreFailure = a.IgnoreFailure,
                 TimeoutSeconds = a.TimeoutSeconds,
+            });
+
+        CompletionActions.Clear();
+        foreach (var a in bundle.CompletionActions)
+            CompletionActions.Add(new CompletionActionItem
+            {
+                Kind = a.Kind.ToString(),
+                Label = a.Label,
+                Target = a.Target,
+                DefaultChecked = a.DefaultChecked,
             });
 
         foreach (var app in _storage.GetAll())
@@ -794,6 +855,8 @@ SOFTWARE LICENSE
                     _ => a.SetupIcon,
                 },
                 CreateShortcut = a.CreateShortcut,
+                IsOptional = a.IsOptional,
+                DefaultSelected = a.DefaultSelected,
                 RunAsAdminExes = a.AdminExes.Where(x => x.IsAdmin).Select(x => x.Name).ToList(),
                 RegistryEntries = a.RegistryEntries
                     .Where(r => !string.IsNullOrWhiteSpace(r.KeyPath))
@@ -840,9 +903,12 @@ SOFTWARE LICENSE
         bundle.BackgroundGradientDirection = EditBgGradientDir;
         bundle.BackgroundImage = string.IsNullOrWhiteSpace(EditBackgroundImage) ? null : EditBackgroundImage;
         bundle.FixedSize = EditFixedSize;
-        bundle.ShowFooterWatermark = EditShowFooterWatermark;
-        bundle.FooterWatermark = string.IsNullOrWhiteSpace(EditFooterWatermark)
-            ? "Installer by ForgeTek Release Manager" : EditFooterWatermark.Trim();
+        bundle.AccentColor = NullIfBlank(EditAccentColor);
+        bundle.AccentHoverColor = NullIfBlank(EditAccentHoverColor);
+        bundle.ButtonTextColor = NullIfBlank(EditButtonTextColor);
+        bundle.TextColor = NullIfBlank(EditTextColor);
+        bundle.SurfaceColor = NullIfBlank(EditSurfaceColor);
+        bundle.ButtonShape = string.IsNullOrWhiteSpace(EditButtonShape) ? "Rounded" : EditButtonShape;
         // Only honor the launch app if it's actually one of the selected apps.
         var launchValid = EditLaunchApp is not null && selectedApps.Any(a => a.AppId == EditLaunchApp.AppId);
         bundle.LaunchAppId = launchValid ? EditLaunchApp!.AppId : null;
@@ -873,6 +939,17 @@ SOFTWARE LICENSE
                 InlineScript = a.InlineScript ?? string.Empty,
                 IgnoreFailure = a.IgnoreFailure,
                 TimeoutSeconds = a.TimeoutSeconds < 0 ? 0 : a.TimeoutSeconds,
+            })
+            .ToList();
+
+        bundle.CompletionActions = CompletionActions
+            .Where(a => !string.IsNullOrWhiteSpace(a.Target))
+            .Select(a => new SetupCompletionAction
+            {
+                Kind = Enum.TryParse<CompletionActionKind>(a.Kind, out var k) ? k : CompletionActionKind.OpenUrl,
+                Label = a.Label?.Trim() ?? string.Empty,
+                Target = a.Target?.Trim() ?? string.Empty,
+                DefaultChecked = a.DefaultChecked,
             })
             .ToList();
 
@@ -980,6 +1057,49 @@ SOFTWARE LICENSE
 
     [RelayCommand]
     private void OpenGeneratedFolder() => RevealInExplorer(_lastGeneratedSetupPath);
+
+    /// <summary>Opens the winget-manifest dialog for a generated setup. From the success overlay no
+    /// record is passed (the newest history entry is used); from a Past Bundles card the record is bound.</summary>
+    [RelayCommand]
+    private void GenerateWingetManifest(GeneratedSetupRecord? record)
+    {
+        record ??= _setupStorage.GetHistory()
+            .FirstOrDefault(r => string.Equals(r.OutputPath, _lastGeneratedSetupPath, StringComparison.OrdinalIgnoreCase))
+            ?? _setupStorage.GetHistory().FirstOrDefault();
+        if (record is null)
+        {
+            _dialog.Alert("No Setup", "Generate a setup first, then create its winget manifest.");
+            return;
+        }
+        if (!File.Exists(record.OutputPath) && string.IsNullOrWhiteSpace(record.Sha256))
+        {
+            _dialog.Alert("Setup Not Found",
+                $"The setup file is missing and has no stored hash:\n{record.OutputPath}");
+            return;
+        }
+
+        var appName = ResolvePrimaryAppName(record);
+        new WingetManifestWindow(_winget, _publish, _settings, appName, record)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    // The setup is built from a bundle that may reference several apps; winget identifies one package,
+    // so we use the bundle's launch app (else its first app). Falls back to the bundle name.
+    private string ResolvePrimaryAppName(GeneratedSetupRecord record)
+    {
+        var bundle = Bundles.FirstOrDefault(b => b.Bundle.Id == record.BundleId)?.Bundle;
+        if (bundle is not null)
+        {
+            var appId = !string.IsNullOrWhiteSpace(bundle.LaunchAppId)
+                ? bundle.LaunchAppId
+                : bundle.Apps.FirstOrDefault()?.AppId;
+            if (!string.IsNullOrWhiteSpace(appId) && _storage.GetById(appId!) is { } app)
+                return app.Name;
+        }
+        return string.IsNullOrWhiteSpace(record.BundleName) ? "App" : record.BundleName;
+    }
 }
 
 /// <summary>Display wrapper for a setup bundle in the list — resolves app names/versions and status.</summary>
@@ -1038,6 +1158,10 @@ public partial class SetupBundleAppItem : ObservableObject
     [ObservableProperty] private string? _launchExeName;
     [ObservableProperty] private string? _setupIcon;
     [ObservableProperty] private bool _createShortcut = true;
+    /// <summary>When true, the end user can deselect this app during install.</summary>
+    [ObservableProperty] private bool _isOptional;
+    /// <summary>For optional apps, whether the install-time checkbox starts checked.</summary>
+    [ObservableProperty] private bool _defaultSelected = true;
 
     public ObservableCollection<string> AvailableExes { get; } = [];
     public ObservableCollection<string> AppExes { get; } = []; // exe files only (no placeholder), for registry pickers
@@ -1101,6 +1225,26 @@ public partial class CustomActionItem : ObservableObject
         nameof(CustomActionType.DeleteFiles) => "Paths to delete (semicolon-separated; [InstallDir] allowed)",
         _ => "Target",
     };
+}
+
+public partial class CompletionActionItem : ObservableObject
+{
+    // Kind is string-backed for easy ComboBox binding (enum names: OpenUrl / OpenFile).
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFileAction))]
+    [NotifyPropertyChangedFor(nameof(TargetLabel))]
+    private string _kind = nameof(CompletionActionKind.OpenUrl);
+
+    [ObservableProperty] private string _label = string.Empty;
+    [ObservableProperty] private string _target = string.Empty;
+    [ObservableProperty] private bool _defaultChecked = true;
+
+    public bool IsFileAction => Kind == nameof(CompletionActionKind.OpenFile);
+
+    /// <summary>Context-sensitive caption for the Target field.</summary>
+    public string TargetLabel => IsFileAction
+        ? "File to open ([InstallDir] allowed)"
+        : "Website URL (https://…)";
 }
 
 public partial class RegistryItem : ObservableObject

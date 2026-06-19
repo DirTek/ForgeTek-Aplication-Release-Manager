@@ -274,50 +274,14 @@ public class GitHubService : IGitHubService
             throw new InvalidOperationException("No build command configured.");
 
         progress.Report($"> git pull   (in {localPath})");
-        await RunAsync("git", "pull", localPath, progress, ct);
+        await ProcessRunner.RunOrThrowAsync("git", "pull", localPath, progress, ct);
 
         progress.Report(string.Empty);
         progress.Report($"> {buildCommand}");
         // -NoProfile keeps it fast/clean; -Command runs the user's build line in the repo folder.
-        await RunAsync("powershell.exe",
+        await ProcessRunner.RunOrThrowAsync("powershell.exe",
             $"-NoProfile -ExecutionPolicy Bypass -Command \"{buildCommand.Replace("\"", "\\\"")}\"",
             localPath, progress, ct);
-    }
-
-    private static async Task RunAsync(string fileName, string arguments, string workingDir,
-        IProgress<string> progress, CancellationToken ct)
-    {
-        var psi = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName               = fileName,
-            Arguments              = arguments,
-            WorkingDirectory       = workingDir,
-            RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            UseShellExecute        = false,
-            CreateNoWindow         = true,
-        };
-
-        using var proc = System.Diagnostics.Process.Start(psi)
-            ?? throw new InvalidOperationException($"Failed to start {fileName}.");
-
-        proc.OutputDataReceived += (_, e) => { if (e.Data is not null) progress.Report(e.Data); };
-        proc.ErrorDataReceived  += (_, e) => { if (e.Data is not null) progress.Report(e.Data); };
-        proc.BeginOutputReadLine();
-        proc.BeginErrorReadLine();
-
-        try
-        {
-            await proc.WaitForExitAsync(ct);
-        }
-        catch (OperationCanceledException)
-        {
-            try { if (!proc.HasExited) proc.Kill(entireProcessTree: true); } catch { }
-            throw;
-        }
-
-        if (proc.ExitCode != 0)
-            throw new InvalidOperationException($"{fileName} exited with code {proc.ExitCode}.");
     }
 
     private static (string Owner, string Name) SplitRepo(string repo)

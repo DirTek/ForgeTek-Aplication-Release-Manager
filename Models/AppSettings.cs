@@ -75,4 +75,8 @@ public class AppSettings
 
     /// <summary>Folder the build produces, scanned after a successful build.</summary>
     public string? GitHubArtifactPath { get; set; }
+
+    // ── Winget / distribution metadata (non-secret) ───────────────────────
+    /// <summary>Winget manifest metadata for distributing this app's installer via winget.</summary>
+    public WingetMetadata Winget { get; set; } = new();
 }

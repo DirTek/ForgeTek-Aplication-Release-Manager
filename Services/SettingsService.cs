@@ -53,6 +53,8 @@ public class SettingsService : ISettingsService
             StoreCertThumbprint = Global.StoreCertThumbprint,
             KeepInCertStore    = Global.KeepInCertStore,
             Theme              = Global.Theme,
+            PublisherUrl        = Global.PublisherUrl,
+            PublisherSupportUrl = Global.PublisherSupportUrl,
             GitHubClientId     = Global.GitHubClientId,
             GitHubToken        = DpapiService.Protect(Global.GitHubToken),
             GitHubLogin        = Global.GitHubLogin,
@@ -125,6 +127,7 @@ public class SettingsService : ISettingsService
             GitHubLocalPath     = settings.GitHubLocalPath,
             GitHubBuildCommand  = settings.GitHubBuildCommand,
             GitHubArtifactPath  = settings.GitHubArtifactPath,
+            Winget              = settings.Winget,
         };
         File.WriteAllText(path, JsonSerializer.Serialize(storable, JsonOptions));
     }

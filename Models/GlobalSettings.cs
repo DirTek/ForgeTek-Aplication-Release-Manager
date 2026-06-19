@@ -16,6 +16,12 @@ public class GlobalSettings
     // UI appearance: "Dark" (default) or "Light".
     public string  Theme               { get; set; } = "Dark";
 
+    // ── Publisher info (account-wide defaults for winget manifests) ────────
+    /// <summary>Publisher home page (winget PublisherUrl).</summary>
+    public string? PublisherUrl        { get; set; }
+    /// <summary>Publisher support URL (winget PublisherSupportUrl).</summary>
+    public string? PublisherSupportUrl { get; set; }
+
     // ── GitHub account connection (OAuth device flow) ─────────────────────
     /// <summary>OAuth App Client ID (public) used for the device-flow sign-in.</summary>
     public string? GitHubClientId { get; set; }

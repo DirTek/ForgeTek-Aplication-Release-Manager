@@ -56,6 +56,7 @@ public partial class App : Application
         services.AddSingleton<ISetupStorageService, SetupStorageService>();
         services.AddSingleton<ISettingsTemplateService, SettingsTemplateService>();
         services.AddSingleton<IConnectionStatusCache, ConnectionStatusCache>();
+        services.AddSingleton<IWingetManifestService, WingetManifestService>();
         services.AddTransient<ISetupService, SetupService>();
 
         // ViewModels
