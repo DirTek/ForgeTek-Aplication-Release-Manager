@@ -17,7 +17,7 @@ Your application will poll the update catalog, download new packages, verify the
 The update catalog is a JSON file hosted at a public URL. The standard path pattern is:
 `{baseUrl}/{appKey}/{appKey}.json` (e.g., `https://example.com/releases/stlorganizer/stlorganizer.json`)
 
-Note: The extension of the catalog file can be customized. While `.ftu` is the default, packager supports custom extensions (e.g., `.stlo`). Update your catalog URL parsing to match.
+Note: The extension of the catalog file can be customized. While `.ftu` is the default, the tool supports custom extensions (e.g., `.stlo`). Update your catalog URL parsing to match.
 Note 2: STLOrganizer is used as an example app name/key in this documentation. It will be replaced with your actual app name/key in your implementation.
 
 ### Catalog Structure
@@ -26,6 +26,10 @@ Note 2: STLOrganizer is used as an example app name/key in this documentation. I
   "stlorganizer": "0.1.2",
   "url": {
     "stlorganizer": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo"
+  },
+  "channels": {
+    "stable": { "version": "0.1.2", "url": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo" },
+    "beta":   { "version": "0.1.3", "url": "https://example.com/releases/stlorganizer/0.1.3/STLOrganizer-0.1.3.stlo" }
   },
   "latestFull": {
     "version": "0.1.0",
@@ -37,26 +41,31 @@ Note 2: STLOrganizer is used as an example app name/key in this documentation. I
       "date": "2026-04-29",
       "type": "full",
       "base": "",
-      "checksum": "..."
+      "checksum": "...",
+      "channel": "stable"
     },
     "0.1.2": {
       "url": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo",
       "date": "2026-04-30",
       "type": "incremental",
       "base": "0.1.0",
-      "checksum": "64babf2a746b9dbc234fa0bbdbd1dc3b25e1914fdbe1f05f626d8fcf499a80af"
+      "checksum": "64babf2a746b9dbc234fa0bbdbd1dc3b25e1914fdbe1f05f626d8fcf499a80af",
+      "channel": "stable"
     }
   }
 }
 ```
+
+> **Release channels.** The top-level `{appKey}` pointer (and `url.{appKey}`) always tracks the latest **stable** release, so a stable-only client can simply follow it and ignore channels entirely. The `channels` object exposes the newest `stable` and `beta` releases separately — a beta-opt-in client should follow `channels.beta` (beta clients receive Beta + Stable; stable clients receive Stable only). Each `versions.{version}.channel` is `"stable"` or `"beta"`.
 
 > **Cumulative incrementals (important).** Every incremental is **cumulative since the full baseline named in its `base`** — it contains *all* files changed since that baseline, not just since the previous patch. So an install at or after `base` can apply the single latest incremental and end up complete; intermediate patches never need to be applied in sequence.
 
 ### Field Descriptions
 | Field | Type | Description |
 |-------|------|-------------|
-| `{appKey}` | string | Current latest version number for your app |
-| `url.{appKey}` | string | Download URL for the latest package |
+| `{appKey}` | string | Current latest **stable** version number for your app |
+| `url.{appKey}` | string | Download URL for the latest stable package |
+| `channels` | object | `{stable, beta}`, each `{version, url}` of the newest release on that channel. Stable-only clients can ignore this and follow `{appKey}`/`url.{appKey}`. |
 | `latestFull` | object | `{version, url}` of the newest **full** baseline. A fresh install — or one older than the latest patch's `base` — must download this first. |
 | `versions.{version}` | object | Per-version metadata |
 | `versions.{version}.url` | string | Download URL for this specific version |
@@ -64,6 +73,7 @@ Note 2: STLOrganizer is used as an example app name/key in this documentation. I
 | `versions.{version}.type` | string | `incremental` (cumulative since `base`) or `full` (all files) |
 | `versions.{version}.base` | string | The full baseline this incremental is cumulative from (empty for a full). An install older than this must fetch `latestFull` first. |
 | `versions.{version}.checksum` | string | SHA-256 checksum of the entire .ftu package |
+| `versions.{version}.channel` | string | `stable` or `beta` |
 
 ### Choosing what to download (client logic)
 ```
@@ -97,54 +107,43 @@ After applying, **verify the full expected file set** (see `ExpectedFiles` below
 ```
 
 ### JSON Header Structure
-The header is embedded in the package and contains metadata:
+The header is embedded in the package and contains metadata. Property names are camelCase; per-file
+`checksum` is the **raw lowercase SHA-256 hex** (no `sha256-` prefix — unlike `manifest.json`, see below):
 ```json
 {
+  "appKey": "STLOrganizer",
   "version": "0.1.2",
-  "app": "STLOrganizer",
+  "packageType": "incremental",
+  "baseVersion": "0.1.0",
   "createdAt": "2026-04-30T11:27:00.7854434+00:00",
+  "fileCount": 2,
   "files": [
-    {
-      "path": "STLOrganizer.dll",
-      "hash": "sha256-90ec0ff137c65d222094cf20539f338e7553732263c1aa06b4350ead457a21bd",
-      "size": 2021744
-    },
-    {
-      "path": "STLOrganizer.exe",
-      "hash": "sha256-92b573252aa76a50d8a687d14010197dc455ce6066a53e28bf41026ce69cd62f",
-      "size": 294768
-    },
-    {
-      "path": "STLOrganizer.pdb",
-      "hash": "sha256-9a9ccc8d758dee10dba437996faa1ac8975b03c0ea6a267ed7053b59715a8868",
-      "size": 921588
-    },
-    {
-      "path": "STLOrganizer.staticwebassets.endpoints.json",
-      "hash": "sha256-02bdae549ea227de42bf50e7d894753d9a7a8f78c98c751b3dafb47749eb9c05",
-      "size": 24903
-    }
+    { "path": "STLOrganizer.dll", "checksum": "90ec0ff137c65d222094cf20539f338e7553732263c1aa06b4350ead457a21bd" },
+    { "path": "STLOrganizer.exe", "checksum": "92b573252aa76a50d8a687d14010197dc455ce6066a53e28bf41026ce69cd62f" }
   ],
-  "removedFiles": ["deprecated/config.json", "oldplugin.dll"],
-  "totals": {
-    "fileCount": 4,
-    "totalSize": 3263003
-  }
+  "expectedFiles": [
+    { "path": "STLOrganizer.dll", "checksum": "90ec0ff137c65d222094cf20539f338e7553732263c1aa06b4350ead457a21bd" },
+    { "path": "STLOrganizer.exe", "checksum": "92b573252aa76a50d8a687d14010197dc455ce6066a53e28bf41026ce69cd62f" },
+    { "path": "STLOrganizer.staticwebassets.endpoints.json", "checksum": "02bdae549ea227de42bf50e7d894753d9a7a8f78c98c751b3dafb47749eb9c05" }
+  ],
+  "removedFiles": ["deprecated/config.json", "oldplugin.dll"]
 }
 ```
+`files` carries only what changed since `baseVersion` (everything, for a full); `expectedFiles` lists the
+complete file set after applying (used for self-heal). `fileCount` counts the entries in the ZIP payload.
 
 ### Header Fields
-| Field | Type | Description |
+| Field (JSON) | Type | Description |
 |-------|------|-------------|
-| `App` | string | Your application's name/app key |
-| `Version` | string | Package version number |
-| `PackageType` | string | `incremental` or `full` |
-| `BaseVersion` | string | The full baseline a cumulative incremental is relative to (null/empty for a full) |
-| `CreatedAt` | string | ISO 8601 timestamp of package creation |
-| `FileCount` | int | Number of files in the ZIP payload |
-| `Files` | array | Files **in the ZIP payload** (changed since the baseline) with relative paths + SHA-256 |
-| `ExpectedFiles` | array | The **full expected file set** after applying (every non-debug file + SHA-256). Use it to verify the install is complete and self-heal — if any expected file is missing or its hash doesn't match, download and apply `latestFull`. |
-| `RemovedFiles` | array | Relative paths of files to delete after extraction (baseline-relative; empty for full packages) |
+| `appKey` | string | Your application's name/app key |
+| `version` | string | Package version number |
+| `packageType` | string | `incremental` or `full` |
+| `baseVersion` | string | The full baseline a cumulative incremental is relative to (null/empty for a full) |
+| `createdAt` | string | ISO 8601 timestamp of package creation |
+| `fileCount` | int | Number of files in the ZIP payload |
+| `files` | array | Files **in the ZIP payload** (changed since the baseline). Each is `{path, checksum}` where `checksum` is the raw SHA-256 hex. |
+| `expectedFiles` | array | The **full expected file set** after applying (every non-debug file as `{path, checksum}`). Use it to verify the install is complete and self-heal — if any expected file is missing or its hash doesn't match, download and apply `latestFull`. |
+| `removedFiles` | array | Relative paths of files to delete after extraction (baseline-relative; empty for full packages) |
 
 ---
 
@@ -156,6 +155,7 @@ Each package includes a `manifest.json` (either embedded in the ZIP or hosted al
   "version": "0.1.2",
   "app": "STLOrganizer",
   "createdAt": "2026-04-30T11:27:00.7854434+00:00",
+  "baseVersion": "0.1.0",
   "files": [
     {
       "path": "STLOrganizer.dll",
@@ -192,7 +192,8 @@ Each package includes a `manifest.json` (either embedded in the ZIP or hosted al
 | `version` | string | Version number this manifest was generated for |
 | `app` | string | Application name |
 | `createdAt` | string | ISO 8601 timestamp of manifest creation |
-| `files` | array | Files included in this update with path, SHA-256 hash, and size |
+| `baseVersion` | string | The full baseline this version is relative to (null/empty for a full) |
+| `files` | array | Files included in this update; each `{path, hash, size}` where `hash` is `sha256-<hex>` |
 | `removedFiles` | array | Relative paths of files deleted in this version — client should delete these after extraction |
 | `totals.fileCount` | int | Number of files in the `files` array |
 | `totals.totalSize` | long | Sum of all file sizes in bytes |
@@ -247,7 +248,9 @@ public async Task<PackageHeader> VerifyPackageAsync(string packagePath)
     byte[] headerBuf = new byte[headerLen];
     await fs.ReadExactlyAsync(headerBuf);
     string headerJson = Encoding.UTF8.GetString(headerBuf);
-    PackageHeader? header = JsonSerializer.Deserialize<PackageHeader>(headerJson);
+    // The header is camelCase JSON — deserialize case-insensitively (or use a camelCase naming policy).
+    PackageHeader? header = JsonSerializer.Deserialize<PackageHeader>(headerJson,
+        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     fs.Seek(0, SeekOrigin.Begin);
     byte[] packageBytes = new byte[fs.Length];
     await fs.ReadExactlyAsync(packageBytes);
@@ -260,7 +263,7 @@ public async Task<PackageHeader> VerifyPackageAsync(string packagePath)
 
 public class PackageHeader
 {
-    public string App { get; set; } = string.Empty;
+    public string AppKey { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string PackageType { get; set; } = string.Empty;
     public string? BaseVersion { get; set; }                       // cumulative baseline (null for full)
@@ -365,7 +368,7 @@ public async Task ApplyUpdate(string packagePath, string installDir, string curr
 
 ## Configuration Notes
 
-- **Package Extensions**: While `.ftu` is the default, packager supports custom extensions (e.g., `.stlo`). Update your catalog URL parsing to match.
+- **Package Extensions**: While `.ftu` is the default, the tool supports custom extensions (e.g., `.stlo`). Update your catalog URL parsing to match.
 - **Hosting**: Packages and catalogs can be hosted on any HTTP/HTTPS server, FTP (with direct links), or cloud storage with public access.
 - **Security**: The SHA-256 footer ensures package integrity. For additional security, use HTTPS for all downloads and consider code signing your application executables.
 
@@ -373,4 +376,4 @@ public async Task ApplyUpdate(string packagePath, string installDir, string curr
 
 ## Support
 
-For issues with the update packager or this documentation, report to: dirtek@gmail.com
+For issues with ForgeTek Application Release Manager or this documentation, report to: dirtek@gmail.com
