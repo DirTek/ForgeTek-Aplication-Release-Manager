@@ -16,6 +16,12 @@ public class DialogService : IDialogService
     public bool Confirm(string title, string message, string confirmLabel)
         => new ConfirmDialog(title, message, confirmLabel) { Owner = Owner }.ShowDialog() == true;
 
+    public string? PromptPassword(string title, string message)
+    {
+        var dlg = new PasswordPromptDialog(title, message) { Owner = Owner };
+        return dlg.ShowDialog() == true ? dlg.EnteredPassword : null;
+    }
+
     public string? OpenFile(string title, string filter, bool checkFileExists = true)
     {
         var dlg = new OpenFileDialog
@@ -45,16 +51,17 @@ public class DialogService : IDialogService
         return dlg.ShowDialog(Owner) == true ? dlg.FolderName : null;
     }
 
-    public AddEditAppData? ShowAddEditApp(string? existingName = null, string? existingPath = null, string? existingColor = null)
+    public AddEditAppData? ShowAddEditApp(string? existingName = null, string? existingPath = null,
+        string? existingColor = null, string? existingSolutionPath = null)
     {
         var dlg = existingName is not null
-            ? new AddEditAppDialog(existingName, existingPath ?? "", existingColor ?? "#0A84FF")
+            ? new AddEditAppDialog(existingName, existingPath ?? "", existingColor ?? "#0A84FF", existingSolutionPath ?? "")
             : new AddEditAppDialog();
 
         dlg.Owner = Owner;
         if (dlg.ShowDialog() != true) return null;
 
-        return new AddEditAppData(dlg.AppName, dlg.AppPath, dlg.InitialVersion, dlg.AccentColor);
+        return new AddEditAppData(dlg.AppName, dlg.AppPath, dlg.InitialVersion, dlg.AccentColor, dlg.SolutionPath);
     }
 
     public ResumePackagingData? ShowResumePackagingDialog(string version, string step)

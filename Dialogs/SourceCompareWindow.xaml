@@ -1,0 +1,166 @@
+<Window x:Class="ForgeTekUpdatePackager.Dialogs.SourceCompareWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Compare Sources" Width="860" Height="700" MinWidth="720" MinHeight="540"
+        WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
+        Background="{DynamicResource BackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}">
+    <Window.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="PathRow" TargetType="Grid">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Compare Sources" FontSize="18" FontWeight="Bold"
+                       Foreground="{DynamicResource TextBrush}"/>
+            <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
+                       Text="Checks that the app's files, its solution build, and its GitHub build hold the same content."/>
+        </StackPanel>
+
+        <!-- Source paths -->
+        <StackPanel Grid.Row="1" Margin="0,0,0,8">
+            <Grid Style="{StaticResource PathRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Files" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="FilesBox" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                        Padding="12,6" Margin="8,0,0,0" Tag="FilesBox" Click="Browse_Click"/>
+            </Grid>
+            <Grid Style="{StaticResource PathRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Solution" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="SlnBox" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                        Padding="12,6" Margin="8,0,0,0" Tag="SlnBox" Click="Browse_Click"/>
+            </Grid>
+            <Grid Style="{StaticResource PathRow}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="GitHub" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBox Grid.Column="1" x:Name="GitHubBox" VerticalContentAlignment="Center"
+                         ToolTip="The GitHub build OUTPUT folder (e.g. from Build from GitHub). Optional — leave empty to compare just Files vs Solution."/>
+                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                        Padding="12,6" Margin="8,0,0,0" Tag="GitHubBox" Click="Browse_Click"/>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                <Button x:Name="CompareBtn" Content="Compare" Style="{StaticResource PrimaryButton}"
+                        Padding="20,7" Click="Compare_Click"/>
+                <CheckBox x:Name="DiffOnly" Content="Differences only" VerticalAlignment="Center"
+                          Margin="16,0,0,0" Foreground="{DynamicResource TextBrush}"
+                          Checked="DiffOnly_Changed" Unchecked="DiffOnly_Changed"/>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Verdict + summary -->
+        <Border Grid.Row="2" x:Name="VerdictPanel" CornerRadius="6" Padding="12,10" Margin="0,4,0,12"
+                Visibility="Collapsed" Background="{DynamicResource SurfaceBrush}">
+            <StackPanel>
+                <TextBlock x:Name="VerdictText" FontSize="14" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <TextBlock x:Name="IdenticalText" FontSize="12" Margin="0,0,16,0" Foreground="{DynamicResource AddedBrush}"/>
+                    <TextBlock x:Name="DiffersText" FontSize="12" Margin="0,0,16,0" Foreground="#FF6B6B"/>
+                    <TextBlock x:Name="PartialText" FontSize="12" Foreground="#FFD166"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Results -->
+        <Border Grid.Row="3" Background="{DynamicResource SurfaceBrush}" CornerRadius="6">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="12,10,12,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="90"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="File" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="1" Text="Files" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="2" Text="Solution" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="3" Text="GitHub" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="4" Text="Status" Style="{StaticResource FieldLabel}"/>
+                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,0,12,10">
+                    <StackPanel>
+                        <TextBlock x:Name="EmptyText" FontSize="12" Margin="0,8,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Text="Pick sources and click Compare."/>
+                        <ItemsControl x:Name="ResultsList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="90"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Path}" FontSize="12"
+                                                   Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding Path}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Files}" FontFamily="Consolas" FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Sln}" FontFamily="Consolas" FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding GitHub}" FontFamily="Consolas" FontSize="11"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding Status}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="{Binding StatusBrush}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Footer -->
+        <Grid Grid.Row="4" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                       TextWrapping="Wrap"
+                       Text="Note: .NET assemblies aren't byte-identical across builds unless deterministic builds are enabled, so 'Differs' can reflect build metadata rather than code changes. Missing files are always meaningful."/>
+            <Button Grid.Column="1" Content="Close" Style="{StaticResource SecondaryButton}"
+                    Padding="20,8" Margin="12,0,0,0" VerticalAlignment="Center" Click="Close_Click"/>
+        </Grid>
+    </Grid>
+</Window>

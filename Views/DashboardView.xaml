@@ -117,7 +117,7 @@
                     </Viewbox>
                 </Border>
 
-                <TextBlock Text="ForgeTek Release Manager" FontSize="28" FontWeight="Bold"
+                <TextBlock Text="ForgeTek Application Release Manager" FontSize="28" FontWeight="Bold"
                            Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,22,0,0"/>
                 <TextBlock Text="Add your first application to get started."
                            FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"

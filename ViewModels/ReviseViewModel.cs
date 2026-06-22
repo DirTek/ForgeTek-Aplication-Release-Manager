@@ -12,6 +12,7 @@ public partial class ReviseViewModel : ObservableObject
     private AppEntry _entry = null!;
     private AppVersion _version = null!;
     private Dictionary<string, bool> _originalDebugFlags = [];
+    private Dictionary<string, bool> _originalRemovedFlags = [];
 
     public string AppName      => _entry.Name;
     public string VersionNumber => _version.VersionNumber;
@@ -44,6 +45,7 @@ public partial class ReviseViewModel : ObservableObject
         _version = version;
         _main    = main;
         _originalDebugFlags = version.Files.ToDictionary(f => f.Path, f => f.IsDebug);
+        _originalRemovedFlags = version.Files.ToDictionary(f => f.Path, f => f.IsRemoved);
         FileTree = FileTreeNodeViewModel.BuildScanTree(version.Files, SortMode);
     }
 
@@ -96,6 +98,8 @@ public partial class ReviseViewModel : ObservableObject
         {
             if (_originalDebugFlags.TryGetValue(file.Path, out var original))
                 file.IsDebug = original;
+            if (_originalRemovedFlags.TryGetValue(file.Path, out var origRemoved))
+                file.IsRemoved = origRemoved;
         }
         _main.NavigateToDetail(_entry);
     }

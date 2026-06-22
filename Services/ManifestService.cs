@@ -50,6 +50,7 @@ public class ManifestService : IManifestService
             Version = version.VersionNumber,
             App = entry.Name,
             CreatedAt = DateTimeOffset.UtcNow,
+            BaseVersion = version.BaseVersion,
             Files = files,
             RemovedFiles = removedFiles?.Select(p => p.Replace('\\', '/')).ToList() ?? [],
             Totals = new ManifestTotals

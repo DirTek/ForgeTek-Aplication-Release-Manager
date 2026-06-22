@@ -43,6 +43,10 @@ public partial class AppVersion : ObservableObject
     public string? PackageChecksum { get; set; }
     public PackageType PackageType { get; set; } = PackageType.Incremental;
 
+    /// <summary>For a cumulative incremental, the full baseline version it was built against (its
+    /// payload carries every file changed since this baseline). Null when this version is itself Full.</summary>
+    public string? BaseVersion { get; set; }
+
     /// <summary>Tracks the last completed pipeline step so packaging can resume.</summary>
     public PackageStep? PipelineStep { get; set; }
 
@@ -62,6 +66,11 @@ public partial class AppVersion : ObservableObject
     [JsonIgnore]
     public bool HasChangelog { get; set; }
 
+    /// <summary>When a setup bundle that shipped this version was most recently generated. Populated
+    /// from setup history when the version list is built; null if no setup has shipped this version.</summary>
+    [JsonIgnore]
+    public DateTime? SetupGeneratedDate { get; set; }
+
     public bool HasDiff { get; set; }
     public int AddedCount { get; set; }
     public int ModifiedCount { get; set; }
@@ -70,8 +79,15 @@ public partial class AppVersion : ObservableObject
     /// <summary>Relative paths of files deleted in this version's diff — used by incremental packages to signal clients to remove obsolete files.</summary>
     public List<string> RemovedFiles { get; set; } = [];
 
-    public IEnumerable<FileRecord> NonDebugFiles => Files.Where(f => !f.IsDebug);
+    /// <summary>Files actually shipped in the package — excludes both excluded (debug) and removed files.</summary>
+    public IEnumerable<FileRecord> NonDebugFiles => Files.Where(f => !f.IsDebug && !f.IsRemoved);
+    /// <summary>Files the user explicitly marked for deletion on clients.</summary>
+    public IEnumerable<FileRecord> RemovedMarkedFiles => Files.Where(f => f.IsRemoved);
     public int TotalFiles => Files.Count;
     public int DebugFileCount => Files.Count(f => f.IsDebug);
-    public int PackageFileCount => TotalFiles - DebugFileCount;
+    public int PackageFileCount => Files.Count(f => !f.IsDebug && !f.IsRemoved);
+
+    /// <summary>"Full" or "Incremental" for the version list (the initial scan is a full baseline).</summary>
+    [JsonIgnore]
+    public string PackageKindLabel => IsInitial || PackageType == PackageType.Full ? "Full" : "Incremental";
 }

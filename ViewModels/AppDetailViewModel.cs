@@ -23,6 +23,12 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly ISessionService _session;
     private readonly IGitHubService _github;
+    private readonly IVulnerabilityScanService _vulnScan;
+    private readonly ILicenseScanService _licenseScan;
+    private readonly ISourceCompareService _sourceCompare;
+    private readonly ISetupStorageService _setupStorage;
+    private readonly IApprovalService _approval;
+    private readonly Services.Storage.IFileBlobStore _blobs;
     private AppEntry _entry = null!;
 
     public ISessionService Session => _session;
@@ -30,6 +36,43 @@ public partial class AppDetailViewModel : ObservableObject
     public string AppName => _entry.Name;
     public string AppPath => _entry.FolderPath;
     public ObservableCollection<AppVersion> Versions { get; private set; } = [];
+
+    // ── Channel filter for the version list (remembered across sessions) ──────
+    private string _channelFilter = "All";   // "All" | "Stable" | "Beta"
+    public string ChannelFilter => _channelFilter;
+    public bool IsChannelAll    => _channelFilter == "All";
+    public bool IsChannelStable => _channelFilter == "Stable";
+    public bool IsChannelBeta   => _channelFilter == "Beta";
+
+    [RelayCommand]
+    private void SetChannelFilter(string? mode)
+    {
+        var value = mode is "Stable" or "Beta" ? mode : "All";
+        if (value == _channelFilter) return;
+        _channelFilter = value;
+        _settings.Global.VersionChannelFilter = value;
+        _settings.SaveGlobal();
+        OnPropertyChanged(nameof(ChannelFilter));
+        OnPropertyChanged(nameof(IsChannelAll));
+        OnPropertyChanged(nameof(IsChannelStable));
+        OnPropertyChanged(nameof(IsChannelBeta));
+        RebuildVersions();
+    }
+
+    // Rebuilds the displayed version list (newest first) honoring the channel filter.
+    private void RebuildVersions()
+    {
+        ApplySetupDates();
+        IEnumerable<AppVersion> q = _entry.Versions.AsEnumerable().Reverse();
+        q = _channelFilter switch
+        {
+            "Stable" => q.Where(v => v.Channel == UpdateChannel.Stable),
+            "Beta"   => q.Where(v => v.Channel == UpdateChannel.Beta),
+            _        => q,
+        };
+        Versions = new ObservableCollection<AppVersion>(q);
+        OnPropertyChanged(nameof(Versions));
+    }
 
     [ObservableProperty] private bool _isScanning;
     [ObservableProperty] private bool _isDiffing;
@@ -39,7 +82,14 @@ public partial class AppDetailViewModel : ObservableObject
     // ── GitHub ────────────────────────────────────────────────────────────
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BuildFromGitHubCommand))]
+    [NotifyPropertyChangedFor(nameof(HasScanSource))]
     private bool _gitHubConfigured;
+
+    /// <summary>This app has a solution/source path configured (for source builds + scanning).</summary>
+    public bool HasSolution => !string.IsNullOrWhiteSpace(_entry?.SolutionPath);
+    /// <summary>A source the scanners can use exists (a solution path or a GitHub connection).</summary>
+    public bool HasScanSource => HasSolution || GitHubConfigured;
+    public string SolutionPathDisplay => _entry?.SolutionPath ?? string.Empty;
 
     [ObservableProperty] private bool _gitHubChecking;
     [ObservableProperty] private bool _gitHubNewer;
@@ -53,6 +103,7 @@ public partial class AppDetailViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(BuildFromGitHubCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BuildFromSolutionCommand))]
     private bool _isBuilding;
 
     [ObservableProperty] private bool _showBuildOverlay;
@@ -80,7 +131,10 @@ public partial class AppDetailViewModel : ObservableObject
 
     public AppDetailViewModel(IStorageService storage, IScannerService scanner, ILogService log,
         IPublishService publish, IUpdateCatalogService catalog, IChangelogService changelog, IDialogService dialog,
-        ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github)
+        ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github,
+        IVulnerabilityScanService vulnScan, ILicenseScanService licenseScan,
+        ISourceCompareService sourceCompare, ISetupStorageService setupStorage, IApprovalService approval,
+        Services.Storage.IFileBlobStore blobs)
     {
         _storage = storage;
         _scanner = scanner;
@@ -93,13 +147,210 @@ public partial class AppDetailViewModel : ObservableObject
         _settings = settings;
         _session = session;
         _github = github;
+        _vulnScan = vulnScan;
+        _licenseScan = licenseScan;
+        _sourceCompare = sourceCompare;
+        _setupStorage = setupStorage;
+        _approval = approval;
+        _blobs = blobs;
     }
+
+    // ── Release approvals (Admin + QA Tester sign-off on the selected version) ──
+    public ObservableCollection<string> ApprovalThread { get; } = [];
+    [ObservableProperty] private string _approvalSummary = string.Empty;
+    [ObservableProperty] private string _reviewNoteDraft = string.Empty;
+
+    /// <summary>Show the approvals panel only when the feature is enabled, protection is on, and a
+    /// non-initial version is selected.</summary>
+    public bool ShowApprovalPanel =>
+        _settings.Global.RequireReleaseApproval && _session.IsProtected
+        && SelectedVersion is { IsInitial: false };
+
+    /// <summary>Admin / QA Tester may cast a binding vote.</summary>
+    public bool CanCastVote => _session.CanApprove;
+
+    private string? SelectedApprovalKey =>
+        SelectedVersion is null ? null : ReleaseApproval.ForApp(_entry.Id, SelectedVersion.VersionNumber);
+
+    private void RefreshApprovalPanel()
+    {
+        ApprovalThread.Clear();
+        OnPropertyChanged(nameof(ShowApprovalPanel));
+        OnPropertyChanged(nameof(CanCastVote));
+        ApproveSelectedCommand.NotifyCanExecuteChanged();
+        RejectSelectedCommand.NotifyCanExecuteChanged();
+        AddReviewNoteCommand.NotifyCanExecuteChanged();
+
+        if (SelectedApprovalKey is not { } key) { ApprovalSummary = string.Empty; return; }
+
+        var votes = _approval.GetForTarget(key);
+        foreach (var v in votes)
+        {
+            var verb = v.Decision switch
+            {
+                ApprovalDecision.Approve => "approved",
+                ApprovalDecision.Reject  => "rejected",
+                _                        => "noted",
+            };
+            var note = string.IsNullOrWhiteSpace(v.Note) ? "" : $" — “{v.Note}”";
+            ApprovalThread.Add($"{v.ByUser} ({v.ByRole}) {verb} · {v.TimestampUtc.ToLocalTime():yyyy-MM-dd HH:mm}{note}");
+        }
+
+        var state = ApprovalService.Evaluate(votes);
+        var satisfied = ApprovalService.CountSatisfied(votes);
+        ApprovalSummary = state switch
+        {
+            ApprovalState.Approved => "Approved for release (Admin + QA Tester).",
+            ApprovalState.Rejected => "Rejected — needs changes and re-approval.",
+            _                      => $"Pending — {satisfied} of 2 approvals (Admin + QA Tester).",
+        };
+    }
+
+    private bool CanVoteOnSelected() => _session.CanApprove && SelectedApprovalKey is not null;
+
+    [RelayCommand(CanExecute = nameof(CanVoteOnSelected))]
+    private void ApproveSelected() => CastVote(ApprovalDecision.Approve);
+
+    [RelayCommand(CanExecute = nameof(CanVoteOnSelected))]
+    private void RejectSelected()
+    {
+        if (string.IsNullOrWhiteSpace(ReviewNoteDraft))
+        {
+            _dialog.Alert("Note Required", "Add a note explaining the rejection before rejecting.");
+            return;
+        }
+        CastVote(ApprovalDecision.Reject);
+    }
+
+    private bool CanAddReviewNote() => _session.CanReviewNote && SelectedApprovalKey is not null
+                                       && !string.IsNullOrWhiteSpace(ReviewNoteDraft);
+
+    [RelayCommand(CanExecute = nameof(CanAddReviewNote))]
+    private void AddReviewNote() => CastVote(ApprovalDecision.Note);
+
+    private void CastVote(ApprovalDecision decision)
+    {
+        if (SelectedApprovalKey is not { } key || SelectedVersion is null) return;
+        _approval.Add(new ReleaseApproval
+        {
+            TargetKey    = key,
+            Decision     = decision,
+            Note         = string.IsNullOrWhiteSpace(ReviewNoteDraft) ? null : ReviewNoteDraft.Trim(),
+            ByUser       = _session.ActorName,
+            ByRole       = _session.Current?.Role ?? UserRole.Admin,
+            TimestampUtc = DateTime.UtcNow,
+        });
+        ReviewNoteDraft = string.Empty;
+        _log.Write("Approval", $"{_session.ActorName} {decision} {_entry.Name} v{SelectedVersion.VersionNumber}");
+        RefreshApprovalPanel();
+    }
+
+    // Stamps each version with the most recent date a setup bundle that shipped it was generated,
+    // by joining the app's version numbers against the setup history's per-app version snapshots.
+    private void ApplySetupDates()
+    {
+        var dates = _setupStorage.GetHistory()
+            .Where(r => r.AppVersions.TryGetValue(_entry.Id, out var v) && !string.IsNullOrEmpty(v))
+            .GroupBy(r => r.AppVersions[_entry.Id])
+            .ToDictionary(g => g.Key, g => g.Max(r => r.GeneratedDate), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var version in _entry.Versions)
+            version.SetupGeneratedDate =
+                dates.TryGetValue(version.VersionNumber, out var d) ? d : null;
+    }
+
+    /// <summary>Opens a 3-way compare of the app's files, its solution build output, and its GitHub
+    /// build output (SLN = files = GitHub).</summary>
+    [RelayCommand]
+    private void CompareSources()
+    {
+        var s = _settings.LoadAppSettings(_entry.Name);
+
+        string? slnPublish = null;
+        if (!string.IsNullOrWhiteSpace(_entry.SolutionPath)
+            && ProjectLocator.Resolve(_entry.SolutionPath) is { } target)
+        {
+            slnPublish = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(target)!, "ForgeTekPublish");
+        }
+
+        // GitHub build output: the configured artifact path, or the local clone. Either being set is
+        // enough (an absolute artifact path needs no clone), so connected repos pre-fill without a clone.
+        string? githubArtifact = null;
+        if (!string.IsNullOrWhiteSpace(s.GitHubArtifactPath) || !string.IsNullOrWhiteSpace(s.GitHubLocalPath))
+            githubArtifact = ResolveArtifact(s.GitHubLocalPath ?? string.Empty, s.GitHubArtifactPath);
+
+        new SourceCompareWindow(_sourceCompare, _entry.Name, _entry.FolderPath, slnPublish, githubArtifact)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    /// <summary>Compares the app's local project SOURCE against the connected GitHub repo (is my local
+    /// in sync with what's on GitHub), distinct from the build-output compare.</summary>
+    [RelayCommand]
+    private void CompareWithGitHub()
+    {
+        var s = _settings.LoadAppSettings(_entry.Name);
+        if (string.IsNullOrWhiteSpace(s.GitHubRepo))
+        {
+            _dialog.Alert("GitHub Not Configured",
+                "Set this app's GitHub repository in Settings → GitHub first.");
+            return;
+        }
+        var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
+
+        // Local SOURCE folder: the repo clone, else the solution's directory, else the app folder.
+        string localDir;
+        if (!string.IsNullOrWhiteSpace(s.GitHubLocalPath))
+            localDir = s.GitHubLocalPath!;
+        else if (!string.IsNullOrWhiteSpace(_entry.SolutionPath)
+                 && ProjectLocator.Resolve(_entry.SolutionPath) is { } target)
+            localDir = System.IO.Path.GetDirectoryName(target) ?? _entry.FolderPath;
+        else
+            localDir = _entry.FolderPath;
+
+        new GitHubCompareWindow(_github, _sourceCompare, s.GitHubRepo!, token, localDir, _entry.Name)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    // The source to scan: the app's configured solution/source path, else the local repo clone,
+    // else the app's own folder.
+    private string SourceScanPath()
+    {
+        if (!string.IsNullOrWhiteSpace(_entry.SolutionPath)) return _entry.SolutionPath;
+        var s = _settings.LoadAppSettings(_entry.Name);
+        return !string.IsNullOrWhiteSpace(s.GitHubLocalPath) ? s.GitHubLocalPath! : _entry.FolderPath;
+    }
+
+    /// <summary>Opens the dependency vulnerability scanner for this app's source (the local repo clone,
+    /// or a project the user picks).</summary>
+    [RelayCommand]
+    private void ScanDependencies()
+        => new VulnerabilityScanWindow(_vulnScan, _settings, SourceScanPath(), _entry.Name)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+
+    /// <summary>Opens the third-party license compliance scanner for this app's source.</summary>
+    [RelayCommand]
+    private void ScanLicenses()
+        => new LicenseScanWindow(_licenseScan, _settings, SourceScanPath(), _entry.Name)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
 
     public void Initialize(AppEntry entry, MainViewModel main)
     {
         _entry = entry;
         _main = main;
-        Versions = new ObservableCollection<AppVersion>(entry.Versions.AsEnumerable().Reverse());
+        _channelFilter = _settings.Global.VersionChannelFilter ?? "All";
+        OnPropertyChanged(nameof(ChannelFilter));
+        OnPropertyChanged(nameof(IsChannelAll));
+        OnPropertyChanged(nameof(IsChannelStable));
+        OnPropertyChanged(nameof(IsChannelBeta));
+        RebuildVersions();
         CheckChangelogEntries();
         RaiseWorkflowChanged();
 
@@ -109,6 +360,10 @@ public partial class AppDetailViewModel : ObservableObject
         LastCommitSummary = string.Empty;
         LastCommitMeta = string.Empty;
         GitHubConfigured = !string.IsNullOrWhiteSpace(_settings.LoadAppSettings(entry.Name).GitHubRepo);
+        OnPropertyChanged(nameof(HasSolution));
+        OnPropertyChanged(nameof(HasScanSource));
+        OnPropertyChanged(nameof(SolutionPathDisplay));
+        BuildFromSolutionCommand.NotifyCanExecuteChanged();
         if (GitHubConfigured)
         {
             CheckGitHubCommand.Execute(null);
@@ -191,8 +446,11 @@ public partial class AppDetailViewModel : ObservableObject
             return;
         }
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
+        var slnFolder = !string.IsNullOrWhiteSpace(_entry.SolutionPath)
+            && ProjectLocator.Resolve(_entry.SolutionPath) is { } t
+            ? System.IO.Path.GetDirectoryName(t) : null;
         new ReleaseNotesWindow(_github, _changelog, s.GitHubRepo!, token,
-            _entry.FolderPath, _entry.Name, _entry.LatestVersion?.VersionNumber)
+            _entry.FolderPath, _entry.Name, _entry.LatestVersion?.VersionNumber, solutionFolder: slnFolder)
         {
             Owner = System.Windows.Application.Current.MainWindow,
         }.ShowDialog();
@@ -226,6 +484,60 @@ public partial class AppDetailViewModel : ObservableObject
             BuildSucceeded = true;
             BuildLog.Add(string.Empty);
             BuildLog.Add($"✔ Build complete. Artifact: {_buildArtifactPath}");
+        }
+        catch (OperationCanceledException) { BuildLog.Add("Cancelled."); }
+        catch (Exception ex) { BuildSucceeded = false; BuildLog.Add($"✗ {ex.Message}"); }
+        finally
+        {
+            IsBuilding = false;
+            BuildFinished = true;
+            _buildCts?.Dispose();
+            _buildCts = null;
+        }
+    }
+
+    private bool CanBuildFromSolution() => _session.CanScan && HasSolution && !IsBuilding;
+
+    /// <summary>Builds the app's release straight from its solution/project (`dotnet publish -c Release`),
+    /// then offers to scan the published output into a new version — same overlay as the GitHub build.</summary>
+    [RelayCommand(CanExecute = nameof(CanBuildFromSolution))]
+    private async Task BuildFromSolution()
+    {
+        var target = ProjectLocator.Resolve(_entry.SolutionPath);
+        if (target is null)
+        {
+            _dialog.Alert("Solution Not Found",
+                $"No .sln or .csproj found at the app's source path:\n{_entry.SolutionPath}");
+            return;
+        }
+
+        var slnDir = System.IO.Path.GetDirectoryName(target) ?? _entry.SolutionPath;
+        var outDir = System.IO.Path.Combine(slnDir, "ForgeTekPublish");
+        _buildArtifactPath = outDir;
+
+        BuildLog.Clear();
+        ShowBuildOverlay = true;
+        BuildFinished = false;
+        BuildSucceeded = false;
+        IsBuilding = true;
+        _buildCts = new CancellationTokenSource();
+        var progress = new Progress<string>(line => BuildLog.Add(line));
+        try
+        {
+            try { if (System.IO.Directory.Exists(outDir)) System.IO.Directory.Delete(outDir, recursive: true); }
+            catch (Exception ex) { BuildLog.Add($"(could not clean output: {ex.Message})"); }
+
+            var args = $"publish \"{target}\" -c Release -o \"{outDir}\"";
+            BuildLog.Add($"> dotnet {args}");
+            await ProcessRunner.RunOrThrowAsync("dotnet", args, slnDir, progress, _buildCts.Token);
+            BuildSucceeded = true;
+            BuildLog.Add(string.Empty);
+            BuildLog.Add($"✔ Build complete. Artifact: {outDir}");
+        }
+        catch (ToolNotFoundException)
+        {
+            BuildSucceeded = false;
+            BuildLog.Add("✗ The .NET SDK (dotnet) was not found on PATH.");
         }
         catch (OperationCanceledException) { BuildLog.Add("Cancelled."); }
         catch (Exception ex) { BuildSucceeded = false; BuildLog.Add($"✗ {ex.Message}"); }
@@ -385,7 +697,17 @@ public partial class AppDetailViewModel : ObservableObject
         PrimaryActionCommand.NotifyCanExecuteChanged();
     }
 
-    partial void OnSelectedVersionChanged(AppVersion? value) => RaiseWorkflowChanged();
+    partial void OnSelectedVersionChanged(AppVersion? value)
+    {
+        RaiseWorkflowChanged();
+        RefreshApprovalPanel();
+    }
+
+    partial void OnReviewNoteDraftChanged(string value)
+    {
+        AddReviewNoteCommand.NotifyCanExecuteChanged();
+        RejectSelectedCommand.NotifyCanExecuteChanged();
+    }
 
     private void CheckChangelogEntries()
     {
@@ -537,6 +859,7 @@ public partial class AppDetailViewModel : ObservableObject
         v.FtpPassword          = null;
 
         _storage.Update(_entry);
+        CollectBlobGarbage();   // the retracted version's now-unreferenced source blobs can be dropped
 
         var vIdx = Versions.IndexOf(v);
         if (vIdx >= 0) { Versions.RemoveAt(vIdx); Versions.Insert(vIdx, v); }
@@ -544,6 +867,13 @@ public partial class AppDetailViewModel : ObservableObject
         _main.RefreshSidebar(_entry);
         SelectedVersion = null;
     }
+
+    // Best-effort, off-thread sweep of source blobs no longer referenced by a live version (networked only).
+    private void CollectBlobGarbage() => _ = Task.Run(async () =>
+    {
+        try { await _blobs.CollectGarbageAsync(); }
+        catch (Exception ex) { _log.Write("Blobs", $"Source-file garbage collection failed: {ex.Message}"); }
+    });
 
     private async Task RetractRemoteAsync(AppVersion v, string? rollbackToVersion)
     {
@@ -563,7 +893,8 @@ public partial class AppDetailViewModel : ObservableObject
 
         try
         {
-            await _publish.RetractAsync(s, v, appKey, packageFileName, catalogFileName, rollbackToVersion, progress);
+            // Off the UI thread (like the dashboard's check) so the transport can't deadlock the dispatcher.
+            await Task.Run(() => _publish.RetractAsync(s, v, appKey, packageFileName, catalogFileName, rollbackToVersion, progress));
         }
         catch (Exception ex) { _log.Write("Retract", $"Remote retract failed: {ex.Message}"); }
     }
@@ -589,6 +920,7 @@ public partial class AppDetailViewModel : ObservableObject
 
         v.Status = VersionStatus.Scrapped;
         _storage.Update(_entry);
+        CollectBlobGarbage();   // a scrapped version's source blobs are no longer referenced
 
         var vIdx = Versions.IndexOf(v);
         if (vIdx >= 0) { Versions.RemoveAt(vIdx); Versions.Insert(vIdx, v); }
@@ -657,6 +989,14 @@ public partial class AppDetailViewModel : ObservableObject
             _scanCts.Dispose();
             _scanCts = null;
         }
+
+        // Networked: capture the scanned files in the shared store so this version can be (re)packaged on
+        // another machine that doesn't have this source folder. No-op standalone (NullFileBlobStore).
+        try
+        {
+            await Task.Run(() => _blobs.StoreAsync(folderPath, files));
+        }
+        catch (Exception ex) { _log.Write("Scan", $"Storing source files in the database failed: {ex.Message}"); }
 
         string? detectedVersion = _scanner.DetectExeVersion(folderPath, _entry.Name);
 
@@ -739,11 +1079,12 @@ public partial class AppDetailViewModel : ObservableObject
     [RelayCommand]
     private void EditApp()
     {
-        var result = _dialog.ShowAddEditApp(_entry.Name, _entry.FolderPath, _entry.AccentColor);
+        var result = _dialog.ShowAddEditApp(_entry.Name, _entry.FolderPath, _entry.AccentColor, _entry.SolutionPath);
         if (result is null) return;
         _entry.Name = result.Name;
         _entry.FolderPath = result.Path;
         _entry.AccentColor = result.AccentColor;
+        _entry.SolutionPath = result.SolutionPath;
         _main.NavigateToDetail(_entry);
     }
 
@@ -778,6 +1119,7 @@ public partial class AppDetailViewModel : ObservableObject
                 $"Delete '{_entry.Name}' and all its version history? This cannot be undone.",
                 "Delete App")) return;
         _storage.Delete(_entry.Id);
+        CollectBlobGarbage();   // the deleted app's source blobs are now unreferenced
         _main.NavigateToWelcome();
     }
 }

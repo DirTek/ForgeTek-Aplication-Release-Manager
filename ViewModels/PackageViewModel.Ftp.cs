@@ -30,10 +30,20 @@ public partial class PackageViewModel
             if (_version.PackagePath is null)
                 throw new InvalidOperationException("Package path is null — build the package first.");
 
-            await _publish.UploadReleaseAsync(_appSettings, _appKey, _version.VersionNumber,
-                _version.PackagePath, PackageFileName,
+            // Defense in depth: never publish an unapproved release (the button is also disabled).
+            if (!IsApproved)
+            {
+                Log.Add($"✗  Blocked: {ApprovalHint}");
+                return;
+            }
+
+            // Run the transport off the UI thread (like the dashboard's connection check) so its async
+            // work can't deadlock against the WPF dispatcher. Progress callbacks still marshal to the UI.
+            var token = _cts.Token;
+            await Task.Run(() => _publish.UploadReleaseAsync(_appSettings, _appKey, _version.VersionNumber,
+                _version.PackagePath!, PackageFileName,
                 _catalogOutputPath, CatalogFileName,
-                progress, _cts.Token);
+                progress, token), token);
 
             Log.Add(string.Empty);
             Log.Add("✔  All files published.");
@@ -56,5 +66,6 @@ public partial class PackageViewModel
         => !IsUploading && HasFtpSettings
            && _version.HasPackage
            && IsJsonComplete
+           && IsApproved
            && File.Exists(_catalogOutputPath);
 }

@@ -128,15 +128,27 @@ public class ScannerService : IScannerService
         var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
 
         progress?.Report(new DiffProgress("Building new file map…", 50));
+        // Shipped files: not excluded (debug), not marked-for-removal, not a baseline debug path.
         var newMap = newFiles
-            .Where(f => !f.IsDebug && !baseDebugPaths.Contains(f.Path))
+            .Where(f => !f.IsDebug && !f.IsRemoved && !baseDebugPaths.Contains(f.Path))
             .ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
+
+        // Every path in the new scan. A baseline file still present (and not marked-removed) was NOT
+        // deleted — it's either shipped or excluded (kept on disk). Removed = gone OR user-marked.
+        var newAllPaths      = newFiles.Select(f => f.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newRemovedPaths  = newFiles.Where(f => f.IsRemoved).Select(f => f.Path)
+                                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newExcludedPaths = newFiles.Where(f => f.IsDebug && !f.IsRemoved).Select(f => f.Path)
+                                       .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         progress?.Report(new DiffProgress("Comparing files…", 75));
         var result = new DiffResult
         {
             Added    = [.. newMap.Where(kv => !baseMap.ContainsKey(kv.Key)).Select(kv => kv.Value)],
-            Removed  = [.. baseMap.Where(kv => !newMap.ContainsKey(kv.Key)).Select(kv => kv.Value)],
+            // Deleted on clients: gone from the scan entirely, or explicitly marked for removal.
+            Removed  = [.. baseMap.Where(kv => !newAllPaths.Contains(kv.Key) || newRemovedPaths.Contains(kv.Key)).Select(kv => kv.Value)],
+            // Was shipped before, now excluded — kept on disk, neither shipped nor deleted.
+            Excluded = [.. baseMap.Where(kv => newExcludedPaths.Contains(kv.Key)).Select(kv => kv.Value)],
             Modified = [.. newMap.Where(kv => baseMap.TryGetValue(kv.Key, out var b)
                             && b.Checksum != kv.Value.Checksum).Select(kv => kv.Value)],
             Unchanged= [.. newMap.Where(kv => baseMap.TryGetValue(kv.Key, out var b)
@@ -152,6 +164,8 @@ public record DiffResult
 {
     public List<FileRecord> Added { get; init; } = [];
     public List<FileRecord> Removed { get; init; } = [];
+    /// <summary>Files that were shipped before but are now excluded — kept on disk, not shipped, not deleted.</summary>
+    public List<FileRecord> Excluded { get; init; } = [];
     public List<FileRecord> Modified { get; init; } = [];
     public List<FileRecord> Unchanged { get; init; } = [];
 }

@@ -8,6 +8,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
@@ -69,18 +70,70 @@
                             <Run Text="{Binding LastCommitMeta, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                         </TextBlock>
                     </StackPanel>
+
+                    <!-- Source: build from solution + dependency/license scans -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                Visibility="{Binding HasScanSource, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Text="&#xE943;" FontFamily="Segoe Fluent Icons" FontSize="12"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding SolutionPathDisplay}" FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"
+                                   MaxWidth="320" ToolTip="{Binding SolutionPathDisplay}"
+                                   Visibility="{Binding HasSolution, Converter={StaticResource BoolToVisibility}}"/>
+                        <Button Content="Build from solution" Style="{StaticResource SecondaryButton}"
+                                Padding="10,4" FontSize="11" Margin="12,0,0,0"
+                                ToolTip="dotnet publish -c Release from the app's solution, then scan the output"
+                                Visibility="{Binding HasSolution, Converter={StaticResource BoolToVisibility}}"
+                                Command="{Binding BuildFromSolutionCommand}"/>
+                        <Button Content="Scan dependencies" Style="{StaticResource SecondaryButton}"
+                                Padding="10,4" FontSize="11" Margin="8,0,0,0"
+                                ToolTip="Check NuGet dependencies for known vulnerabilities"
+                                Command="{Binding ScanDependenciesCommand}"/>
+                        <Button Content="Licenses" Style="{StaticResource SecondaryButton}"
+                                Padding="10,4" FontSize="11" Margin="8,0,0,0"
+                                ToolTip="Third-party NuGet license compliance report"
+                                Command="{Binding ScanLicensesCommand}"/>
+                        <Button Content="Compare" Style="{StaticResource SecondaryButton}"
+                                Padding="10,4" FontSize="11" Margin="8,0,0,0"
+                                ToolTip="Compare the app's files vs. the solution build vs. the GitHub build"
+                                Command="{Binding CompareSourcesCommand}"/>
+                        <Button Content="Compare w/ GitHub" Style="{StaticResource SecondaryButton}"
+                                Padding="10,4" FontSize="11" Margin="8,0,0,0"
+                                ToolTip="Compare your local project source against the connected GitHub repo"
+                                Visibility="{Binding GitHubConfigured, Converter={StaticResource BoolToVisibility}}"
+                                Command="{Binding CompareWithGitHubCommand}"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Settings" Style="{StaticResource SecondaryButton}"
+                    <Button Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
-                            Command="{Binding OpenAppSettingsCommand}"/>
-                    <Button Content="Edit" Style="{StaticResource SecondaryButton}"
+                            Command="{Binding OpenAppSettingsCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
-                            Command="{Binding EditAppCommand}"/>
-                    <Button Content="Delete" Style="{StaticResource DangerButton}"
+                            Command="{Binding EditAppCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Edit" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource DangerButton}"
                             Padding="14,8"
-                            Command="{Binding DeleteAppCommand}"/>
+                            Command="{Binding DeleteAppCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Delete" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -239,10 +292,49 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="VERSION HISTORY"
-                       FontSize="11" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="VERSION HISTORY"
+                           FontSize="11" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <!-- Channel filter (remembered across sessions) -->
+                <Button Content="Both" FontSize="11" Padding="12,4" Margin="0,0,6,0"
+                        Command="{Binding SetChannelFilterCommand}" CommandParameter="All">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChannelAll}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Stable" FontSize="11" Padding="12,4" Margin="0,0,6,0"
+                        Command="{Binding SetChannelFilterCommand}" CommandParameter="Stable">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChannelStable}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Content="Beta" FontSize="11" Padding="12,4"
+                        Command="{Binding SetChannelFilterCommand}" CommandParameter="Beta">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChannelBeta}" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource ModifiedBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button Content="Start Packing" Style="{StaticResource PrimaryButton}"
                         Padding="14,6" FontSize="12" Margin="0,0,8,0"
@@ -339,31 +431,36 @@
 
             <DataGrid.Columns>
 
-                <DataGridTextColumn Header="Version"   Width="90"
+                <DataGridTextColumn Header="Version"   Width="110"
                                     Binding="{Binding VersionNumber, StringFormat='v\{0\}'}"/>
 
-                <!-- Channel chip (only shown for Beta) -->
-                <DataGridTemplateColumn Header="Channel" Width="70">
+                <!-- Channel chip (Stable / Beta) -->
+                <DataGridTemplateColumn Header="Channel" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Border CornerRadius="4" Padding="6,2" Margin="8,0"
+                            <Border x:Name="chanChip" CornerRadius="4" Padding="6,2" Margin="8,0"
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
-                                    Background="{DynamicResource ModifiedBrush}"
-                                    Visibility="Collapsed" x:Name="betaChip">
-                                <TextBlock Text="Beta" FontSize="10" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}"/>
+                                    Background="{DynamicResource SurfaceBrush}">
+                                <TextBlock x:Name="chanText" Text="Stable" FontSize="10" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Channel}" Value="Beta">
-                                    <Setter TargetName="betaChip" Property="Visibility" Value="Visible"/>
+                                    <Setter TargetName="chanChip" Property="Background" Value="{DynamicResource ModifiedBrush}"/>
+                                    <Setter TargetName="chanText" Property="Text" Value="Beta"/>
+                                    <Setter TargetName="chanText" Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                 </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <!-- Package kind (Full / Incremental) -->
+                <DataGridTextColumn Header="Type" Width="110"
+                                    Binding="{Binding PackageKindLabel}"/>
+
                 <!-- Status badge -->
-                <DataGridTemplateColumn Header="Status" Width="120">
+                <DataGridTemplateColumn Header="Status" Width="140">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Border x:Name="badge" CornerRadius="4" Padding="8,3"
@@ -407,17 +504,17 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <DataGridTextColumn Header="Scan Date" Width="150"
+                <DataGridTextColumn Header="Scan Date" Width="180"
                                     Binding="{Binding ScanDate, StringFormat='yyyy-MM-dd  HH:mm'}"/>
 
-                <DataGridTextColumn Header="Files"         Width="70"
+                <DataGridTextColumn Header="Files"         Width="80"
                                     Binding="{Binding PackageFileCount}"/>
 
-                <DataGridTextColumn Header="Debug"         Width="60"
+                <DataGridTextColumn Header="Debug"         Width="80"
                                     Binding="{Binding DebugFileCount}"/>
 
                 <!-- Added -->
-                <DataGridTemplateColumn Header="Added" Width="70">
+                <DataGridTemplateColumn Header="Added" Width="85">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -440,7 +537,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Modified -->
-                <DataGridTemplateColumn Header="Modified" Width="80">
+                <DataGridTemplateColumn Header="Modified" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -463,7 +560,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Removed -->
-                <DataGridTemplateColumn Header="Removed" Width="80">
+                <DataGridTemplateColumn Header="Removed" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -486,7 +583,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Manifest -->
-                <DataGridTemplateColumn Header="Manifest" Width="90">
+                <DataGridTemplateColumn Header="Manifest" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -513,7 +610,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Package -->
-                <DataGridTemplateColumn Header="Package" Width="90">
+                <DataGridTemplateColumn Header="Package" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -539,8 +636,33 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
+                <!-- Setup generated (date a setup bundle that shipped this version was built) -->
+                <DataGridTemplateColumn Header="Setup Built" Width="160">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock VerticalAlignment="Center" Margin="12,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight"  Value="SemiBold"/>
+                                        <Setter Property="Foreground"  Value="{DynamicResource AccentBrush}"/>
+                                        <Setter Property="Text"
+                                                Value="{Binding SetupGeneratedDate, StringFormat='yyyy-MM-dd  HH:mm'}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SetupGeneratedDate}" Value="{x:Null}">
+                                                <Setter Property="Text"       Value="—"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                <Setter Property="FontWeight" Value="Normal"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <!-- Changelog -->
-                <DataGridTemplateColumn Header="Changelog" Width="100">
+                <DataGridTemplateColumn Header="Changelog" Width="*" MinWidth="110">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="View"
@@ -582,5 +704,43 @@
                     Padding="22,9" Margin="0,16,0,0" HorizontalAlignment="Center"
                     Command="{Binding ScanNowCommand}"/>
         </StackPanel>
+
+        <!-- Release approvals: Admin + QA Tester sign-off on the selected version (shown only when the
+             "require release approval" option is on and protection is enabled). -->
+        <Border Grid.Row="4" Margin="28,0,28,24" Padding="16"
+                Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                Visibility="{Binding ShowApprovalPanel, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Text="Release Approvals" FontWeight="SemiBold" FontSize="14"
+                           Foreground="{DynamicResource TextBrush}"/>
+                <TextBlock Text="{Binding ApprovalSummary}" Margin="0,4,0,0"
+                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+
+                <ItemsControl ItemsSource="{Binding ApprovalThread}" Margin="0,10,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Margin="0,2" FontSize="12"
+                                       Foreground="{DynamicResource TextBrush}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBox Text="{Binding ReviewNoteDraft, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,10,0,0" Padding="8,6"
+                         ToolTip="Add a review note, or a required reason when rejecting."/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="Approve" Style="{StaticResource SuccessButton}" Padding="16,7"
+                            Command="{Binding ApproveSelectedCommand}"
+                            Visibility="{Binding CanCastVote, Converter={StaticResource BoolToVisibility}}"/>
+                    <Button Content="Reject" Style="{StaticResource DangerButton}" Padding="16,7" Margin="8,0,0,0"
+                            Command="{Binding RejectSelectedCommand}"
+                            Visibility="{Binding CanCastVote, Converter={StaticResource BoolToVisibility}}"/>
+                    <Button Content="Add Note" Style="{StaticResource SecondaryButton}" Padding="16,7" Margin="8,0,0,0"
+                            Command="{Binding AddReviewNoteCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

@@ -35,6 +35,21 @@
                      Style="{StaticResource SecondaryButton}" Click="Browse_Click"/>
         </Grid>
 
+        <!-- Solution / source path (optional) -->
+        <TextBlock Text="Solution / Source Path (optional)"
+                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>
+        <Grid Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBox Grid.Column="0" x:Name="SlnBox" Height="36"
+                     ToolTip="A .sln/.csproj (or a folder containing one) for dependency/license scanning and source builds"/>
+            <Button  Grid.Column="2" Content="Browse…" Height="36" Padding="14,0"
+                     Style="{StaticResource SecondaryButton}" Click="BrowseSln_Click"/>
+        </Grid>
+
         <!-- Main Executable (Add mode only) -->
         <TextBlock x:Name="ExeLabel" Text="Main Executable"
                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Margin="0,14,0,0"/>

@@ -5,6 +5,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.EntityFrameworkCore;
+using ForgeTekUpdatePackager.Config;
+using ForgeTekUpdatePackager.Data;
 using ForgeTekUpdatePackager.Dialogs;
 using ForgeTekUpdatePackager.Helpers;
 using ForgeTekUpdatePackager.Models;
@@ -30,7 +33,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
     // ── Category navigation (driven by the sidebar) ───────────────────────
     // "Users" appears only to admins (and on first run, when no users exist yet).
     public string[] Categories => Session.CanManageUsers
-        ? new[] { "General", "GitHub", "Signing", "Backup & Data", "Logs", "Users" }
+        ? new[] { "General", "GitHub", "Signing", "Backup & Data", "Database", "Logs", "Users" }
         : new[] { "General", "GitHub", "Signing", "Backup & Data", "Logs" };
 
     [ObservableProperty] private string _selectedCategory = "General";
@@ -75,6 +78,88 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private string? _selectedStoreThumbprint;
 
     [ObservableProperty] private bool _keepInCertStore;
+
+    /// <summary>When on (and protection is enabled), releases need Admin + QA Tester approval to publish.</summary>
+    [ObservableProperty] private bool _requireReleaseApproval;
+
+    // ── Database / connection mode ────────────────────────────────────────
+    private readonly ConnectionConfig _connection = ConnectionConfig.Load();
+
+    /// <summary>False = local SQLite (standalone); True = shared SQL Server (networked, multi-operator).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNetworkedSelected))]
+    private bool _useNetworkedDatabase;
+
+    public bool IsNetworkedSelected => UseNetworkedDatabase;
+
+    /// <summary>Networked (shared SQL Server) is only offered once the deployment has at least one Admin,
+    /// so a shared store always has an owner who can administer it (e.g. a solo operator syncing a PC and a laptop).</summary>
+    public bool CanUseNetworked =>
+        _userService.GetAll().Any(u => u.Role == UserRole.Admin);
+
+    [ObservableProperty] private string _sqlServerConnectionString = string.Empty;
+    [ObservableProperty] private string _connectionStatus = string.Empty;
+    [ObservableProperty] private bool _isTestingConnection;
+
+    /// <summary>The provider in effect for the current session (changes take effect after restart).</summary>
+    public string CurrentStorageMode =>
+        _connection.IsNetworked && !string.IsNullOrWhiteSpace(_connection.SqlServerConnectionString)
+            ? "SQL Server (networked)" : "SQLite (local)";
+
+    [RelayCommand]
+    private async Task TestConnection()
+    {
+        if (string.IsNullOrWhiteSpace(SqlServerConnectionString))
+        {
+            ConnectionStatus = "Enter a SQL Server connection string first.";
+            return;
+        }
+        IsTestingConnection = true;
+        ConnectionStatus = "Testing…";
+        try
+        {
+            var ok = await Task.Run(() =>
+            {
+                var opts = new DbContextOptionsBuilder<ForgeTekDbContext>()
+                    .UseSqlServer(SqlServerConnectionString.Trim()).Options;
+                using var ctx = new ForgeTekDbContext(opts);
+                return ctx.Database.CanConnect();
+            });
+            ConnectionStatus = ok ? "✓ Connected successfully." : "✗ Could not connect (check the server and credentials).";
+        }
+        catch (Exception ex) { ConnectionStatus = $"✗ {ex.Message}"; }
+        finally { IsTestingConnection = false; }
+    }
+
+    [RelayCommand]
+    private void SaveConnection()
+    {
+        if (UseNetworkedDatabase && !CanUseNetworked)
+        {
+            MessageBox.Show(
+                "Create at least one Admin user before switching to a shared SQL Server, so the shared store has an owner.",
+                "Admin Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+            UseNetworkedDatabase = false;
+            return;
+        }
+
+        _connection.Mode = UseNetworkedDatabase ? StorageMode.Networked : StorageMode.Standalone;
+        _connection.SqlServerConnectionString =
+            string.IsNullOrWhiteSpace(SqlServerConnectionString) ? null : SqlServerConnectionString.Trim();
+        _connection.Save();
+        OnPropertyChanged(nameof(CurrentStorageMode));
+
+        var target = _connection.IsNetworked ? "SQL Server (networked)" : "SQLite (local)";
+        var restart = MessageBox.Show(
+            $"Connection settings saved.\n\nThe app must restart to switch to {target}. Restart now?",
+            "Restart Required", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (restart == MessageBoxResult.Yes)
+        {
+            var exe = Environment.ProcessPath;
+            if (exe is not null) System.Diagnostics.Process.Start(exe);
+            System.Windows.Application.Current.Shutdown();
+        }
+    }
 
     public bool   HasStoreCert => !string.IsNullOrWhiteSpace(SelectedStoreThumbprint);
 
@@ -147,7 +232,8 @@ public partial class GlobalOptionsViewModel : ObservableObject
 
     public GlobalOptionsViewModel(ISettingsService settings, ICertificateService certService,
         IBackupService backupService, IThemeService theme, IUserService userService, ISessionService session,
-        IProtectionStateService protection, IGitHubAuthService githubAuth, ILogService log)
+        IProtectionStateService protection, IGitHubAuthService githubAuth, ILogService log,
+        Services.Storage.ISharedCertificateStore certStore, IDialogService dialog)
     {
         _settings = settings;
         _certService = certService;
@@ -158,21 +244,160 @@ public partial class GlobalOptionsViewModel : ObservableObject
         _protection = protection;
         _githubAuth = githubAuth;
         _log = log;
+        _certStore = certStore;
+        _dialog = dialog;
 
         GenerateLog.CollectionChanged += (_, _) => HasGenerateLog = GenerateLog.Count > 0;
     }
+
+    // ── Shared certificates (networked: stored in the DB so operators can download/register them) ──
+    private readonly Services.Storage.ISharedCertificateStore _certStore;
+    private readonly IDialogService _dialog;
+
+    /// <summary>Whether the shared-certificate UI applies (networked mode only).</summary>
+    public bool ShowSharedCertificates => _certStore.IsShared;
+
+    public ObservableCollection<SharedCertificate> SharedCertificates { get; } = [];
+
+    private async void LoadSharedCerts()
+    {
+        if (!_certStore.IsShared) return;
+        try
+        {
+            var list = await _certStore.ListAsync();
+            SharedCertificates.Clear();
+            foreach (var c in list) SharedCertificates.Add(c);
+        }
+        catch (Exception ex) { _log.Write("Certificates", $"Listing shared certificates failed: {ex.Message}"); }
+    }
+
+    /// <summary>Saves the .pfx to a file of the operator's choosing (the password is shared out-of-band).</summary>
+    [RelayCommand]
+    private async Task DownloadCert(SharedCertificate? cert)
+    {
+        if (cert is null) return;
+        var path = _dialog.SaveFile("Save Certificate As", "Certificate (*.pfx)|*.pfx",
+            $"{Sanitize(cert.Subject)}.pfx");
+        if (path is null) return;
+        try
+        {
+            var pfx = await _certStore.GetPfxAsync(cert.Id);
+            if (pfx is null) { _dialog.Alert("Download Failed", "The certificate is no longer in the database."); return; }
+            await File.WriteAllBytesAsync(path, pfx);
+            _dialog.Alert("Certificate Saved",
+                $"Saved to:\n{path}\n\nUse the certificate password (shared separately) to install or sign with it.");
+        }
+        catch (Exception ex) { _dialog.Alert("Download Failed", ex.Message); }
+    }
+
+    /// <summary>Imports the .pfx into this machine's personal store (prompting for the password) so signing
+    /// can use it locally by thumbprint.</summary>
+    [RelayCommand]
+    private async Task RegisterCert(SharedCertificate? cert)
+    {
+        if (cert is null) return;
+        var pwd = _dialog.PromptPassword("Register Certificate",
+            $"Enter the password for '{cert.Subject}' to import it into your personal certificate store.");
+        if (pwd is null) return;   // cancelled
+        try
+        {
+            var pfx = await _certStore.GetPfxAsync(cert.Id);
+            if (pfx is null) { _dialog.Alert("Register Failed", "The certificate is no longer in the database."); return; }
+            await Task.Run(() => _certService.ImportToUserStore(pfx, pwd));
+            RefreshStoreCerts();
+            SelectedStoreThumbprint = cert.Thumbprint;
+            UseStoreCert = true;
+            _dialog.Alert("Certificate Registered",
+                $"'{cert.Subject}' is now in your personal store. Select it under \"Use a certificate from the Windows store\" to sign with it.");
+        }
+        catch (Exception ex)
+        {
+            _dialog.Alert("Register Failed",
+                $"Could not import the certificate. Check the password.\n\n{ex.Message}");
+        }
+    }
+
+    private static string Sanitize(string subject)
+        => string.Concat((subject ?? "certificate").Split(Path.GetInvalidFileNameChars())).Replace(' ', '_');
 
     // ── Logs ──────────────────────────────────────────────────────────────
     public ObservableCollection<string> LogEntries { get; } = [];
     [ObservableProperty] private bool _hasLogEntries;
 
+    /// <summary>The full range result, before the category filter is applied.</summary>
+    private readonly List<string> _allLogLines = [];
+
+    public const string AllCategories = "All categories";
+
+    /// <summary>"All categories" + the distinct categories present in the loaded range.</summary>
+    public ObservableCollection<string> LogCategories { get; } = [AllCategories];
+    [ObservableProperty] private string _selectedLogCategory = AllCategories;
+
+    partial void OnSelectedLogCategoryChanged(string value) => ApplyLogFilter();
+
+    // Date range for the log viewer — defaults to today, changeable via the pickers or the preset buttons.
+    [ObservableProperty] private DateTime _logFrom = DateTime.Today;
+    [ObservableProperty] private DateTime _logTo = DateTime.Today;
+    private bool _suppressLogRefresh;
+
+    partial void OnLogFromChanged(DateTime value) { if (!_suppressLogRefresh) RefreshLogs(); }
+    partial void OnLogToChanged(DateTime value)   { if (!_suppressLogRefresh) RefreshLogs(); }
+
+    [RelayCommand] private void LogsToday()  => SetLogRange(DateTime.Today, DateTime.Today);
+    [RelayCommand] private void LogsLast7()  => SetLogRange(DateTime.Today.AddDays(-6), DateTime.Today);
+    [RelayCommand] private void LogsLast30() => SetLogRange(DateTime.Today.AddDays(-29), DateTime.Today);
+
+    // Set both ends without refreshing twice mid-change.
+    private void SetLogRange(DateTime from, DateTime to)
+    {
+        _suppressLogRefresh = true;
+        LogFrom = from;
+        LogTo = to;
+        _suppressLogRefresh = false;
+        RefreshLogs();
+    }
+
     [RelayCommand]
     private void RefreshLogs()
     {
+        var from = DateOnly.FromDateTime(LogFrom.Date);
+        var to   = DateOnly.FromDateTime(LogTo.Date);
+
+        _allLogLines.Clear();
+        _allLogLines.AddRange(_log.ReadRange(from, to));
+
+        // Rebuild the category list from what's actually in the range; keep the current pick if still valid.
+        var previous = SelectedLogCategory;
+        var cats = _allLogLines.Select(ExtractCategory).Where(c => c is not null).Distinct()
+            .OrderBy(c => c, StringComparer.OrdinalIgnoreCase).ToList();
+        LogCategories.Clear();
+        LogCategories.Add(AllCategories);
+        foreach (var c in cats) LogCategories.Add(c!);
+
+        // Assigning the property re-applies the filter via OnSelectedLogCategoryChanged when it changes;
+        // the explicit call below covers the no-change case (e.g. still "All categories").
+        SelectedLogCategory = LogCategories.Contains(previous) ? previous : AllCategories;
+        ApplyLogFilter();
+    }
+
+    private void ApplyLogFilter()
+    {
         LogEntries.Clear();
-        foreach (var line in _log.ReadRecent(500))
-            LogEntries.Add(line);
+        var all = SelectedLogCategory == AllCategories;
+        foreach (var line in _allLogLines)
+            if (all || string.Equals(ExtractCategory(line), SelectedLogCategory, StringComparison.OrdinalIgnoreCase))
+                LogEntries.Add(line);
         HasLogEntries = LogEntries.Count > 0;
+    }
+
+    // Lines look like "yyyy-MM-dd [HH:mm:ss.fff] [Category] message"; the category is the 2nd bracketed token.
+    private static string? ExtractCategory(string line)
+    {
+        var first = line.IndexOf("] [", StringComparison.Ordinal);
+        if (first < 0) return null;
+        var start = first + 3;
+        var end = line.IndexOf(']', start);
+        return end < 0 ? null : line[start..end];
     }
 
     [RelayCommand]
@@ -197,6 +422,8 @@ public partial class GlobalOptionsViewModel : ObservableObject
         LoadAvailableCerts();
         RefreshStoreCerts();
         RefreshUsers();
+        LoadSharedCerts();
+        RefreshLogs();   // show today's logs by default
 
         GitHubClientId    = _settings.Global.GitHubClientId ?? string.Empty;
         GitHubLogin       = _settings.Global.GitHubLogin    ?? string.Empty;
@@ -213,6 +440,10 @@ public partial class GlobalOptionsViewModel : ObservableObject
         GlobalCertPassword     = g.GlobalCertPassword ?? string.Empty;
         SelectedStoreThumbprint = g.StoreCertThumbprint;
         KeepInCertStore        = g.KeepInCertStore;
+        RequireReleaseApproval = g.RequireReleaseApproval;
+
+        UseNetworkedDatabase     = _connection.IsNetworked;
+        SqlServerConnectionString = _connection.SqlServerConnectionString ?? string.Empty;
 
         if (!string.IsNullOrWhiteSpace(g.GlobalCertPath))
         {
@@ -289,6 +520,22 @@ public partial class GlobalOptionsViewModel : ObservableObject
             LoadAvailableCerts();
             SelectedCertFileName = Path.GetFileName(certPath);
             GlobalCertPassword   = GeneratePassword;
+
+            // Networked: share the .pfx through the DB so other operators can download/register it. The
+            // password is NOT stored — it stays with whoever generated it and is shared out-of-band.
+            if (_certStore.IsShared)
+            {
+                try
+                {
+                    var pfx        = await File.ReadAllBytesAsync(certPath, _cts.Token);
+                    var thumbprint = _certService.ReadThumbprint(pfx, GeneratePassword);
+                    await _certStore.SaveAsync(SubjectName, FriendlyName, thumbprint, pfx, Session.Current?.Username);
+                    LoadSharedCerts();
+                    GenerateLog.Add("✔  Shared to the database — other operators can download or register it.");
+                    GenerateLog.Add("⚠  Record the password now; it is NOT stored in the database.");
+                }
+                catch (Exception ex) { GenerateLog.Add($"⚠  Could not share to the database: {ex.Message}"); }
+            }
         }
         catch (OperationCanceledException) { GenerateLog.Add("Cancelled."); }
         catch (Exception ex)              { GenerateLog.Add($"✗  {ex.Message}"); }
@@ -318,6 +565,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
         g.GlobalCertPassword = string.IsNullOrWhiteSpace(GlobalCertPassword) ? null : GlobalCertPassword;
         g.StoreCertThumbprint = string.IsNullOrWhiteSpace(SelectedStoreThumbprint) ? null : SelectedStoreThumbprint;
         g.KeepInCertStore    = KeepInCertStore;
+        g.RequireReleaseApproval = RequireReleaseApproval;
         g.GitHubClientId     = string.IsNullOrWhiteSpace(GitHubClientId) ? null : GitHubClientId.Trim();
         _settings.SaveGlobal();
 
@@ -342,6 +590,42 @@ public partial class GlobalOptionsViewModel : ObservableObject
     {
         new BackupDialog(_backupService, _settings.RootFolder, SettingsService.GlobalSettingsFilePath)
             { Owner = Application.Current.MainWindow }.ShowDialog();
+    }
+
+    [ObservableProperty] private bool _isRestoring;
+
+    /// <summary>Re-imports a backup into the active store, then restarts so the EF caches reload.</summary>
+    [RelayCommand]
+    private async Task RestoreBackup()
+    {
+        var sharedWarning = _connection.IsNetworked && !string.IsNullOrWhiteSpace(_connection.SqlServerConnectionString)
+            ? "\n\n⚠ You are connected to a SHARED SQL Server — this restore affects every operator's data."
+            : string.Empty;
+        if (!_dialog.Confirm("Restore From Backup",
+                "This overwrites current data (apps, settings, users, certificates) with the backup's contents, " +
+                "then restarts the app." + sharedWarning + "\n\nContinue?",
+                "Choose Backup…"))
+            return;
+
+        var path = _dialog.OpenFile("Select a Backup ZIP", "Backup ZIP (*.zip)|*.zip|All files (*.*)|*.*");
+        if (path is null) return;
+
+        IsRestoring = true;
+        try
+        {
+            // RestoreAsync already offloads to a background thread; await it directly.
+            var progress = new Progress<string>(msg => _log.Write("Restore", msg));
+            var users = await _backupService.RestoreAsync(path, progress, CancellationToken.None);
+            _log.Write("Restore", $"Restore complete from {path} ({users} user(s)).");
+            _dialog.Alert("Restore Complete",
+                $"Restored {users} user(s) and all data.\n\nThe app will now restart to load it.");
+            RestartApp();
+        }
+        catch (Exception ex)
+        {
+            _dialog.Alert("Restore Failed", ex.Message);
+        }
+        finally { IsRestoring = false; }
     }
 
     private void GoBack()
@@ -454,6 +738,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
             Users.Add(new UserRowVm(u, isCurrent));
         }
         OnPropertyChanged(nameof(ProtectionEnabled));
+        OnPropertyChanged(nameof(CanUseNetworked));
     }
 
     [RelayCommand]

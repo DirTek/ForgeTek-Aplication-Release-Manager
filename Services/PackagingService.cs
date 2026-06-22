@@ -21,7 +21,7 @@ namespace ForgeTekUpdatePackager.Services;
 ///
 /// The JSON header is a <see cref="PackageHeader"/> object.
 /// </summary>
-public class PackagingService : IPackagingService
+public class PackagingService(Storage.IFileBlobStore blobs) : IPackagingService
 {
     private static readonly byte[] Magic = "FTUP"u8.ToArray();
 
@@ -51,7 +51,8 @@ public class PackagingService : IPackagingService
         string? manifestPath,
         IReadOnlyList<string>? removedFiles,
         IProgress<string> progress,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyList<FileRecord>? expectedFiles = null)
     {
         progress.Report($"Building {packageType.ToString().ToLower()} package for v{version.VersionNumber}…");
 
@@ -76,9 +77,15 @@ public class PackagingService : IPackagingService
             AppKey       = entry.Name,
             Version      = version.VersionNumber,
             PackageType  = packageType.ToString().ToLower(),
+            BaseVersion  = version.BaseVersion,
             CreatedAt    = DateTimeOffset.UtcNow,
             FileCount    = totalFiles,
             Files        = files.Select(f => new PackageHeaderFile
+            {
+                Path     = f.Path.Replace('\\', '/'),
+                Checksum = f.Checksum,
+            }).ToList(),
+            ExpectedFiles = (expectedFiles ?? files).Select(f => new PackageHeaderFile
             {
                 Path     = f.Path.Replace('\\', '/'),
                 Checksum = f.Checksum,
@@ -320,7 +327,7 @@ public class PackagingService : IPackagingService
 
     // ── ZIP building ─────────────────────────────────────────────────────────
 
-    private static async Task BuildZipAsync(
+    private async Task BuildZipAsync(
         AppEntry entry,
         IReadOnlyList<FileRecord> files,
         string? manifestPath,
@@ -355,9 +362,15 @@ public class PackagingService : IPackagingService
 
             progress.Report($"  [{i + 1}/{files.Count}] {entryName}");
 
-            if (!File.Exists(fullPath))
+            // Prefer local disk (standalone, and the machine that scanned). When the source folder isn't on
+            // this machine (networked, a different operator), fall back to the content-addressed blob store.
+            Stream? src = File.Exists(fullPath)
+                ? new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, true)
+                : await blobs.GetAsync(record.Checksum, ct) is { } bytes ? new MemoryStream(bytes) : null;
+
+            if (src is null)
             {
-                progress.Report("    ⚠ File not found on disk — skipped");
+                progress.Report("    ⚠ File not found on disk or in the database — skipped");
                 continue;
             }
 
@@ -368,10 +381,11 @@ public class PackagingService : IPackagingService
                 ? new DateTimeOffset(DateTime.SpecifyKind(record.DateModified, DateTimeKind.Utc))
                 : DateTimeOffset.UtcNow;
 
-            await using var src  = new FileStream(fullPath, FileMode.Open, FileAccess.Read,
-                                                  FileShare.Read, 65536, true);
-            await using var dest = zipEntry.Open();
-            await src.CopyToAsync(dest, ct);
+            await using (src)
+            {
+                await using var dest = zipEntry.Open();
+                await src.CopyToAsync(dest, ct);
+            }
         }
     }
 
@@ -393,9 +407,15 @@ internal sealed class PackageHeader
     public string AppKey      { get; set; } = string.Empty;
     public string Version     { get; set; } = string.Empty;
     public string PackageType { get; set; } = string.Empty;
+    /// <summary>The full baseline this cumulative incremental is relative to (null/empty for full).</summary>
+    public string? BaseVersion { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public int FileCount     { get; set; }
+    /// <summary>Files actually carried in the ZIP payload (changed since the baseline).</summary>
     public List<PackageHeaderFile> Files { get; set; } = [];
+    /// <summary>The full expected file set after applying (every non-debug file + hash) — lets the
+    /// client verify completeness and self-heal by fetching the full if anything is missing/wrong.</summary>
+    public List<PackageHeaderFile> ExpectedFiles { get; set; } = [];
     public List<string> RemovedFiles { get; set; } = [];
 }
 

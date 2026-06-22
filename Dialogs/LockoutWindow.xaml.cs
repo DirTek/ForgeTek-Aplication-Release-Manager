@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.IO;
-using System.IO.Compression;
 using System.Windows;
 using Microsoft.Win32;
 using ForgeTekUpdatePackager.Services;
@@ -9,11 +7,17 @@ namespace ForgeTekUpdatePackager.Dialogs;
 
 public partial class LockoutWindow : Window
 {
-    public LockoutWindow() => InitializeComponent();
+    private readonly IBackupService _backup;
+
+    public LockoutWindow(IBackupService backup)
+    {
+        _backup = backup;
+        InitializeComponent();
+    }
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
-    private void Restore_Click(object sender, RoutedEventArgs e)
+    private async void Restore_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFileDialog
         {
@@ -25,18 +29,14 @@ public partial class LockoutWindow : Window
 
         try
         {
-            using var zip = ZipFile.OpenRead(dlg.FileName);
-            var entry = zip.GetEntry(UserService.UsersBackupEntry);
-            if (entry is null)
+            var progress = new Progress<string>(_ => { });
+            var restoredUsers = await _backup.RestoreAsync(dlg.FileName, progress, CancellationToken.None);
+            if (restoredUsers == 0)
             {
-                ShowError("This backup doesn't contain a user database (settings/users.json). " +
+                ShowError("This backup doesn't contain a user database. " +
                           "Use a backup created after the update.");
                 return;
             }
-
-            var dest = UserService.UsersFilePath;
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            entry.ExtractToFile(dest, overwrite: true);
 
             // Relaunch into the normal login flow.
             var exe = Environment.ProcessPath;

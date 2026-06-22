@@ -11,11 +11,13 @@ public partial class AddEditAppDialog : Window
 {
     public string AppName         => NameBox.Text.Trim();
     public string AppPath         => PathBox.Text.Trim();
+    public string SolutionPath    => SlnBox.Text.Trim();
     public string InitialVersion  => VersionBox.Text.Trim();
     public string AccentColor     { get; private set; } = "#0A84FF";
     public bool   IsNewApp        { get; }
 
-    public AddEditAppDialog(string name = "", string path = "", string accentColor = "#0A84FF")
+    public AddEditAppDialog(string name = "", string path = "", string accentColor = "#0A84FF",
+        string solutionPath = "")
     {
         InitializeComponent();
         IsNewApp = string.IsNullOrEmpty(name);
@@ -25,6 +27,7 @@ public partial class AddEditAppDialog : Window
 
         NameBox.Text = name;
         PathBox.Text = path;
+        SlnBox.Text = solutionPath;
 
         if (!IsNewApp)
         {
@@ -45,6 +48,26 @@ public partial class AddEditAppDialog : Window
             PathBox.Text = dlg.FolderName;
             _ = ScanForExesAsync(dlg.FolderName);
         }
+    }
+
+    private void BrowseSln_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFileDialog
+        {
+            Title = "Select the solution or project file",
+            Filter = "Solution / project (*.sln;*.csproj)|*.sln;*.csproj|All files (*.*)|*.*",
+            CheckFileExists = true,
+        };
+        if (!string.IsNullOrWhiteSpace(SlnBox.Text))
+        {
+            try { dlg.InitialDirectory = Path.GetDirectoryName(SlnBox.Text); } catch { }
+        }
+        else if (!string.IsNullOrWhiteSpace(PathBox.Text))
+        {
+            dlg.InitialDirectory = PathBox.Text;
+        }
+        if (dlg.ShowDialog(this) == true)
+            SlnBox.Text = dlg.FileName;
     }
 
     private async Task ScanForExesAsync(string folder)

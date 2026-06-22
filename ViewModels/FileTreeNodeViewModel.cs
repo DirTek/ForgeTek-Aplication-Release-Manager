@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using ForgeTekUpdatePackager.Models;
 
 namespace ForgeTekUpdatePackager.ViewModels;
@@ -20,6 +21,8 @@ public partial class FileTreeNodeViewModel : ObservableObject
 
     [ObservableProperty] private bool _isIncluded = true;
     [ObservableProperty] private bool _isDebug    = false;
+    // Marked for deletion on clients (not shipped, added to the package's RemovedFiles).
+    [ObservableProperty] private bool _isRemoved  = false;
     [ObservableProperty] private bool _isExpanded = false;
     [ObservableProperty] private bool _isVisible  = true;
 
@@ -42,8 +45,9 @@ public partial class FileTreeNodeViewModel : ObservableObject
         RelativePath = record.Path;
         IsFolder = false;
         Record = record;
-        _isIncluded = !record.IsDebug;
+        _isIncluded = !record.IsDebug && !record.IsRemoved;
         _isDebug    = record.IsDebug;
+        _isRemoved  = record.IsRemoved;
     }
 
     // File node for diff view
@@ -64,14 +68,32 @@ public partial class FileTreeNodeViewModel : ObservableObject
         }
         else
         {
+            if (value && IsRemoved) IsRemoved = false;   // re-including clears a pending removal
             IsDebug = !value;
         }
     }
 
     partial void OnIsDebugChanged(bool value)
     {
+        if (!value && IsRemoved) return;   // a removed file stays excluded from shipping
         IsIncluded = !value;
         if (Record is not null) Record.IsDebug = value;
+    }
+
+    partial void OnIsRemovedChanged(bool value)
+    {
+        if (Record is not null) Record.IsRemoved = value;
+        if (value) IsIncluded = false;     // marked for deletion → never shipped
+    }
+
+    /// <summary>Toggles "delete on clients" for a file node (cascades to a folder's files).</summary>
+    [RelayCommand]
+    private void ToggleRemove()
+    {
+        if (IsFolder)
+            foreach (var child in Children) child.ToggleRemoveCommand.Execute(null);
+        else
+            IsRemoved = !IsRemoved;
     }
 
     // ── Build ─────────────────────────────────────────────────────────────
@@ -162,6 +184,7 @@ public partial class FileTreeNodeViewModel : ObservableObject
             else if (node.Record is not null)
             {
                 node.Record.IsDebug = node.IsDebug;
+                node.Record.IsRemoved = node.IsRemoved;
                 yield return node.Record;
             }
         }

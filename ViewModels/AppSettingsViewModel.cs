@@ -352,8 +352,13 @@ public partial class AppSettingsViewModel : ObservableObject
         ConnectionTestResult = string.Empty;
         try
         {
-            ConnectionTestResult = await _publish.TestAsync(BuildSettings());
+            var settings = BuildSettings();   // read the form fields on the UI thread
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            // Run the transport off the UI thread (as the dashboard's connection check does) so its async
+            // work can't deadlock against the WPF dispatcher; the 30s cap guarantees it can't hang.
+            ConnectionTestResult = await Task.Run(() => _publish.TestAsync(settings, cts.Token), cts.Token);
         }
+        catch (OperationCanceledException) { ConnectionTestResult = "✗ Timed out after 30s."; }
         catch (Exception ex) { ConnectionTestResult = $"✗ {ex.Message}"; }
         finally
         {

@@ -45,6 +45,37 @@ public class LogService : ILogService
         catch { return []; }
     }
 
+    public IReadOnlyList<string> ReadRange(DateOnly from, DateOnly to, int maxLines = 5000)
+    {
+        try
+        {
+            if (!Directory.Exists(_logFolder)) return [];
+            if (from > to) (from, to) = (to, from);
+
+            var collected = new List<string>();
+            var files = new DirectoryInfo(_logFolder).GetFiles("*.log")
+                .Select(f => (file: f, date: ParseDate(f.Name)))
+                .Where(x => x.date is { } d && d >= from && d <= to)
+                .OrderBy(x => x.date);   // chronological (oldest day first)
+
+            foreach (var (file, date) in files)
+            {
+                var prefix = date!.Value.ToString("yyyy-MM-dd");
+                foreach (var line in File.ReadAllLines(file.FullName))
+                    collected.Add($"{prefix} {line}");
+            }
+
+            return collected.Count > maxLines
+                ? collected.Skip(collected.Count - maxLines).ToList()
+                : collected;
+        }
+        catch { return []; }
+    }
+
+    // Daily files are named yyyy-MM-dd.log; returns null for anything that doesn't match.
+    private static DateOnly? ParseDate(string fileName)
+        => DateOnly.TryParseExact(Path.GetFileNameWithoutExtension(fileName), "yyyy-MM-dd", out var d) ? d : null;
+
     public void Write(string category, string message)
     {
         var ts    = DateTime.Now.ToString("HH:mm:ss.fff");

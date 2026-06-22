@@ -42,7 +42,8 @@ public class PackageStepTrackingTests
             Substitute.For<IPublishService>(),
             Substitute.For<IManifestService>(),
             Substitute.For<IUpdateCatalogService>(),
-            dialogMock);
+            dialogMock,
+            Substitute.For<IApprovalService>());
         var entry = new AppEntry { Name = "TestApp", FolderPath = @"C:\apps\test" };
         var version = new AppVersion { VersionNumber = "1.0", ScanDate = DateTime.Now };
         entry.Versions.Add(version);

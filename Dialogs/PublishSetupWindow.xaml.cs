@@ -14,6 +14,9 @@ public partial class PublishSetupWindow : Window
 {
     private readonly IPublishService _publish;
     private readonly ISetupStorageService _storage;
+    private readonly IApprovalService? _approval;
+    private readonly ISessionService? _session;
+    private readonly bool _requireApproval;
     private readonly string _appKey;
     private readonly GeneratedSetupRecord _record;
     private readonly AppSettings? _target;   // the bundle's publish profile projected for the transports
@@ -23,11 +26,15 @@ public partial class PublishSetupWindow : Window
     private string _fileName = "";
 
     public PublishSetupWindow(IPublishService publish, ISetupStorageService storage,
-        string appKey, PublishProfile? profile, GeneratedSetupRecord record)
+        string appKey, PublishProfile? profile, GeneratedSetupRecord record,
+        IApprovalService? approval = null, ISessionService? session = null, bool requireApproval = false)
     {
         InitializeComponent();
         _publish = publish;
         _storage = storage;
+        _approval = approval;
+        _session = session;
+        _requireApproval = requireApproval;
         _appKey = appKey;
         _record = record;
         _target = profile?.ToAppSettings();
@@ -73,7 +80,21 @@ public partial class PublishSetupWindow : Window
             Log($"The setup file is missing:\n{record.OutputPath}");
             PublishBtn.IsEnabled = false;
         }
+
+        // Release gate: a setup can't be published until an Admin and a QA Tester have approved it
+        // (only enforced when access protection is on).
+        if (!IsApproved)
+        {
+            PublishBtn.IsEnabled = false;
+            StatusText.Text = $"Needs Admin + QA Tester approval — {_approval!.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+            Log("This setup must be approved by an Admin and a QA Tester before it can be published.");
+        }
     }
+
+    // ── Release approval gate ────────────────────────────────────────────
+    private string ApprovalTargetKey => ReleaseApproval.ForSetup(_record.BundleId, _record.Id);
+    private bool ApprovalRequired => _requireApproval && _session is { IsProtected: true } && _approval is not null;
+    private bool IsApproved => !ApprovalRequired || _approval!.IsApproved(ApprovalTargetKey);
 
     private void ShowPublished(string url)
     {
@@ -97,6 +118,11 @@ public partial class PublishSetupWindow : Window
     private async void Publish_Click(object sender, RoutedEventArgs e)
     {
         if (_busy || _target is null) return;
+        if (!IsApproved)
+        {
+            StatusText.Text = $"Needs Admin + QA Tester approval — {_approval!.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+            return;
+        }
         if (_isGitHub) _target.GitHubReleaseTag = NormalizedTag();
 
         _busy = true;
@@ -123,8 +149,10 @@ public partial class PublishSetupWindow : Window
                     UploadBar.Value = Math.Min(100, sent * 100.0 / total);
                 }
             });
-            var url = await _publish.UploadArtifactAsync(_target, _appKey, _record.Version,
-                _record.OutputPath, fileName, progress, _cts.Token, bytes);
+            // Off the UI thread (like the dashboard's check) so the transport can't deadlock the dispatcher.
+            var token = _cts.Token;
+            var url = await Task.Run(() => _publish.UploadArtifactAsync(_target!, _appKey, _record.Version,
+                _record.OutputPath, fileName, progress, token, bytes), token);
 
             _record.PublishedUrl = url;
             _record.PublishedProvider = _publish.ProviderName(_target);
@@ -172,7 +200,8 @@ public partial class PublishSetupWindow : Window
         try
         {
             var progress = new Progress<string>(Append);
-            await _publish.DeleteArtifactAsync(_target, _appKey, _record.Version, fileName, progress, _cts.Token);
+            var token = _cts.Token;
+            await Task.Run(() => _publish.DeleteArtifactAsync(_target!, _appKey, _record.Version, fileName, progress, token), token);
 
             _record.PublishedUrl = null;
             _record.PublishedProvider = null;

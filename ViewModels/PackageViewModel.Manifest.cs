@@ -34,11 +34,16 @@ public partial class PackageViewModel
         Log.Add(string.Empty);
         Log.Add($"Building manifest for v{_version.VersionNumber}…");
 
+        // A Full has no baseline; an Incremental is cumulative since the last full.
+        _version.BaseVersion = SelectedPackageType == PackageType.Incremental ? _baselineVersion : null;
+
         _cts = new CancellationTokenSource();
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
-            var json = await _manifest.GenerateAsync(_entry, _version, _incrementalFiles, _version.RemovedFiles, progress, _cts.Token);
+            // The manifest records the FULL expected state (every non-debug file + hash) for client
+            // self-heal, with baseline-relative removed files; the package payload stays incremental.
+            var json = await _manifest.GenerateAsync(_entry, _version, _fullFiles, _packageRemovedFiles, progress, _cts.Token);
             Directory.CreateDirectory(Path.GetDirectoryName(ManifestOutputPath) ?? ".");
             await File.WriteAllTextAsync(ManifestOutputPath, json, _cts.Token);
             Log.Add(string.Empty);

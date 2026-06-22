@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ForgeTekUpdatePackager.Models;
+using ForgeTekUpdatePackager.Services.Security;
 
 namespace ForgeTekUpdatePackager.Services;
 
@@ -9,6 +10,7 @@ public class StorageService : IStorageService
 {
     private readonly string _appsRoot;
     private readonly ILogService _log;
+    private readonly ISecretProtector _protector;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,10 +23,11 @@ public class StorageService : IStorageService
     private readonly Dictionary<string, string> _folderNames = new();
     private List<AppEntry> _apps = [];
 
-    public StorageService(ISettingsService settings, ILogService log)
+    public StorageService(ISettingsService settings, ILogService log, ISecretProtector protector)
     {
         _appsRoot = Path.Combine(settings.RootFolder, "apps");
         _log = log;
+        _protector = protector;
         Load();
     }
 
@@ -146,16 +149,16 @@ public class StorageService : IStorageService
             root.ToJsonString(JsonOptions));
     }
 
-    private static void EncryptField(JsonObject obj, string key)
+    private void EncryptField(JsonObject obj, string key)
     {
         if (obj[key] is JsonValue jv && jv.TryGetValue<string>(out var val) && !string.IsNullOrEmpty(val))
-            obj[key] = DpapiService.Protect(val);
+            obj[key] = _protector.Protect(val);
     }
 
-    private static string? DecryptOrPassthrough(string? value)
+    private string? DecryptOrPassthrough(string? value)
     {
         if (string.IsNullOrEmpty(value)) return value;
-        return DpapiService.IsProtected(value) ? DpapiService.Unprotect(value) : value;
+        return _protector.IsProtected(value) ? _protector.Unprotect(value) : value;
     }
 
     internal static string Sanitize(string name)

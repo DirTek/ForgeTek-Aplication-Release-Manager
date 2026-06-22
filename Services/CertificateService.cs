@@ -1,11 +1,29 @@
 using System.Diagnostics;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace ForgeTekUpdatePackager.Services;
 
 public class CertificateService : ICertificateService
 {
+    public string ReadThumbprint(byte[] pfx, string password)
+    {
+        using var cert = X509CertificateLoader.LoadPkcs12(pfx, password);
+        return cert.Thumbprint;
+    }
+
+    public void ImportToUserStore(byte[] pfx, string password)
+    {
+        // PersistKeySet keeps the private key in the user's key store; Exportable lets it be re-exported later.
+        using var cert = X509CertificateLoader.LoadPkcs12(pfx, password,
+            X509KeyStorageFlags.PersistKeySet | X509KeyStorageFlags.Exportable);
+        using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+        store.Open(OpenFlags.ReadWrite);
+        store.Add(cert);
+        store.Close();
+    }
+
     /// <summary>
     /// Generates a self-signed code-signing certificate using PowerShell's
     /// New-SelfSignedCertificate, exports it as a PFX, then removes it from

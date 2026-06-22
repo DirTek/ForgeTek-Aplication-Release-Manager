@@ -41,9 +41,73 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="+ New Setup" Style="{StaticResource PrimaryButton}"
-                            Padding="20,10"
-                            Command="{Binding NewSetupCommand}"/>
+                    <!-- Selection actions: enabled once a bundle is selected in the list. -->
+                    <Button Style="{StaticResource SuccessButton}"
+                            Padding="14,9" Margin="0,0,8,0"
+                            IsEnabled="{Binding HasSelection}"
+                            Command="{Binding GenerateSetupCommand}"
+                            CommandParameter="{Binding SelectedBundle.Bundle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Generate" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Padding="14,9" Margin="0,0,8,0"
+                            IsEnabled="{Binding HasSelection}"
+                            ToolTip="Publish the most recently generated setup for this bundle"
+                            Command="{Binding PublishBundleSetupCommand}"
+                            CommandParameter="{Binding SelectedBundle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Publish…" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Padding="14,9" Margin="0,0,8,0"
+                            IsEnabled="{Binding HasSelection}"
+                            ToolTip="Where this bundle's installer is published (separate from app updates)"
+                            Command="{Binding ConfigureSetupPublishCommand}"
+                            CommandParameter="{Binding SelectedBundle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Publish settings…" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Padding="14,9" Margin="0,0,8,0"
+                            IsEnabled="{Binding HasSelection}"
+                            Command="{Binding EditSetupCommand}"
+                            CommandParameter="{Binding SelectedBundle.Bundle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Edit" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource DangerButton}"
+                            Padding="14,9" Margin="0,0,16,0"
+                            IsEnabled="{Binding HasSelection}"
+                            Command="{Binding DeleteSetupCommand}"
+                            CommandParameter="{Binding SelectedBundle.Bundle}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Delete" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Padding="18,10"
+                            Command="{Binding NewSetupCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="New Setup" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
 
@@ -60,25 +124,55 @@
                 <TextBlock Text="Bundle one or more apps into a single Windows installer."
                            FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                <Button Content="+ New Setup" Style="{StaticResource PrimaryButton}"
-                        Padding="22,9" Margin="0,16,0,0" HorizontalAlignment="Center"
-                        Command="{Binding NewSetupCommand}"/>
+                <Button Style="{StaticResource PrimaryButton}"
+                        Padding="20,9" Margin="0,16,0,0" HorizontalAlignment="Center"
+                        Command="{Binding NewSetupCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                   VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock Text="New Setup" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
             <!-- Bundle list -->
-            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <ItemsControl ItemsSource="{Binding Bundles}">
-                    <ItemsControl.ItemTemplate>
+            <ListBox Grid.Row="2" ItemsSource="{Binding Bundles}"
+                     SelectedItem="{Binding SelectedBundle}"
+                     Background="Transparent" BorderThickness="0" Padding="0"
+                     HorizontalContentAlignment="Stretch"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Margin" Value="0,0,0,10"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="card" CornerRadius="10" Padding="16" Cursor="Hand"
+                                            Background="{DynamicResource SurfaceBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="card" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="card" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                            <Setter TargetName="card" Property="BorderThickness" Value="2"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:SetupBundleVm}">
-                            <Border CornerRadius="10" Padding="16" Margin="0,0,0,10"
-                                    Background="{DynamicResource SurfaceBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
 
                                     <!-- Icon -->
@@ -111,6 +205,17 @@
                                                     <TextBlock Text="Signed" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
                                                 </StackPanel>
                                             </Border>
+                                            <!-- Published badge -->
+                                            <Border CornerRadius="4" Padding="7,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                    Background="{DynamicResource SuccessSoftBrush}"
+                                                    ToolTip="{Binding PublishTooltip}"
+                                                    Visibility="{Binding IsPublished, Converter={StaticResource BoolToVisibility}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="10"
+                                                               Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock Text="Published" FontSize="11" Foreground="{DynamicResource AddedBrush}"/>
+                                                </StackPanel>
+                                            </Border>
                                         </StackPanel>
 
                                         <!-- Apps included + their versions -->
@@ -136,6 +241,16 @@
                                             <TextBlock Text="·   Not generated yet" FontSize="11" Margin="8,0,0,0"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        Visibility="{Binding IsGenerated, Converter={StaticResource InvertVisibility}}"/>
+                                            <StackPanel Orientation="Horizontal" Margin="8,0,0,0"
+                                                        Visibility="{Binding IsPublished, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="·   " FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                                <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="11"
+                                                           Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                <TextBlock FontSize="11" Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center">
+                                                    <Run Text="Published to "/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
+                                                    <Run Text="{Binding PublishedDate, Mode=OneWay, StringFormat=' · {0:yyyy-MM-dd HH:mm}'}"/>
+                                                </TextBlock>
+                                            </StackPanel>
                                         </StackPanel>
 
                                         <!-- Output path -->
@@ -150,50 +265,10 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <!-- Actions -->
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                                VerticalAlignment="Center">
-                                        <Button Style="{StaticResource PrimaryButton}"
-                                                Padding="16,8" Margin="0,0,8,0"
-                                                Command="{Binding DataContext.GenerateSetupCommand,
-                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding Bundle}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons" FontSize="13"
-                                                           VerticalAlignment="Center" Margin="0,0,7,0"/>
-                                                <TextBlock Text="Generate" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Button>
-                                        <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
-                                                Padding="16,8" Margin="0,0,8,0"
-                                                ToolTip="Publish the most recently generated setup for this bundle"
-                                                Command="{Binding DataContext.PublishBundleSetupCommand,
-                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"/>
-                                        <Button Content="Publish settings…" Style="{StaticResource SecondaryButton}"
-                                                Padding="16,8" Margin="0,0,8,0"
-                                                ToolTip="Where this bundle's installer is published (separate from app updates)"
-                                                Command="{Binding DataContext.ConfigureSetupPublishCommand,
-                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding}"/>
-                                        <Button Content="Edit" Style="{StaticResource SecondaryButton}"
-                                                Padding="16,8" Margin="0,0,8,0"
-                                                Command="{Binding DataContext.EditSetupCommand,
-                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding Bundle}"/>
-                                        <Button Content="Delete" Style="{StaticResource DangerButton}"
-                                                Padding="16,8"
-                                                Command="{Binding DataContext.DeleteSetupCommand,
-                                                    RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                CommandParameter="{Binding Bundle}"/>
-                                    </StackPanel>
                                 </Grid>
-                            </Border>
                         </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                </StackPanel>
-            </ScrollViewer>
+                </ListBox.ItemTemplate>
+            </ListBox>
           </Grid>
 
           <!-- ── Category: Past Bundles (generation history) ── -->
@@ -217,10 +292,16 @@
                                Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Clear History" Style="{StaticResource SecondaryButton}"
-                            Padding="20,10"
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Padding="16,10"
                             Command="{Binding ClearHistoryCommand}"
-                            Visibility="{Binding History.Count, Converter={StaticResource ZeroToVisible}, ConverterParameter=invert}"/>
+                            Visibility="{Binding History.Count, Converter={StaticResource ZeroToVisible}, ConverterParameter=invert}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="Clear History" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
 
@@ -865,7 +946,7 @@
 
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" Margin="0,12,0,0"
-                                       Text="A small &quot;Installer by ForgeTek Release Manager&quot; attribution is shown in the installer footer."/>
+                                       Text="A small &quot;Installer by ForgeTek Application Release Manager&quot; attribution is shown in the installer footer."/>
                         </StackPanel>
                     </Border>
 

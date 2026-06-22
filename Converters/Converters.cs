@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
@@ -88,6 +88,33 @@ public class FileExistsConverter : IValueConverter
             _ => exists,
         };
     }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>Maps a sidebar category name to a Segoe Fluent Icons glyph.</summary>
+public class CategoryGlyphConverter : IValueConverter
+{
+    public static readonly CategoryGlyphConverter Instance = new();
+
+    private static readonly Dictionary<string, string> Map = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Setup Bundles"] = "\uE7B8",   // package
+        ["Past Bundles"]  = "\uE81C",   // history
+        ["General"]       = "\uE713",   // settings
+        ["GitHub"]        = "\uE71B",   // git/branch
+        ["Signing"]       = "\uEB95",   // certificate / lock
+        ["Backup & Data"] = "\uE74E",   // copy / data
+        ["Database"]      = "\uE968",   // server / database
+        ["Logs"]          = "\uE7C3",   // list
+        ["Users"]         = "\uE77B",   // contact
+        ["Appearance"]    = "\uE790",   // color
+        ["Publishing"]    = "\uE898",   // upload
+    };
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        => value is string s && Map.TryGetValue(s, out var glyph) ? glyph : "";   // default: menu
+
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }

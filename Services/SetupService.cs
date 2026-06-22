@@ -25,7 +25,7 @@ public class SetupService : ISetupService
 
     /// <summary>Fixed attribution shown in every generated installer's footer. Intentionally not
     /// operator-editable so the ForgeTek watermark can't be removed or rebranded from a bundle.</summary>
-    private const string ForgeTekWatermark = "Installer by ForgeTek Release Manager";
+    private const string ForgeTekWatermark = "Installer by ForgeTek Application Release Manager";
 
     private readonly IStorageService _storage;
     private readonly ISettingsService _settings;
@@ -538,6 +538,14 @@ public class SetupService : ISetupService
                 try { sha256 = HashUtil.Sha256File(ctx.SetupPath); }
                 catch (Exception ex) { _log.Write("SetupGen", $"Could not hash setup: {ex.Message}"); }
             }
+            // Snapshot each app's version at generation time so per-app version history can show
+            // when a setup that shipped that version was built.
+            var appVersions = ctx.Bundle.Apps
+                .Where(a => !string.IsNullOrEmpty(a.AppId))
+                .GroupBy(a => a.AppId)
+                .ToDictionary(g => g.Key,
+                    g => _storage.GetById(g.Key)?.LatestVersion?.VersionNumber ?? string.Empty);
+
             _setupStorage.AddHistory(new GeneratedSetupRecord
             {
                 BundleId      = ctx.Bundle.Id,
@@ -549,6 +557,7 @@ public class SetupService : ISetupService
                 FileSizeBytes = size,
                 Sha256        = sha256,
                 ArchivedPath  = ctx.ArchivedPath,
+                AppVersions   = appVersions,
             });
         }
         catch (Exception ex)

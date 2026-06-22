@@ -48,6 +48,9 @@ public class UpdateCatalogService : IUpdateCatalogService
             ["url"]      = packageUrl,
             ["date"]     = version.ScanDate.ToString("yyyy-MM-dd"),
             ["type"]     = version.PackageType == PackageType.Incremental ? "incremental" : "full",
+            // The full baseline this cumulative incremental applies on top of (empty for a full).
+            // A client whose installed version is older than this must fetch "latestFull" first.
+            ["base"]     = version.BaseVersion ?? string.Empty,
             ["checksum"] = version.PackageChecksum ?? string.Empty,
             ["channel"]  = version.Channel == UpdateChannel.Beta ? "beta" : "stable",
         };
@@ -69,17 +72,24 @@ public class UpdateCatalogService : IUpdateCatalogService
     {
         string? stableKey = null, stableUrl = null;
         string? anyKey = null, anyUrl = null;
+        string? fullKey = null, fullUrl = null;
 
         foreach (var kv in versionsObj)
         {
             if (kv.Value is not JsonObject entry) continue;
             var url     = entry["url"]?.GetValue<string>() ?? string.Empty;
             var channel = entry["channel"]?.GetValue<string>() ?? "stable";
+            var type    = entry["type"]?.GetValue<string>() ?? "incremental";
 
             anyKey = kv.Key; anyUrl = url;
             if (!string.Equals(channel, "beta", StringComparison.OrdinalIgnoreCase))
             {
                 stableKey = kv.Key; stableUrl = url;
+            }
+            // Newest full baseline — a fresh/old install downloads this before the latest patch.
+            if (string.Equals(type, "full", StringComparison.OrdinalIgnoreCase))
+            {
+                fullKey = kv.Key; fullUrl = url;
             }
         }
 
@@ -105,6 +115,12 @@ public class UpdateCatalogService : IUpdateCatalogService
         if (anyKey is not null)
             channels["beta"] = new JsonObject { ["version"] = anyKey, ["url"] = anyUrl };
         root["channels"] = channels;
+
+        // The latest full baseline, for fresh installs / installs older than the latest patch's base.
+        if (fullKey is not null)
+            root["latestFull"] = new JsonObject { ["version"] = fullKey, ["url"] = fullUrl };
+        else
+            root.Remove("latestFull");
     }
 
     /// <summary>

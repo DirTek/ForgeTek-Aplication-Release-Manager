@@ -54,7 +54,7 @@ public class SetupBundle
     /// <summary>Button corner style: "Rounded" (default), "Square", or "Pill".</summary>
     public string ButtonShape { get; set; } = "Rounded";
 
-    // The installer footer attribution ("Installer by ForgeTek Release Manager") is fixed and applied
+    // The installer footer attribution ("Installer by ForgeTek Application Release Manager") is fixed and applied
     // at generation time (SetupService.ForgeTekWatermark). It is intentionally not stored per-bundle
     // or operator-editable, so it can't be removed or rebranded.
 

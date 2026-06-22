@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using ForgeTekUpdatePackager.Models;
+using ForgeTekUpdatePackager.Services.Security;
 
 namespace ForgeTekUpdatePackager.Services;
 
@@ -17,15 +18,18 @@ public class SettingsService : ISettingsService
 
     public static string GlobalSettingsFilePath => GlobalSettingsPath;
 
+    private readonly ISecretProtector _protector;
+
     public GlobalSettings Global { get; }
     public string RootFolder => Global.RootFolder;
 
-    public SettingsService()
+    public SettingsService(ISecretProtector protector)
     {
+        _protector = protector;
         Global = LoadGlobal();
     }
 
-    private static GlobalSettings LoadGlobal()
+    private GlobalSettings LoadGlobal()
     {
         if (!File.Exists(GlobalSettingsPath)) return new GlobalSettings();
         try
@@ -48,15 +52,19 @@ public class SettingsService : ISettingsService
             CompanyName        = Global.CompanyName,
             UseGlobalCert      = Global.UseGlobalCert,
             GlobalCertPath     = Global.GlobalCertPath,
-            GlobalCertPassword = DpapiService.Protect(Global.GlobalCertPassword),
+            GlobalCertPassword = _protector.Protect(Global.GlobalCertPassword),
             UseStoreCert       = Global.UseStoreCert,
             StoreCertThumbprint = Global.StoreCertThumbprint,
             KeepInCertStore    = Global.KeepInCertStore,
             Theme              = Global.Theme,
+            VersionChannelFilter = Global.VersionChannelFilter,
+            RequireReleaseApproval = Global.RequireReleaseApproval,
             PublisherUrl        = Global.PublisherUrl,
             PublisherSupportUrl = Global.PublisherSupportUrl,
+            Vulnerability       = Global.Vulnerability,
+            License             = Global.License,
             GitHubClientId     = Global.GitHubClientId,
-            GitHubToken        = DpapiService.Protect(Global.GitHubToken),
+            GitHubToken        = _protector.Protect(Global.GitHubToken),
             GitHubLogin        = Global.GitHubLogin,
         };
         File.WriteAllText(GlobalSettingsPath, JsonSerializer.Serialize(storable, JsonOptions));
@@ -95,27 +103,27 @@ public class SettingsService : ISettingsService
         {
             OutputFolder        = settings.OutputFolder,
             DefaultCertPath     = settings.DefaultCertPath,
-            DefaultCertPassword = DpapiService.Protect(settings.DefaultCertPassword),
+            DefaultCertPassword = _protector.Protect(settings.DefaultCertPassword),
             PackageExtension    = settings.PackageExtension,
             PackageNameTemplate = settings.PackageNameTemplate,
             PublishProvider     = settings.PublishProvider,
-            FtpHost             = DpapiService.Protect(settings.FtpHost),
+            FtpHost             = _protector.Protect(settings.FtpHost),
             FtpPort             = settings.FtpPort,
-            FtpUsername         = DpapiService.Protect(settings.FtpUsername),
-            FtpPassword         = DpapiService.Protect(settings.FtpPassword),
-            FtpRemotePath       = DpapiService.Protect(settings.FtpRemotePath),
-            BaseDownloadUrl     = DpapiService.Protect(settings.BaseDownloadUrl),
+            FtpUsername         = _protector.Protect(settings.FtpUsername),
+            FtpPassword         = _protector.Protect(settings.FtpPassword),
+            FtpRemotePath       = _protector.Protect(settings.FtpRemotePath),
+            BaseDownloadUrl     = _protector.Protect(settings.BaseDownloadUrl),
             SftpHost            = settings.SftpHost,
             SftpPort            = settings.SftpPort,
             SftpUsername        = settings.SftpUsername,
-            SftpPassword        = DpapiService.Protect(settings.SftpPassword),
+            SftpPassword        = _protector.Protect(settings.SftpPassword),
             SftpRemotePath      = settings.SftpRemotePath,
             SftpBaseDownloadUrl = settings.SftpBaseDownloadUrl,
             S3Endpoint          = settings.S3Endpoint,
             S3Region            = settings.S3Region,
             S3Bucket            = settings.S3Bucket,
             S3AccessKey         = settings.S3AccessKey,
-            S3SecretKey         = DpapiService.Protect(settings.S3SecretKey),
+            S3SecretKey         = _protector.Protect(settings.S3SecretKey),
             S3Prefix            = settings.S3Prefix,
             S3PublicBaseUrl     = settings.S3PublicBaseUrl,
             GitHubReleaseTag    = settings.GitHubReleaseTag,
@@ -123,7 +131,7 @@ public class SettingsService : ISettingsService
             UseStoreCert        = settings.UseStoreCert,
             StoreCertThumbprint = settings.StoreCertThumbprint,
             GitHubRepo          = settings.GitHubRepo,
-            GitHubToken         = DpapiService.Protect(settings.GitHubToken),
+            GitHubToken         = _protector.Protect(settings.GitHubToken),
             GitHubLocalPath     = settings.GitHubLocalPath,
             GitHubBuildCommand  = settings.GitHubBuildCommand,
             GitHubArtifactPath  = settings.GitHubArtifactPath,
@@ -132,12 +140,12 @@ public class SettingsService : ISettingsService
         File.WriteAllText(path, JsonSerializer.Serialize(storable, JsonOptions));
     }
 
-    // Decrypts a DPAPI blob; if the value is plain text (legacy), returns it as-is so
+    // Decrypts a protected blob; if the value is plain text (legacy), returns it as-is so
     // existing stored passwords survive the first load after the encryption upgrade.
-    private static string? DecryptOrPassthrough(string? value)
+    private string? DecryptOrPassthrough(string? value)
     {
         if (string.IsNullOrEmpty(value)) return value;
-        return DpapiService.IsProtected(value) ? DpapiService.Unprotect(value) : value;
+        return _protector.IsProtected(value) ? _protector.Unprotect(value) : value;
     }
 
     // Base folder for an app's output (version is appended at call sites)

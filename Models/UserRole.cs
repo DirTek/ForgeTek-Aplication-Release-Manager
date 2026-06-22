@@ -14,4 +14,8 @@ public enum UserRole
 
     /// <summary>Create and generate setup bundles only.</summary>
     SetupBuilder,
+
+    /// <summary>Reviews and approves (or rejects) releases before they can be published. Can scan to
+    /// evaluate a build, but cannot publish on their own.</summary>
+    QaTester,
 }

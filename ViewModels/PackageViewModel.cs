@@ -22,12 +22,17 @@ public partial class PackageViewModel : ObservableObject
     private readonly ILogService _log;
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialog;
+    private readonly IApprovalService _approval;
     private AppEntry _entry = null!;
     private AppVersion _version = null!;
     private readonly string? _signToolPath;
     private bool _isDiffVersion;
     private IReadOnlyList<FileRecord> _incrementalFiles = [];
     private IReadOnlyList<FileRecord> _fullFiles = [];
+    // Files present in the baseline full but gone in this version (baseline-relative, for the payload).
+    private IReadOnlyList<string> _packageRemovedFiles = [];
+    // The full baseline this version is cumulative from (null for the initial / when packaged as Full).
+    private string? _baselineVersion;
     private string _appKey = string.Empty;
     private string _catalogOutputPath = string.Empty;
     private AppSettings _appSettings = new();
@@ -35,7 +40,7 @@ public partial class PackageViewModel : ObservableObject
 
     public PackageViewModel(IStorageService storage, ISigningService signing, IScannerService scanner,
         ISettingsService settings, ILogService log, IPackagingService packaging, IPublishService publish,
-        IManifestService manifest, IUpdateCatalogService catalog, IDialogService dialog)
+        IManifestService manifest, IUpdateCatalogService catalog, IDialogService dialog, IApprovalService approval)
     {
         _storage = storage;
         _signing = signing;
@@ -47,7 +52,34 @@ public partial class PackageViewModel : ObservableObject
         _manifest = manifest;
         _catalog = catalog;
         _dialog = dialog;
+        _approval = approval;
         _signToolPath = signing.FindSignTool();
+    }
+
+    // ── Release approval gate ────────────────────────────────────────────
+    /// <summary>Stable approval-thread key for this version update.</summary>
+    private string ApprovalTargetKey => ReleaseApproval.ForApp(_entry.Id, _version.VersionNumber);
+
+    /// <summary>Approvals are enforced only when the global toggle is on AND access protection is on
+    /// (multi-operator). Off by default, so existing/unprotected installs publish exactly as before.</summary>
+    public bool IsApprovalRequired =>
+        _main is not null && _main.Session.IsProtected && _settings.Global.RequireReleaseApproval;
+
+    /// <summary>True when this release may be published — not gated, or approved by Admin + QA Tester.</summary>
+    public bool IsApproved => !IsApprovalRequired || _approval.IsApproved(ApprovalTargetKey);
+
+    /// <summary>"1 of 2"-style hint for why publishing is blocked.</summary>
+    public string ApprovalHint => IsApproved
+        ? "Approved for release."
+        : $"Needs Admin + QA Tester approval — {_approval.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+
+    /// <summary>Re-reads approval state (another operator may have voted) and refreshes the publish gate.</summary>
+    public void RefreshApproval()
+    {
+        OnPropertyChanged(nameof(IsApproved));
+        OnPropertyChanged(nameof(ApprovalHint));
+        OnPropertyChanged(nameof(IsFtpStepIdle));
+        UploadToFtpCommand.NotifyCanExecuteChanged();
     }
 
     public void Initialize(AppEntry entry, AppVersion version, MainViewModel main, PackageStep? startFrom = null)
@@ -58,11 +90,16 @@ public partial class PackageViewModel : ObservableObject
         _appKey = entry.Name.ToLowerInvariant().Replace(" ", "");
 
         var idx = entry.Versions.IndexOf(version);
-        var baseVersion = idx > 0 ? entry.Versions[idx - 1] : null;
+        // Incrementals are CUMULATIVE from the most recent full baseline (not the prior version), so a
+        // user any number of versions behind can apply just the latest patch and end up complete.
+        var baseVersion = SelectBaselineFull(entry.Versions, idx);
         _isDiffVersion = baseVersion is not null;
 
-        _fullFiles        = version.NonDebugFiles.ToList();
-        _incrementalFiles = ComputeIncrementalFiles(version, baseVersion);
+        _fullFiles           = version.NonDebugFiles.ToList();
+        _incrementalFiles    = ComputeIncrementalFiles(version, baseVersion);
+        _packageRemovedFiles = ComputeRemovedFiles(version, baseVersion);
+        _baselineVersion     = baseVersion?.VersionNumber;
+        version.BaseVersion  = _baselineVersion;
 
         if (!_isDiffVersion)
             SelectedPackageType = PackageType.Full;
@@ -141,6 +178,8 @@ public partial class PackageViewModel : ObservableObject
 
         if (_signToolPath is null)
             Log.Add("⚠  signtool.exe not found — install the Windows 10/11 SDK or add it to PATH.");
+
+        RefreshApproval();
     }
 
     private static IReadOnlyList<FileRecord> ComputeIncrementalFiles(AppVersion version, AppVersion? baseVersion)
@@ -149,6 +188,43 @@ public partial class PackageViewModel : ObservableObject
         if (baseVersion is null) return nonDebug;
         var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
         return nonDebug.Where(f => !baseMap.TryGetValue(f.Path, out var bf) || bf.Checksum != f.Checksum).ToList();
+    }
+
+    /// <summary>The most recent full baseline at or before <paramref name="idx"/> (an incremental's
+    /// payload is cumulative since this version). Treats the initial scan and any version packaged as
+    /// Full as a baseline; falls back to the first version.</summary>
+    internal static AppVersion? SelectBaselineFull(IReadOnlyList<AppVersion> versions, int idx)
+    {
+        if (idx <= 0) return null;   // the first version is itself the baseline (Full)
+        for (var i = idx - 1; i >= 0; i--)
+        {
+            if (versions[i].IsInitial || versions[i].PackageType == PackageType.Full)
+                return versions[i];
+        }
+        return versions[0];
+    }
+
+    /// <summary>Files present in the baseline full but genuinely GONE from this version (baseline-relative),
+    /// so the client deletes everything dropped since the baseline — not just since the prior patch.
+    /// A file the user merely EXCLUDED is still on disk (present in <see cref="AppVersion.Files"/> as debug),
+    /// so it is neither shipped nor deleted — e.g. a live self-updater that ships as "*_new.exe".</summary>
+    private static IReadOnlyList<string> ComputeRemovedFiles(AppVersion version, AppVersion? baseVersion)
+    {
+        // Files the user explicitly marked for deletion on clients (kept in the build folder).
+        var removed = version.RemovedMarkedFiles
+            .Select(f => f.Path)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (baseVersion is not null)
+        {
+            // Plus baseline files that are kept by neither shipping nor exclusion — genuinely gone.
+            var keptPaths = version.Files.Where(f => !f.IsRemoved)
+                .Select(f => f.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in baseVersion.NonDebugFiles.Select(f => f.Path).Where(p => !keptPaths.Contains(p)))
+                removed.Add(p);
+        }
+
+        return removed.ToList();
     }
 
     // ── Publish target file names ─────────────────────────────────────────
@@ -302,7 +378,7 @@ public partial class PackageViewModel : ObservableObject
     public bool IsManifestStepIdle => IsManifestCurrent && IsNotInProgress && !IsManifestComplete;
     public bool IsPackageStepIdle  => IsPackageCurrent  && IsNotInProgress && !IsPackagingComplete;
     public bool IsJsonStepIdle     => IsJsonCurrent     && IsNotInProgress && !IsJsonComplete;
-    public bool IsFtpStepIdle      => IsFtpCurrent      && IsNotInProgress && !IsFtpComplete && HasFtpSettings;
+    public bool IsFtpStepIdle      => IsFtpCurrent      && IsNotInProgress && !IsFtpComplete && HasFtpSettings && IsApproved;
 
     public bool IsSignReadyToAdvance     => IsSignCurrent     && IsSigningComplete   && IsNotInProgress;
     public bool IsManifestReadyToAdvance => IsManifestCurrent && IsManifestComplete  && IsNotInProgress;

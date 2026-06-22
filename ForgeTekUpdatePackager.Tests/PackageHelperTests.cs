@@ -75,6 +75,100 @@ public class PackageHelperTests
         Assert.Contains(result, f => f.Path == "file3.dll");
     }
 
+    [Fact]
+    public void SelectBaselineFull_PicksMostRecentFull()
+    {
+        var v1 = new AppVersion { VersionNumber = "1.0", IsInitial = true, PackageType = PackageType.Full };
+        var v2 = new AppVersion { VersionNumber = "2.0", PackageType = PackageType.Incremental };
+        var v3 = new AppVersion { VersionNumber = "3.0", PackageType = PackageType.Incremental };
+        var v4 = new AppVersion { VersionNumber = "4.0", PackageType = PackageType.Full };   // new baseline
+        var v5 = new AppVersion { VersionNumber = "5.0", PackageType = PackageType.Incremental };
+        var versions = new List<AppVersion> { v1, v2, v3, v4, v5 };
+
+        Assert.Null(InvokeSelectBaselineFull(versions, 0));            // initial has no baseline
+        Assert.Equal("1.0", InvokeSelectBaselineFull(versions, 2)!.VersionNumber); // v3 → v1
+        Assert.Equal("4.0", InvokeSelectBaselineFull(versions, 4)!.VersionNumber); // v5 → v4
+    }
+
+    [Fact]
+    public void CumulativeIncremental_IncludesFileAddedInSkippedIntermediateVersion()
+    {
+        // v1 baseline; helper.dll ADDED in v2; app.exe MODIFIED in v3. The bug: a v1 user applying only
+        // v3 misses helper.dll. With cumulative-from-baseline, v3's payload (vs v1) must include it.
+        var v1 = new AppVersion { VersionNumber = "1.0", IsInitial = true, PackageType = PackageType.Full,
+            Files = [ new FileRecord { Path = "app.exe", Checksum = "A1" } ] };
+        var v2 = new AppVersion { VersionNumber = "2.0", PackageType = PackageType.Incremental,
+            Files = [ new FileRecord { Path = "app.exe", Checksum = "A1" }, new FileRecord { Path = "helper.dll", Checksum = "H1" } ] };
+        var v3 = new AppVersion { VersionNumber = "3.0", PackageType = PackageType.Incremental,
+            Files = [ new FileRecord { Path = "app.exe", Checksum = "A2" }, new FileRecord { Path = "helper.dll", Checksum = "H1" } ] };
+        var versions = new List<AppVersion> { v1, v2, v3 };
+
+        var baseline = InvokeSelectBaselineFull(versions, 2);
+        Assert.Equal("1.0", baseline!.VersionNumber);
+
+        var payload = InvokeComputeIncrementalFiles(v3, baseline);
+        Assert.Contains(payload, f => f.Path == "helper.dll");   // the regression this fix targets
+        Assert.Contains(payload, f => f.Path == "app.exe");      // modified vs baseline
+    }
+
+    [Fact]
+    public void ComputeRemovedFiles_IsBaselineRelative()
+    {
+        var baseline = new AppVersion { VersionNumber = "1.0",
+            Files = [ new FileRecord { Path = "keep.dll", Checksum = "K" }, new FileRecord { Path = "gone.dll", Checksum = "G" } ] };
+        var version = new AppVersion { VersionNumber = "3.0",
+            Files = [ new FileRecord { Path = "keep.dll", Checksum = "K" } ] };
+
+        var removed = InvokeComputeRemovedFiles(version, baseline);
+        Assert.Single(removed);
+        Assert.Contains("gone.dll", removed);
+    }
+
+    [Fact]
+    public void ComputeRemovedFiles_ExcludedFileIsNotFlaggedForDeletion()
+    {
+        // The live self-updater: shipped in the baseline, EXCLUDED now (kept on disk as debug). It must
+        // NOT appear in RemovedFiles (clients must not delete the running updater).
+        var baseline = new AppVersion { VersionNumber = "1.0",
+            Files = [ new FileRecord { Path = "App.Updater.exe", Checksum = "U1", IsDebug = false } ] };
+        var version = new AppVersion { VersionNumber = "2.0",
+            Files =
+            [
+                new FileRecord { Path = "App.Updater.exe", Checksum = "U1", IsDebug = true },   // excluded, on disk
+                new FileRecord { Path = "App.Updater_new.exe", Checksum = "U2", IsDebug = false }, // the shipped swap
+            ] };
+
+        var removed = InvokeComputeRemovedFiles(version, baseline);
+        Assert.Empty(removed);   // excluded ≠ removed
+    }
+
+    [Fact]
+    public void ComputeRemovedFiles_ExplicitRemovalIsIncluded()
+    {
+        // The user marks a file for deletion on clients (IsRemoved) — it must land in RemovedFiles.
+        var baseline = new AppVersion { VersionNumber = "1.0",
+            Files = [ new FileRecord { Path = "obsolete.dll", Checksum = "O", IsDebug = false } ] };
+        var version = new AppVersion { VersionNumber = "2.0",
+            Files = [ new FileRecord { Path = "obsolete.dll", Checksum = "O", IsRemoved = true } ] };
+
+        var removed = InvokeComputeRemovedFiles(version, baseline);
+        Assert.Contains("obsolete.dll", removed);
+    }
+
+    private static AppVersion? InvokeSelectBaselineFull(IReadOnlyList<AppVersion> versions, int idx)
+    {
+        var method = typeof(PackageViewModel).GetMethod("SelectBaselineFull",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return (AppVersion?)method!.Invoke(null, [versions, idx]);
+    }
+
+    private static IReadOnlyList<string> InvokeComputeRemovedFiles(AppVersion version, AppVersion? baseVersion)
+    {
+        var method = typeof(PackageViewModel).GetMethod("ComputeRemovedFiles",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        return (IReadOnlyList<string>)method!.Invoke(null, [version, baseVersion])!;
+    }
+
     // Path/URL construction now lives in the publishing layer's shared helper.
     private static string InvokeBuildRemotePath(string? basePath, string appKey, string? version, string filename)
         => PublishPaths.ServerPath(basePath, appKey, version, filename);

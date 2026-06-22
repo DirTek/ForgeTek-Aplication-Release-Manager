@@ -106,6 +106,38 @@ public class GitHubService : IGitHubService
         return branches;
     }
 
+    public async Task<IReadOnlyList<RepoTreeEntry>> GetRepoTreeAsync(
+        string repo, string? token, string branch, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        using var req = Authed(HttpMethod.Get,
+            $"repos/{owner}/{name}/git/trees/{Uri.EscapeDataString(branch)}?recursive=1", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException($"Branch '{branch}' not found in {owner}/{name}.");
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var entries = new List<RepoTreeEntry>();
+        if (doc.RootElement.TryGetProperty("tree", out var tree))
+        {
+            foreach (var el in tree.EnumerateArray())
+            {
+                if (el.TryGetProperty("type", out var t) && t.GetString() == "blob"
+                    && el.TryGetProperty("path", out var p) && p.GetString() is { } path
+                    && el.TryGetProperty("sha", out var s) && s.GetString() is { } sha)
+                {
+                    entries.Add(new RepoTreeEntry(path, sha));
+                }
+            }
+        }
+        return entries;
+    }
+
     public async Task<IReadOnlyList<CommitChange>> GetCompareChangesAsync(
         string repo, string? token, string fromRef, string toRef, CancellationToken ct = default)
     {
@@ -173,27 +205,48 @@ public class GitHubService : IGitHubService
         return new RepoCommit(firstLine, author, date);
     }
 
-    // Summarizes each commit in an array (compare or commits endpoint): first message line,
-    // conventional prefix stripped, with a best-guess bucket. Skips noisy merge-commit lines.
-    private static List<CommitChange> ExtractChanges(JsonElement commitsArray)
+    // Summarizes each commit in an array (compare or commits endpoint). Each non-empty line of the
+    // commit message — the subject AND every body/bullet line — becomes its own categorized entry, so
+    // a commit whose body is a bulleted changelog isn't reduced to just its first line. Skips merge
+    // commits and git trailers (Signed-off-by, Co-authored-by, …).
+    internal static List<CommitChange> ExtractChanges(JsonElement commitsArray)
     {
         var changes = new List<CommitChange>();
         foreach (var c in commitsArray.EnumerateArray())
         {
             var message = c.TryGetProperty("commit", out var commit) &&
                           commit.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : "";
-            var firstLine = message.Split('\n')[0].Trim();
-            if (firstLine.Length == 0) continue;
-            if (firstLine.StartsWith("Merge branch", StringComparison.OrdinalIgnoreCase) ||
-                firstLine.StartsWith("Merge remote-tracking", StringComparison.OrdinalIgnoreCase))
+
+            var lines = message.Replace("\r", "").Split('\n');
+            if (lines.Length == 0) continue;
+            var subject = lines[0].Trim();
+            if (subject.StartsWith("Merge branch", StringComparison.OrdinalIgnoreCase) ||
+                subject.StartsWith("Merge remote-tracking", StringComparison.OrdinalIgnoreCase) ||
+                subject.StartsWith("Merge pull request", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var (category, text) = Categorize(firstLine);
-            var suggested = category switch { "feat" => "Added", "fix" => "Fixed", _ => "" };
-            changes.Add(new CommitChange(suggested, text));
+            foreach (var raw in lines)
+            {
+                var line = StripBullet(raw.Trim());
+                if (line.Length == 0 || IsTrailer(line)) continue;
+
+                var (bucket, text) = SuggestBucket(line);
+                changes.Add(new CommitChange(bucket, text));
+            }
         }
         return changes;
     }
+
+    private static string StripBullet(string line)
+    {
+        var t = line.TrimStart();
+        return t.Length > 1 && (t[0] is '-' or '*' or '•' or '+') && char.IsWhiteSpace(t[1])
+            ? t[2..].Trim() : t;
+    }
+
+    private static bool IsTrailer(string line)
+        => Regex.IsMatch(line, @"^(Signed-off-by|Co-authored-by|Reviewed-by|Acked-by|Tested-by|Cc)\s*:",
+            RegexOptions.IgnoreCase);
 
     public async Task PublishReleaseNotesAsync(
         string repo, string? token, string tag, string body, CancellationToken ct = default)
@@ -227,19 +280,42 @@ public class GitHubService : IGitHubService
         postResp.EnsureSuccessStatusCode();
     }
 
-    private static (string Category, string Text) Categorize(string firstLine)
+    // Maps a single changelog line to a release-notes bucket (Added/Changed/Improved/Removed/Fixed, or
+    // "" for none) and the display text. Recognizes conventional-commit prefixes (feat:, fix:, …) and
+    // leading changelog words (Added/Fixed/Changed/Improved/Removed), stripping them from the text.
+    internal static (string Bucket, string Text) SuggestBucket(string line)
     {
-        // Conventional-commit prefix → category; strip the prefix for display.
-        var m = Regex.Match(firstLine, @"^(?<type>feat|fix|docs|chore|refactor|perf|style|test|build|ci)(\([^)]*\))?!?:\s*(?<rest>.+)$",
+        // Conventional-commit prefix.
+        var m = Regex.Match(line, @"^(?<type>feat|fix|docs|chore|refactor|perf|style|test|build|ci)(\([^)]*\))?!?:\s*(?<rest>.+)$",
             RegexOptions.IgnoreCase);
         if (m.Success)
         {
             var type = m.Groups["type"].Value.ToLowerInvariant();
-            var rest = m.Groups["rest"].Value.Trim();
-            var category = type switch { "feat" => "feat", "fix" => "fix", _ => "change" };
-            return (category, Capitalize(rest));
+            var bucket = type switch { "feat" => "Added", "fix" => "Fixed", "perf" => "Improved", "refactor" => "Changed", _ => "" };
+            return (bucket, Capitalize(m.Groups["rest"].Value.Trim()));
         }
-        return ("change", firstLine);
+
+        // Leading changelog word ("Added X", "Fixed a bug …", "Improved …").
+        var w = Regex.Match(line,
+            @"^(?<word>added|add|new|fixed|fix|changed|change|updated|update|improved|improve|enhanced|enhance|optimi[sz]ed|removed|remove|deleted|delete|dropped)\b[:\-\s]+(?<rest>.+)$",
+            RegexOptions.IgnoreCase);
+        if (w.Success)
+        {
+            var word = w.Groups["word"].Value.ToLowerInvariant();
+            var bucket = word switch
+            {
+                "added" or "add" or "new"                                  => "Added",
+                "fixed" or "fix"                                           => "Fixed",
+                "changed" or "change" or "updated" or "update"             => "Changed",
+                "improved" or "improve" or "enhanced" or "enhance"
+                    or "optimized" or "optimised"                         => "Improved",
+                "removed" or "remove" or "deleted" or "delete" or "dropped" => "Removed",
+                _                                                          => "",
+            };
+            return (bucket, Capitalize(w.Groups["rest"].Value.Trim()));
+        }
+
+        return ("", line);
     }
 
     private static void AppendSection(StringBuilder sb, string header, List<string> items)

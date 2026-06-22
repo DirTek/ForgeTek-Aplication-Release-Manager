@@ -134,6 +134,45 @@
                 </Grid>
             </TabItem>
 
+            <!-- EXCLUDED (on disk, neither shipped nor deleted) -->
+            <TabItem Header="{Binding ExcludedHeader}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Margin="0,8,0,4" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Text="Excluded files stay on the client — they are NOT shipped in the update and NOT deleted (e.g. a live self-updater that ships as a *_new.exe)."/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Excluded}" Margin="0,4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="160"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="⊘" FontWeight="Bold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Path}" FontSize="13"
+                                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="2" FontSize="12"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
+                                                   Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    <TextBlock Grid.Row="1" Text="No excluded files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Visibility="{Binding Excluded.Count, Converter={StaticResource ZeroToVisible}}"/>
+                </Grid>
+            </TabItem>
+
             <!-- UNCHANGED -->
             <TabItem Header="{Binding UnchangedHeader}">
                 <Grid>

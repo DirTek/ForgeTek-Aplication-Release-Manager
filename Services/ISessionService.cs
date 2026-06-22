@@ -21,4 +21,10 @@ public interface ISessionService
     bool CanPublish { get; }
     bool CanManageSetups { get; }
     bool CanManageUsers { get; }
+
+    /// <summary>May cast a binding approve/reject vote on a release (Admin or QA Tester).</summary>
+    bool CanApprove { get; }
+
+    /// <summary>May leave a non-binding review note on a release (any signed-in user).</summary>
+    bool CanReviewNote { get; }
 }

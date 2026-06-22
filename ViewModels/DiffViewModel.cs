@@ -53,11 +53,14 @@ public partial class DiffViewModel : ObservableObject
     public ObservableCollection<FileRecord> Added { get; } = [];
     public ObservableCollection<FileRecord> Modified { get; } = [];
     public ObservableCollection<FileRecord> Removed { get; } = [];
+    public ObservableCollection<FileRecord> Excluded { get; } = [];
     public ObservableCollection<FileRecord> Unchanged { get; } = [];
 
     public string AddedHeader    => $"Added ({Added.Count})";
     public string ModifiedHeader => $"Modified ({Modified.Count})";
     public string RemovedHeader  => $"Removed ({Removed.Count})";
+    public string ExcludedHeader => $"Excluded ({Excluded.Count})";
+    public bool   HasExcluded    => Excluded.Count > 0;
     public string UnchangedHeader=> $"Unchanged ({Unchanged.Count})";
 
     public string SummaryText =>
@@ -90,6 +93,7 @@ public partial class DiffViewModel : ObservableObject
         foreach (var f in diff.Added) Added.Add(f);
         foreach (var f in diff.Modified) Modified.Add(f);
         foreach (var f in diff.Removed) Removed.Add(f);
+        foreach (var f in diff.Excluded) Excluded.Add(f);
         foreach (var f in diff.Unchanged) Unchanged.Add(f);
     }
 

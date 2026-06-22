@@ -18,7 +18,10 @@ public partial class ReleaseNotesWindow : Window
     private readonly string _repo;
     private readonly string? _token;
     private readonly string? _appFolder;
+    private readonly string? _solutionFolder;
     private readonly string? _appName;
+    // Save-to destinations (label → folder), shown in the "Save to" picker.
+    private readonly Dictionary<string, string> _saveDestinations = new(StringComparer.OrdinalIgnoreCase);
 
     // The suggestions pool plus one collection per section. Notes are dragged between them.
     private readonly ObservableCollection<string> _suggestions = [];
@@ -37,7 +40,8 @@ public partial class ReleaseNotesWindow : Window
     private ObservableCollection<string>? _dragSource;
 
     public ReleaseNotesWindow(IGitHubService github, IChangelogService changelog, string repo, string? token,
-        string? appFolder = null, string? appName = null, string? prefillVersion = null)
+        string? appFolder = null, string? appName = null, string? prefillVersion = null,
+        string? solutionFolder = null)
     {
         InitializeComponent();
         _github = github;
@@ -45,10 +49,22 @@ public partial class ReleaseNotesWindow : Window
         _repo = repo;
         _token = token;
         _appFolder = appFolder;
+        _solutionFolder = solutionFolder;
         _appName = appName;
 
         if (!string.IsNullOrWhiteSpace(prefillVersion)) VersionBox.Text = prefillVersion;
         if (!string.IsNullOrWhiteSpace(appFolder)) ChangelogBtn.Visibility = Visibility.Visible;
+
+        // Offer the app folder and/or the solution folder as quick save destinations.
+        if (!string.IsNullOrWhiteSpace(appFolder)) _saveDestinations["App folder"] = appFolder!;
+        if (!string.IsNullOrWhiteSpace(solutionFolder)) _saveDestinations["Solution folder"] = solutionFolder!;
+        if (_saveDestinations.Count > 0)
+        {
+            SaveDestBox.ItemsSource = _saveDestinations.Keys.ToList();
+            SaveDestBox.SelectedIndex = 0;
+            SaveDestBox.Visibility = Visibility.Visible;
+            SaveDestLabel.Visibility = Visibility.Visible;
+        }
 
         SuggestionsList.ItemsSource = _suggestions;
         AddedList.ItemsSource = _added;
@@ -163,9 +179,12 @@ public partial class ReleaseNotesWindow : Window
             {
                 switch (c.Suggested)
                 {
-                    case "Added": _added.Add(c.Text); break;
-                    case "Fixed": _fixed.Add(c.Text); break;
-                    default:      _suggestions.Add(c.Text); break;
+                    case "Added":    _added.Add(c.Text); break;
+                    case "Changed":  _changed.Add(c.Text); break;
+                    case "Improved": _improved.Add(c.Text); break;
+                    case "Removed":  _removed.Add(c.Text); break;
+                    case "Fixed":    _fixed.Add(c.Text); break;
+                    default:         _suggestions.Add(c.Text); break;
                 }
             }
 
@@ -285,6 +304,11 @@ public partial class ReleaseNotesWindow : Window
             Filter = "Markdown (*.md)|*.md|Text (*.txt)|*.txt|All files (*.*)|*.*",
             FileName = $"release-notes-{(string.IsNullOrWhiteSpace(version) ? "draft" : version)}.md",
         };
+        // Open the dialog in the chosen destination (the app folder or the solution folder).
+        if (SaveDestBox.SelectedItem is string dest && _saveDestinations.TryGetValue(dest, out var folder)
+            && Directory.Exists(folder))
+            dlg.InitialDirectory = folder;
+
         if (dlg.ShowDialog() != true) return;
         try { File.WriteAllText(dlg.FileName, NotesBox.Text); StatusText.Text = $"Saved to {dlg.FileName}"; }
         catch (Exception ex) { StatusText.Text = $"Save failed: {ex.Message}"; }

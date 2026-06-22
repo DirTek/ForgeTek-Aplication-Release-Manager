@@ -88,7 +88,7 @@ public partial class MainViewModel : ObservableObject
         var result = _dialog.ShowAddEditApp();
         if (result is null) return;
 
-        var entry = new AppEntry { Name = result.Name, FolderPath = result.Path, InitialVersion = result.InitialVersion, AccentColor = result.AccentColor };
+        var entry = new AppEntry { Name = result.Name, FolderPath = result.Path, InitialVersion = result.InitialVersion, AccentColor = result.AccentColor, SolutionPath = result.SolutionPath };
         _storage.Add(entry);
         NavigateToDetail(entry);
     }
@@ -128,9 +128,12 @@ public partial class MainViewModel : ObservableObject
             return;
 
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? settings.Global.GitHubToken : s.GitHubToken;
+        var slnFolder = !string.IsNullOrWhiteSpace(entry.SolutionPath)
+            && ProjectLocator.Resolve(entry.SolutionPath) is { } t
+            ? System.IO.Path.GetDirectoryName(t) : null;
         new ReleaseNotesWindow(
             _services.GetRequiredService<IGitHubService>(), changelog,
-            s.GitHubRepo!, token, entry.FolderPath, entry.Name, versionNumber)
+            s.GitHubRepo!, token, entry.FolderPath, entry.Name, versionNumber, solutionFolder: slnFolder)
         {
             Owner = Application.Current.MainWindow,
         }.ShowDialog();

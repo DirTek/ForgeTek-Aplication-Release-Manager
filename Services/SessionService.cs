@@ -22,10 +22,15 @@ public partial class SessionService : ObservableObject, ISessionService
     public void SignIn(AppUser user) => Current = user;
     public void SignOut() => Current = null;
 
-    public bool CanScan          => Allowed(r => r is UserRole.Admin or UserRole.Publisher or UserRole.Scanner);
+    // QA Testers can scan to evaluate a build they're reviewing, but cannot publish.
+    public bool CanScan          => Allowed(r => r is UserRole.Admin or UserRole.Publisher or UserRole.Scanner or UserRole.QaTester);
     public bool CanPublish       => Allowed(r => r is UserRole.Admin or UserRole.Publisher);
     public bool CanManageSetups  => Allowed(r => r is UserRole.Admin or UserRole.SetupBuilder);
     public bool CanManageUsers   => Allowed(r => r is UserRole.Admin);
+
+    // Binding approve/reject vote — Admin or QA Tester. Review notes — anyone signed in.
+    public bool CanApprove       => Allowed(r => r is UserRole.Admin or UserRole.QaTester);
+    public bool CanReviewNote    => Allowed(_ => true);
 
     // Unprotected (no users) → everything allowed; otherwise the current user's role decides.
     private bool Allowed(Func<UserRole, bool> predicate)
@@ -38,5 +43,7 @@ public partial class SessionService : ObservableObject, ISessionService
         OnPropertyChanged(nameof(CanPublish));
         OnPropertyChanged(nameof(CanManageSetups));
         OnPropertyChanged(nameof(CanManageUsers));
+        OnPropertyChanged(nameof(CanApprove));
+        OnPropertyChanged(nameof(CanReviewNote));
     }
 }

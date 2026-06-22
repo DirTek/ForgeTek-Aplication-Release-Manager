@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using ForgeTekUpdatePackager.Models;
+using ForgeTekUpdatePackager.Services.Security;
 
 namespace ForgeTekUpdatePackager.Services;
 
@@ -8,6 +9,7 @@ public class SetupStorageService : ISetupStorageService
 {
     private readonly string _setupsRoot;
     private readonly ILogService _log;
+    private readonly ISecretProtector _protector;
     private List<SetupBundle> _bundles = [];
     private List<GeneratedSetupRecord> _history = [];
 
@@ -20,10 +22,11 @@ public class SetupStorageService : ISetupStorageService
 
     private string HistoryFilePath => Path.Combine(_setupsRoot, "history.json");
 
-    public SetupStorageService(ISettingsService settings, ILogService log)
+    public SetupStorageService(ISettingsService settings, ILogService log, ISecretProtector protector)
     {
         _setupsRoot = Path.Combine(settings.RootFolder, "setups");
         _log = log;
+        _protector = protector;
         Load();
         LoadHistory();
     }
@@ -120,22 +123,22 @@ public class SetupStorageService : ISetupStorageService
     }
 
     // Mirrors SettingsService: encrypt the same FTP fields + SFTP/S3/GitHub secrets at rest.
-    private static PublishProfile ProtectProfile(PublishProfile p) => new()
+    private PublishProfile ProtectProfile(PublishProfile p) => new()
     {
         PublishProvider = p.PublishProvider,
-        FtpHost = DpapiService.Protect(p.FtpHost), FtpPort = p.FtpPort,
-        FtpUsername = DpapiService.Protect(p.FtpUsername), FtpPassword = DpapiService.Protect(p.FtpPassword),
-        FtpRemotePath = DpapiService.Protect(p.FtpRemotePath), BaseDownloadUrl = DpapiService.Protect(p.BaseDownloadUrl),
+        FtpHost = _protector.Protect(p.FtpHost), FtpPort = p.FtpPort,
+        FtpUsername = _protector.Protect(p.FtpUsername), FtpPassword = _protector.Protect(p.FtpPassword),
+        FtpRemotePath = _protector.Protect(p.FtpRemotePath), BaseDownloadUrl = _protector.Protect(p.BaseDownloadUrl),
         SftpHost = p.SftpHost, SftpPort = p.SftpPort, SftpUsername = p.SftpUsername,
-        SftpPassword = DpapiService.Protect(p.SftpPassword), SftpRemotePath = p.SftpRemotePath,
+        SftpPassword = _protector.Protect(p.SftpPassword), SftpRemotePath = p.SftpRemotePath,
         SftpBaseDownloadUrl = p.SftpBaseDownloadUrl,
         S3Endpoint = p.S3Endpoint, S3Region = p.S3Region, S3Bucket = p.S3Bucket, S3AccessKey = p.S3AccessKey,
-        S3SecretKey = DpapiService.Protect(p.S3SecretKey), S3Prefix = p.S3Prefix, S3PublicBaseUrl = p.S3PublicBaseUrl,
-        GitHubRepo = p.GitHubRepo, GitHubToken = DpapiService.Protect(p.GitHubToken),
+        S3SecretKey = _protector.Protect(p.S3SecretKey), S3Prefix = p.S3Prefix, S3PublicBaseUrl = p.S3PublicBaseUrl,
+        GitHubRepo = p.GitHubRepo, GitHubToken = _protector.Protect(p.GitHubToken),
         GitHubReleaseTag = p.GitHubReleaseTag, GitHubCatalogTag = p.GitHubCatalogTag,
     };
 
-    private static void UnprotectProfile(PublishProfile p)
+    private void UnprotectProfile(PublishProfile p)
     {
         p.FtpHost = DecryptOrPassthrough(p.FtpHost);
         p.FtpUsername = DecryptOrPassthrough(p.FtpUsername);
@@ -147,10 +150,10 @@ public class SetupStorageService : ISetupStorageService
         p.GitHubToken = DecryptOrPassthrough(p.GitHubToken);
     }
 
-    private static string? DecryptOrPassthrough(string? value)
+    private string? DecryptOrPassthrough(string? value)
     {
         if (string.IsNullOrEmpty(value)) return value;
-        return DpapiService.IsProtected(value) ? DpapiService.Unprotect(value) : value;
+        return _protector.IsProtected(value) ? _protector.Unprotect(value) : value;
     }
 
     public void Delete(string id)

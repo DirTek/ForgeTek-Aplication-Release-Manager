@@ -29,4 +29,8 @@ public class GeneratedSetupRecord
 
     /// <summary>When "Preserve old setups" was on and a prior file existed, the path it was renamed to.</summary>
     public string? ArchivedPath { get; set; }
+
+    /// <summary>App version numbers captured at generation time (AppId → version), so each app's
+    /// version history can show when a setup that shipped that version was generated.</summary>
+    public Dictionary<string, string> AppVersions { get; set; } = [];
 }

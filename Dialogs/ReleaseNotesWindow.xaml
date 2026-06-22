@@ -255,6 +255,11 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button x:Name="CopyBtn" Content="Copy" Style="{StaticResource SecondaryButton}"
                     Padding="16,8" Margin="0,0,8,0" Click="Copy_Click" IsEnabled="False"/>
+            <TextBlock x:Name="SaveDestLabel" Text="Save to:" VerticalAlignment="Center" FontSize="12"
+                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,6,0" Visibility="Collapsed"/>
+            <ComboBox x:Name="SaveDestBox" Width="120" FontSize="12" VerticalAlignment="Center"
+                      Margin="0,0,8,0" Visibility="Collapsed"
+                      ToolTip="Where 'Save .md' puts the file"/>
             <Button x:Name="SaveBtn" Content="Save .md…" Style="{StaticResource SecondaryButton}"
                     Padding="16,8" Margin="0,0,8,0" Click="Save_Click" IsEnabled="False"/>
             <Button x:Name="ChangelogBtn" Content="Add to Changelog" Style="{StaticResource PrimaryButton}"

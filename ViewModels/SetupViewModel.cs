@@ -19,6 +19,7 @@ public partial class SetupViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IWingetManifestService _winget;
     private readonly Services.Publishing.IPublishService _publish;
+    private readonly IApprovalService _approval;
     private MainViewModel _main = null!;
     private SetupBundle? _editingBundle;
 
@@ -314,6 +315,13 @@ SOFTWARE LICENSE
     }
 
     public ObservableCollection<SetupBundleVm> Bundles { get; } = [];
+
+    /// <summary>The bundle highlighted in the list; the header toolbar actions operate on it.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelection))]
+    private SetupBundleVm? _selectedBundle;
+
+    public bool HasSelection => SelectedBundle is not null;
     public ObservableCollection<SetupBundleAppItem> AvailableApps { get; } = [];
     public ObservableCollection<RedistItem> WorkingRedists { get; } = [];
 
@@ -332,7 +340,7 @@ SOFTWARE LICENSE
     public SetupViewModel(ISetupStorageService setupStorage, IStorageService storage,
         ISetupService setupService, IDialogService dialog, ILogService log,
         ISettingsService settings, IWingetManifestService winget,
-        Services.Publishing.IPublishService publish)
+        Services.Publishing.IPublishService publish, IApprovalService approval)
     {
         _setupStorage = setupStorage;
         _storage = storage;
@@ -342,6 +350,7 @@ SOFTWARE LICENSE
         _settings = settings;
         _winget = winget;
         _publish = publish;
+        _approval = approval;
         Reload();
     }
 
@@ -358,8 +367,19 @@ SOFTWARE LICENSE
         var appsById = _storage.GetAll()
             .GroupBy(a => a.Id)
             .ToDictionary(g => g.Key, g => g.First());
+        var history = _setupStorage.GetHistory();
         foreach (var b in _setupStorage.GetAll())
-            Bundles.Add(new SetupBundleVm(b, appsById));
+        {
+            // The "Published" badge reflects the CURRENT (latest generated) setup — not some older build.
+            // Generating a new setup that hasn't been published clears the badge.
+            var latest = history
+                .Where(r => r.BundleId == b.Id)
+                .OrderByDescending(r => r.GeneratedDate)
+                .FirstOrDefault();
+            var lastPublished = latest is not null && !string.IsNullOrWhiteSpace(latest.PublishedUrl)
+                ? latest : null;
+            Bundles.Add(new SetupBundleVm(b, appsById, lastPublished));
+        }
     }
 
     [RelayCommand]
@@ -1107,12 +1127,15 @@ SOFTWARE LICENSE
 
         var appKey = ResolvePrimaryAppName(record).ToLowerInvariant().Replace(" ", "");
         var profile = ResolveBundle(record)?.PublishProfile;
-        new PublishSetupWindow(_publish, _setupStorage, appKey, profile, record)
+        var requireApproval = _settings.Global.RequireReleaseApproval;
+        new PublishSetupWindow(_publish, _setupStorage, appKey, profile, record, _approval, _main?.Session, requireApproval)
         {
             Owner = System.Windows.Application.Current.MainWindow,
         }.ShowDialog();
 
-        // The record's publish status may have changed; refresh the Past Bundles list to reflect it.
+        // The record's publish status may have changed; refresh the bundle cards' "Published" badge
+        // and (when viewing it) the Past Bundles list.
+        Reload();
         if (IsPastCategory) ReloadHistory();
     }
 
@@ -1184,10 +1207,13 @@ SOFTWARE LICENSE
 public class SetupBundleVm
 {
     public SetupBundle Bundle { get; }
+    private readonly GeneratedSetupRecord? _lastPublished;
 
-    public SetupBundleVm(SetupBundle bundle, IReadOnlyDictionary<string, AppEntry> appsById)
+    public SetupBundleVm(SetupBundle bundle, IReadOnlyDictionary<string, AppEntry> appsById,
+        GeneratedSetupRecord? lastPublished = null)
     {
         Bundle = bundle;
+        _lastPublished = lastPublished;
 
         var generatedVersions = bundle.GeneratedAppVersions ?? new Dictionary<string, string>();
 
@@ -1220,6 +1246,17 @@ public class SetupBundleVm
     public bool    IsSigned          => Bundle.SignOutput;
     public bool    IsGenerated       => Bundle.LastGeneratedDate is not null;
     public string  AppsSummary       { get; }
+
+    // ── Publish status (latest published build for this bundle) ──────────────
+    public bool      IsPublished       => _lastPublished is not null;
+    public string?   PublishedProvider => _lastPublished?.PublishedProvider;
+    public DateTime? PublishedDate     => _lastPublished?.PublishedDate;
+    public string?   PublishedUrl      => _lastPublished?.PublishedUrl;
+    public string    PublishTooltip    => _lastPublished is null
+        ? string.Empty
+        : $"Published to {_lastPublished.PublishedProvider}"
+          + (_lastPublished.PublishedDate is { } d ? $" on {d:yyyy-MM-dd HH:mm}" : "")
+          + $"\n{_lastPublished.PublishedUrl}";
 
     /// <summary>The generated file path if it exists, otherwise the configured output folder.</summary>
     public string  OutputDisplay     => string.IsNullOrWhiteSpace(Bundle.LastGeneratedPath)

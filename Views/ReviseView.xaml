@@ -234,13 +234,14 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="24"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="140"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Include toggle (files only) -->
                         <CheckBox Grid.Column="0" IsChecked="{Binding IsIncluded}"
                                   VerticalAlignment="Center"
-                                  ToolTip="Include in the package. Uncheck to exclude (e.g. debug files).">
+                                  ToolTip="Include in the package. Uncheck to exclude (kept on clients, e.g. debug files).">
                             <CheckBox.Style>
                                 <Style TargetType="CheckBox">
                                     <Style.Triggers>
@@ -265,12 +266,45 @@
                                             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                             <Setter Property="TextDecorations" Value="Strikethrough"/>
                                         </DataTrigger>
+                                        <!-- Removed wins: red strikethrough = will be deleted on clients -->
+                                        <DataTrigger Binding="{Binding IsRemoved}" Value="True">
+                                            <Setter Property="Foreground" Value="#FF6B6B"/>
+                                            <Setter Property="TextDecorations" Value="Strikethrough"/>
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <TextBlock Grid.Column="2" FontSize="12"
+                        <!-- Remove toggle: mark for deletion on clients (files only) -->
+                        <Button Grid.Column="2" Command="{Binding ToggleRemoveCommand}"
+                                Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                Padding="6,0" Margin="6,0" VerticalAlignment="Center"
+                                ToolTip="Mark this file for deletion on clients (not shipped, added to RemovedFiles). Click again to undo.">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsRemoved}" Value="True">
+                                                <Setter Property="Foreground" Value="#FF6B6B"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <TextBlock Grid.Column="3" FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"
                                    Text="{Binding DateModified, StringFormat='yyyy-MM-dd HH:mm'}">

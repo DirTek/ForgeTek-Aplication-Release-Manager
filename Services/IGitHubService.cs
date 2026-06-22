@@ -13,6 +13,9 @@ public record RepoCommit(string Message, string Author, DateTime? Date)
     public string Meta => Date is { } d ? $"{Author} · {d:yyyy-MM-dd}" : Author;
 }
 
+/// <summary>One tracked file in a GitHub repo tree. <paramref name="Sha"/> is the git blob SHA-1.</summary>
+public record RepoTreeEntry(string Path, string Sha);
+
 public interface IGitHubService
 {
     /// <summary>Latest published Release, or null if the repo has none. Throws on auth/network errors.</summary>
@@ -42,6 +45,10 @@ public interface IGitHubService
     /// <summary>The most recent commit on the repo's default branch (message + author + date), or null
     /// when the repo has no commits. Throws on auth/network errors.</summary>
     Task<RepoCommit?> GetLastCommitAsync(string repo, string? token, CancellationToken ct = default);
+
+    /// <summary>All tracked files (blobs) in the repo at <paramref name="branch"/>, with their git blob
+    /// SHA-1, for comparing a local working copy against the remote. Throws on auth/network errors.</summary>
+    Task<IReadOnlyList<RepoTreeEntry>> GetRepoTreeAsync(string repo, string? token, string branch, CancellationToken ct = default);
 
     /// <summary>Creates a Release for <paramref name="tag"/> with <paramref name="body"/>, or updates
     /// the body if a release for that tag already exists. Requires a token with write access.</summary>

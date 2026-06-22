@@ -1,10 +1,10 @@
 # ForgeTek Update Client Integration Guide
 
-This guide explains how to integrate ForgeTek Release Manager-generated updates into your application. Use this documentation to implement automatic update checking, download, and installation for your app.
+This guide explains how to integrate ForgeTek Application Release Manager-generated updates into your application. Use this documentation to implement automatic update checking, download, and installation for your app.
 
 ## Overview
 
-ForgeTek Release Manager creates two core artifacts for each app release:
+ForgeTek Application Release Manager creates two core artifacts for each app release:
 1. **Update Catalog JSON**: Publicly accessible JSON file listing all available versions and download URLs
 2. **.ftu Update Package**: Binary container with your app files, integrity checks, and metadata
 
@@ -27,33 +27,58 @@ Note 2: STLOrganizer is used as an example app name/key in this documentation. I
   "url": {
     "stlorganizer": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo"
   },
+  "latestFull": {
+    "version": "0.1.0",
+    "url": "https://example.com/releases/stlorganizer/0.1.0/STLOrganizer-0.1.0.stlo"
+  },
   "versions": {
-    "0.1.1": {
-      "url": "https://example.com/releases/stlorganizer/0.1.1/STLOrganizer-0.1.1.stlo",
-      "date": "2026-04-30",
-      "type": "incremental",
-      "checksum": "0412bca9d0d375ad5d95a9429326cd997c5df9eff4f30fe10b1f3fc214a9baf9"
+    "0.1.0": {
+      "url": "https://example.com/releases/stlorganizer/0.1.0/STLOrganizer-0.1.0.stlo",
+      "date": "2026-04-29",
+      "type": "full",
+      "base": "",
+      "checksum": "..."
     },
     "0.1.2": {
       "url": "https://example.com/releases/stlorganizer/0.1.2/STLOrganizer-0.1.2.stlo",
       "date": "2026-04-30",
       "type": "incremental",
+      "base": "0.1.0",
       "checksum": "64babf2a746b9dbc234fa0bbdbd1dc3b25e1914fdbe1f05f626d8fcf499a80af"
     }
   }
 }
 ```
 
+> **Cumulative incrementals (important).** Every incremental is **cumulative since the full baseline named in its `base`** — it contains *all* files changed since that baseline, not just since the previous patch. So an install at or after `base` can apply the single latest incremental and end up complete; intermediate patches never need to be applied in sequence.
+
 ### Field Descriptions
 | Field | Type | Description |
 |-------|------|-------------|
 | `{appKey}` | string | Current latest version number for your app |
 | `url.{appKey}` | string | Download URL for the latest package |
+| `latestFull` | object | `{version, url}` of the newest **full** baseline. A fresh install — or one older than the latest patch's `base` — must download this first. |
 | `versions.{version}` | object | Per-version metadata |
 | `versions.{version}.url` | string | Download URL for this specific version |
 | `versions.{version}.date` | string | Release date (YYYY-MM-DD) |
-| `versions.{version}.type` | string | `incremental` (changed files only) or `full` (all files) |
+| `versions.{version}.type` | string | `incremental` (cumulative since `base`) or `full` (all files) |
+| `versions.{version}.base` | string | The full baseline this incremental is cumulative from (empty for a full). An install older than this must fetch `latestFull` first. |
 | `versions.{version}.checksum` | string | SHA-256 checksum of the entire .ftu package |
+
+### Choosing what to download (client logic)
+```
+installed = local app version (or none)
+latest    = catalog[appKey]                       // newest version
+base      = catalog.versions[latest].base         // "" if latest is a full
+
+if installed is none OR installed < base:
+    download + apply latestFull                    // get the baseline
+    if latest != latestFull.version:
+        download + apply latest                    // one cumulative hop
+else:
+    download + apply latest                        // single cumulative incremental
+```
+After applying, **verify the full expected file set** (see `ExpectedFiles` below) and self-heal if anything is missing.
 
 ---
 
@@ -114,10 +139,12 @@ The header is embedded in the package and contains metadata:
 | `App` | string | Your application's name/app key |
 | `Version` | string | Package version number |
 | `PackageType` | string | `incremental` or `full` |
+| `BaseVersion` | string | The full baseline a cumulative incremental is relative to (null/empty for a full) |
 | `CreatedAt` | string | ISO 8601 timestamp of package creation |
 | `FileCount` | int | Number of files in the ZIP payload |
-| `Files` | array | List of files with their relative paths and SHA-256 checksums |
-| `RemovedFiles` | array | Relative paths of files deleted in this version — client should delete these after extraction (incremental packages only; empty for full packages) |
+| `Files` | array | Files **in the ZIP payload** (changed since the baseline) with relative paths + SHA-256 |
+| `ExpectedFiles` | array | The **full expected file set** after applying (every non-debug file + SHA-256). Use it to verify the install is complete and self-heal — if any expected file is missing or its hash doesn't match, download and apply `latestFull`. |
+| `RemovedFiles` | array | Relative paths of files to delete after extraction (baseline-relative; empty for full packages) |
 
 ---
 
@@ -236,9 +263,11 @@ public class PackageHeader
     public string App { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string PackageType { get; set; } = string.Empty;
+    public string? BaseVersion { get; set; }                       // cumulative baseline (null for full)
     public DateTimeOffset CreatedAt { get; set; }
     public int FileCount { get; set; }
-    public List<PackageHeaderFile> Files { get; set; } = [];
+    public List<PackageHeaderFile> Files { get; set; } = [];          // ZIP payload (changed files)
+    public List<PackageHeaderFile> ExpectedFiles { get; set; } = []; // full expected state (for self-heal)
     public List<string> RemovedFiles { get; set; } = [];
 }
 
@@ -281,8 +310,9 @@ public async Task ExtractPackageAsync(string packagePath, string installDir)
 ### 5. Apply Update
 Handle incremental vs full packages appropriately:
 
-- **Incremental packages**: Overwrite existing files in your installation directory. The package only contains added/modified files. After extraction, delete any files listed in `header.RemovedFiles` to prevent stale file bloat.
-- **Full packages**: Can safely replace all files in your installation directory (contains all non-debug application files). `RemovedFiles` will be empty for full packages.
+- **Incremental packages** are **cumulative since `header.BaseVersion`** — applying the single latest incremental over any install at or after that baseline yields a complete app. Overwrite existing files with the payload, then delete any files listed in `header.RemovedFiles`.
+- **Full packages**: replace all files (contains all non-debug application files). `RemovedFiles` is empty.
+- **Always self-heal**: after applying, verify every entry in `header.ExpectedFiles` exists on disk with a matching SHA-256. If any is missing or wrong (e.g. the install was older than `BaseVersion`, or got here some other way), download and apply `latestFull`, then re-apply the latest incremental. This guarantees a complete install regardless of how the user arrived.
 
 ```csharp
 public async Task ApplyUpdate(string packagePath, string installDir, string currentVersion)
@@ -298,6 +328,18 @@ public async Task ApplyUpdate(string packagePath, string installDir, string curr
             var fullPath = Path.Combine(installDir, relativePath.Replace('/', Path.DirectorySeparatorChar));
             if (File.Exists(fullPath))
                 File.Delete(fullPath);
+        }
+    }
+
+    // Self-heal: confirm the full expected file set is present, else fall back to the full baseline.
+    foreach (var expected in header.ExpectedFiles ?? [])
+    {
+        var fullPath = Path.Combine(installDir, expected.Path.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(fullPath) || Sha256Hex(fullPath) != expected.Checksum)
+        {
+            // Missing/mismatched → download latestFull from the catalog and apply it, then the latest patch.
+            await ApplyFullBaselineAndLatest(installDir);
+            return;
         }
     }
 

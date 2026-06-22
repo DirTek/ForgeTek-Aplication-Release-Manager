@@ -75,14 +75,30 @@ public partial class PackageViewModel
 
         var files = SelectedPackageType == PackageType.Incremental ? _incrementalFiles : _fullFiles;
 
+        // A Full has no baseline; an Incremental is cumulative since the last full.
+        _version.BaseVersion = SelectedPackageType == PackageType.Incremental ? _baselineVersion : null;
+
+        // Cumulative patches grow as more changes accrue since the baseline; nudge a fresh Full when large.
+        if (SelectedPackageType == PackageType.Incremental && _fullFiles.Count > 0
+            && _incrementalFiles.Count * 10 >= _fullFiles.Count * 6)
+        {
+            Log.Add($"⚠  This patch is cumulative since v{_version.BaseVersion} and carries " +
+                    $"{_incrementalFiles.Count} of {_fullFiles.Count} files. Consider a Full to reset the baseline.");
+        }
+
         _cts = new CancellationTokenSource();
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
-            var removedFiles = SelectedPackageType == PackageType.Incremental ? _version.RemovedFiles : null;
+            // Incremental: baseline-relative removed set (genuinely-gone since the last full + files the
+            // user marked for removal). Full: self-contained, so only the explicit removals are carried.
+            var removedFiles = SelectedPackageType == PackageType.Incremental
+                ? _packageRemovedFiles
+                : _version.RemovedMarkedFiles.Select(f => f.Path).ToList();
             var sha256 = await _packaging.BuildAsync(
                 _entry, _version, files, SelectedPackageType,
-                PackageOutputPath, ManifestOutputPath, removedFiles, progress, _cts.Token);
+                PackageOutputPath, ManifestOutputPath, removedFiles, progress, _cts.Token,
+                expectedFiles: _fullFiles);
 
             Log.Add(string.Empty);
             Log.Add($"Package SHA-256: {sha256}");
