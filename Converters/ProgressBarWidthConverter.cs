@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace ForgeTekUpdatePackager.Converters;
+namespace ForgeTekApplicationReleaseManager.Converters;
 
 public class ProgressBarWidthConverter : IMultiValueConverter
 {

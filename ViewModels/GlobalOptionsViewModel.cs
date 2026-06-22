@@ -6,14 +6,14 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Config;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Dialogs;
-using ForgeTekUpdatePackager.Helpers;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Config;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Dialogs;
+using ForgeTekApplicationReleaseManager.Helpers;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class GlobalOptionsViewModel : ObservableObject
 {

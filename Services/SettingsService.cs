@@ -1,9 +1,9 @@
 using System.IO;
 using System.Text.Json;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services.Security;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services.Security;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class SettingsService : ISettingsService
 {

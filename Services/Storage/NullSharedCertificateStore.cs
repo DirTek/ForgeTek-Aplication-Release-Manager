@@ -1,6 +1,6 @@
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>Standalone no-op shared certificate store: nothing is shared (certs stay as local files).</summary>
 public sealed class NullSharedCertificateStore : ISharedCertificateStore

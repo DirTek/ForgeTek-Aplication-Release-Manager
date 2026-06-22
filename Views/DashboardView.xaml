@@ -1,7 +1,7 @@
-<UserControl x:Class="ForgeTekUpdatePackager.Views.DashboardView"
+<UserControl x:Class="ForgeTekApplicationReleaseManager.Views.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels">
+             xmlns:vm="clr-namespace:ForgeTekApplicationReleaseManager.ViewModels">
     <UserControl.Resources>
         <!-- Clickable app status card: accent wash + hover + accent outline -->
         <Style x:Key="AppCardButton" TargetType="Button">

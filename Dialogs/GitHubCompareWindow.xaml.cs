@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 /// <summary>Compares a local project working copy against a GitHub repo's tracked source (git blob
 /// SHA-1), to show whether the local project matches what's on GitHub.</summary>

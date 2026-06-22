@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Result of running an external CLI process: exit code plus the combined stdout/stderr lines.</summary>
 public sealed record ProcessResult(int ExitCode, string Output)

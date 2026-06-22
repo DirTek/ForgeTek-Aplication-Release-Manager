@@ -1,10 +1,10 @@
 using System.Windows;
 using Microsoft.Win32;
-using ForgeTekUpdatePackager.Dialogs;
-using ForgeTekUpdatePackager.ViewModels;
-using ForgeTekUpdatePackager.Views;
+using ForgeTekApplicationReleaseManager.Dialogs;
+using ForgeTekApplicationReleaseManager.ViewModels;
+using ForgeTekApplicationReleaseManager.Views;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class DialogService : IDialogService
 {

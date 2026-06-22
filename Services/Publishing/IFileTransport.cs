@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>
 /// A publish target abstracted to a handful of file operations. Each implementation is constructed

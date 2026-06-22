@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Session-lived cache of each app's last publish-target connection result, so the dashboard

@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using ForgeTekUpdatePackager.Services.Security;
+using ForgeTekApplicationReleaseManager.Services.Security;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>Shared JSON options + secret-field helpers for the EF document-on-RDBMS services. Mirrors the
 /// serialization the file-based services used so payloads are byte-compatible with the importer.</summary>

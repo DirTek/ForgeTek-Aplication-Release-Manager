@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>A standalone publish target (provider + credentials), independent of an app's update
 /// settings. Used to publish a generated setup somewhere separate from the app's update feed — e.g.

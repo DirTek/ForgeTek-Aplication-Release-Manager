@@ -1,11 +1,11 @@
 using Xunit;
 using NSubstitute;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
-using ForgeTekUpdatePackager.ViewModels;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.ViewModels;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class PackageStepTrackingTests
 {

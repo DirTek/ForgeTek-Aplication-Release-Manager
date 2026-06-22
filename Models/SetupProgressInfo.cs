@@ -1,3 +1,3 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 public record SetupProgressInfo(int Percent, string Message);

@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>One entry in the "Past Bundles" history — a record of a setup that was generated.</summary>
 public class GeneratedSetupRecord

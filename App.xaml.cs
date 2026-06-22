@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Windows;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
-using ForgeTekUpdatePackager.Services.Security;
-using ForgeTekUpdatePackager.ViewModels;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.Services.Security;
+using ForgeTekApplicationReleaseManager.ViewModels;
 
-namespace ForgeTekUpdatePackager;
+namespace ForgeTekApplicationReleaseManager;
 
 public partial class App : Application
 {

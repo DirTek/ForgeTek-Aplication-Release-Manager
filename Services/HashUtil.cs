@@ -1,7 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Small helpers for hashing files (e.g. the installer SHA256 winget requires).</summary>
 public static class HashUtil

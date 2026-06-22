@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services.Security;
-using ForgeTekUpdatePackager.Services.Storage;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services.Security;
+using ForgeTekApplicationReleaseManager.Services.Storage;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// One-time migration of the legacy per-file JSON store into the database. Reads through the original

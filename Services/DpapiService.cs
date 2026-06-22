@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Encrypts and decrypts strings using Windows DPAPI bound to the current user account.
@@ -12,7 +12,7 @@ public static class DpapiService
     // App-specific entropy so data encrypted here can't be decrypted by other apps
     // running as the same user.
     private static readonly byte[] Entropy =
-        "ForgeTekUpdatePackager-v1"u8.ToArray();
+        "ForgeTekApplicationReleaseManager-v1"u8.ToArray();
 
     /// <summary>
     /// Encrypts <paramref name="plainText"/> and returns a Base64 cipher string.

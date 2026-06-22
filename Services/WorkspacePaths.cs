@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Machine-local working locations. In networked mode the shared <c>RootFolder</c>/<c>OutputFolder</c>

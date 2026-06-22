@@ -3,9 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.ViewModels;
+using ForgeTekApplicationReleaseManager.ViewModels;
 
-namespace ForgeTekUpdatePackager.Views;
+namespace ForgeTekApplicationReleaseManager.Views;
 
 public partial class AppDetailView : UserControl
 {

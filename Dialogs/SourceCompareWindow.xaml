@@ -1,4 +1,4 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.SourceCompareWindow"
+<Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.SourceCompareWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Compare Sources" Width="860" Height="700" MinWidth="720" MinHeight="540"

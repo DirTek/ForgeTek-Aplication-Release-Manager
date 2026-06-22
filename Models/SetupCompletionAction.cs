@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>What a finish-page action does when its checkbox is left checked.</summary>
 public enum CompletionActionKind

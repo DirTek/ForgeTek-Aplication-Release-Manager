@@ -1,10 +1,10 @@
 using System.IO;
 using System.Text;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>SFTP (SSH file transfer) transport via SSH.NET.</summary>
 internal sealed class SftpTransport : IFileTransport

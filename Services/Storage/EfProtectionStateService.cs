@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
+using ForgeTekApplicationReleaseManager.Data;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>
 /// DB-backed protection marker for the networked (shared) deployment, so "access protection is enabled" is

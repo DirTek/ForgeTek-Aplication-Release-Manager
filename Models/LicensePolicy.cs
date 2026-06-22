@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>Allow / warn / block lists for third-party licenses (reuses <see cref="PolicyAction"/>).
 /// Matching is token-based against SPDX identifiers so "MIT OR GPL-3.0" blocks on the GPL token while

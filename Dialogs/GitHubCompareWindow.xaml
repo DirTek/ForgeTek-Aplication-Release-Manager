@@ -1,4 +1,4 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.GitHubCompareWindow"
+<Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.GitHubCompareWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Compare with GitHub" Width="820" Height="700" MinWidth="700" MinHeight="540"

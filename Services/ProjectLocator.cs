@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Resolves a scan target (.sln/.csproj) from a path that may be a file or a folder
 /// (e.g. a local repo clone). Shared by the dependency-vulnerability and license scanners.</summary>

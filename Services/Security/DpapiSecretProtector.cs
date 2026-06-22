@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services.Security;
+namespace ForgeTekApplicationReleaseManager.Services.Security;
 
 /// <summary>
 /// Default protector for local/standalone installs — wraps Windows DPAPI bound to the current user

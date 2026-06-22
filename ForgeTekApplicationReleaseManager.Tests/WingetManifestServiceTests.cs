@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Xunit;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class WingetManifestServiceTests
 {

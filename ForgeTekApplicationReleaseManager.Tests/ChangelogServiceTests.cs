@@ -1,7 +1,7 @@
 using Xunit;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class ChangelogServiceTests
 {

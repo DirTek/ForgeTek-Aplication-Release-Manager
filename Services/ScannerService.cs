@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class ScannerService : IScannerService
 {

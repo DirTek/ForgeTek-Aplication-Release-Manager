@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace ForgeTekUpdatePackager.Views;
+namespace ForgeTekApplicationReleaseManager.Views;
 
 public partial class ReviseView : UserControl
 {

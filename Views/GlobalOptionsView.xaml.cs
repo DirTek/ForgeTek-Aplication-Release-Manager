@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
-using ForgeTekUpdatePackager.ViewModels;
+using ForgeTekApplicationReleaseManager.ViewModels;
 
-namespace ForgeTekUpdatePackager.Views;
+namespace ForgeTekApplicationReleaseManager.Views;
 
 public partial class GlobalOptionsView : UserControl
 {

@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Windows;
 using Microsoft.Win32;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 public partial class LockoutWindow : Window
 {

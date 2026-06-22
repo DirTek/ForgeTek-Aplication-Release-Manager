@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using ForgeTekUpdatePackager.ViewModels;
+using ForgeTekApplicationReleaseManager.ViewModels;
 
-namespace ForgeTekUpdatePackager;
+namespace ForgeTekApplicationReleaseManager;
 
 public partial class MainWindow : Window
 {

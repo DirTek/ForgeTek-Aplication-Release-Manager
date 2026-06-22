@@ -1,4 +1,4 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.SetupPublishSettingsWindow"
+<Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.SetupPublishSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Setup Publishing" Width="620" Height="660" MinWidth="560" MinHeight="520"

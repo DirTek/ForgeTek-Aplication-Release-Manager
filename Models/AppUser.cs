@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>A local application user. The password is stored only as a PBKDF2 hash + salt
 /// (never plaintext, never reversible).</summary>

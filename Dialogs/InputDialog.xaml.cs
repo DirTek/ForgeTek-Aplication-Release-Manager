@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 public partial class InputDialog : Window
 {
