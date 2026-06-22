@@ -1,7 +1,7 @@
-﻿<UserControl x:Class="ForgeTekUpdatePackager.Views.ReviseView"
+﻿<UserControl x:Class="ForgeTekApplicationReleaseManager.Views.ReviseView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
+             xmlns:vm="clr-namespace:ForgeTekApplicationReleaseManager.ViewModels"
              Background="{DynamicResource BackgroundBrush}">
     <Grid>
         <Grid.RowDefinitions>

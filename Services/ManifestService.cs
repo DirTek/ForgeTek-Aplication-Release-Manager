@@ -1,8 +1,8 @@
 using System.IO;
 using System.Text.Json;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class ManifestService : IManifestService
 {

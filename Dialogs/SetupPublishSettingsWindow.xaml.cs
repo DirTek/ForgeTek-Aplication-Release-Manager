@@ -1,11 +1,11 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 /// <summary>Edits a setup bundle's own publish target (separate from the apps' update settings),
 /// with a "Copy from app" helper and a connection test.</summary>

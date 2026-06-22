@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class ChangelogService : IChangelogService
 {

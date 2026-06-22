@@ -1,6 +1,6 @@
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>FTP transport — delegates to the existing <see cref="IFtpService"/> so behavior is unchanged.</summary>
 internal sealed class FtpTransport : IFileTransport

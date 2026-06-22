@@ -1,9 +1,9 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Local user store (settings/users.json). Passwords are hashed with PBKDF2-SHA256 + per-user

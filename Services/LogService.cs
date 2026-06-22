@@ -1,7 +1,7 @@
 using System.IO;
 using System.Linq;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class LogService : ILogService
 {

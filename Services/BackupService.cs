@@ -2,9 +2,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
+using ForgeTekApplicationReleaseManager.Data;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Backs up and restores the app's data. Since the move to EF Core the source of truth is the database

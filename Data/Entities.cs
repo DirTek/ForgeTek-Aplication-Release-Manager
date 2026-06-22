@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ForgeTekUpdatePackager.Data;
+namespace ForgeTekApplicationReleaseManager.Data;
 
 /// <summary>
 /// Common shape for the document-on-RDBMS rows: a primary key, a JSON <see cref="Payload"/> holding the

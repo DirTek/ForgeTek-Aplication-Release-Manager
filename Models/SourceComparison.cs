@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>Per-file verdict across the compared sources.</summary>
 public enum CompareStatus

@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Inputs for a winget multi-file manifest. Pure data so generation is unit-testable.</summary>
 public sealed record WingetManifestInput(

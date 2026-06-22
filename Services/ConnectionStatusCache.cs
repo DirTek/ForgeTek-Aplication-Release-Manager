@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class ConnectionStatusCache : IConnectionStatusCache
 {

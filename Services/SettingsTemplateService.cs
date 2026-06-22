@@ -1,9 +1,9 @@
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class SettingsTemplateService : ISettingsTemplateService
 {

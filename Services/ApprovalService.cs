@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services.Storage;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services.Storage;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>EF Core-backed approval store. The state-derivation logic lives in the static
 /// <see cref="Evaluate"/> / <see cref="CountSatisfied"/> helpers so it's unit-testable without a DB.</summary>

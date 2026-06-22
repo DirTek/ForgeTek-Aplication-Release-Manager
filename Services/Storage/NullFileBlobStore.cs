@@ -1,6 +1,6 @@
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>Standalone (non-networked) no-op blob store: nothing is stored and no blob is ever found, so
 /// packaging falls back to reading source files from local disk exactly as before.</summary>

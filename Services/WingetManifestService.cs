@@ -2,7 +2,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Generates winget multi-file manifests (schema v1.6) for a generated installer.
 /// YAML is hand-built (it's simple, order-sensitive, and needs the schema header comment), so no

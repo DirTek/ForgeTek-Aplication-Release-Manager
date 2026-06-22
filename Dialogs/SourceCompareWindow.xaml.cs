@@ -2,10 +2,10 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 /// <summary>Compares an app's tracked files, its solution build output, and its GitHub build output
 /// by relative path + SHA256, flagging files that differ or are missing in a source.</summary>

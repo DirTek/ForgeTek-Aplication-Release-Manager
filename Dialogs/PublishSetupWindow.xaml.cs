@@ -2,11 +2,11 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 /// <summary>Uploads a generated setup .exe to the bundle's own publish target (separate from the apps'
 /// update settings) and shows the resulting public URL. Does not touch the update catalog.</summary>

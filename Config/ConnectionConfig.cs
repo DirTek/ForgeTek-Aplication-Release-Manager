@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace ForgeTekUpdatePackager.Config;
+namespace ForgeTekApplicationReleaseManager.Config;
 
 /// <summary>Where the app keeps its data: a local SQLite file, or a shared SQL Server.</summary>
 public enum StorageMode

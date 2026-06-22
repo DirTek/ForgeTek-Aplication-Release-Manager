@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Extracts an application's icon to a standalone <c>.ico</c> file so it can be baked into

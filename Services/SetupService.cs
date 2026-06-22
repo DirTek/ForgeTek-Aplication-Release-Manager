@@ -3,10 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
-using ForgeTekUpdatePackager.Helpers;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Helpers;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class SetupService : ISetupService
 {

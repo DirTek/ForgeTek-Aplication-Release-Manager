@@ -2,10 +2,10 @@ using System.IO;
 using System.Linq;
 using Xunit;
 using NSubstitute;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class SettingsTemplateServiceTests : IDisposable
 {

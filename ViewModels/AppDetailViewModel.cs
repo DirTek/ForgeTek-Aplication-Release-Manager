@@ -2,12 +2,12 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
-using ForgeTekUpdatePackager.Dialogs;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.Dialogs;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class AppDetailViewModel : ObservableObject
 {

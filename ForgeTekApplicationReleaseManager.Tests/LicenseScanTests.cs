@@ -1,9 +1,9 @@
 using System.Linq;
 using Xunit;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class LicenseScanTests
 {

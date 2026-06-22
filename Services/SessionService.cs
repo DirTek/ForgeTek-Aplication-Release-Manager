@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Holds the signed-in user and derives permissions from their role. When no users exist the app

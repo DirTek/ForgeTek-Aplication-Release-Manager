@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public interface ICertificateService
 {

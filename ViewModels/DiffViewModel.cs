@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class DiffViewModel : ObservableObject
 {

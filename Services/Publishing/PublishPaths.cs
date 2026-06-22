@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>Shared remote-path / download-URL construction for the path-based transports.</summary>
 public static class PublishPaths

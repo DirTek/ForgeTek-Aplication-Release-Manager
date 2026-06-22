@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services.Security;
+namespace ForgeTekApplicationReleaseManager.Services.Security;
 
 /// <summary>
 /// Placeholder protector for the networked (shared SQL Server) deployment. A deployment-wide secret

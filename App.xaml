@@ -1,9 +1,9 @@
-﻿<Application x:Class="ForgeTekUpdatePackager.App"
+﻿<Application x:Class="ForgeTekApplicationReleaseManager.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
-             xmlns:views="clr-namespace:ForgeTekUpdatePackager.Views"
-             xmlns:conv="clr-namespace:ForgeTekUpdatePackager.Converters">
+             xmlns:vm="clr-namespace:ForgeTekApplicationReleaseManager.ViewModels"
+             xmlns:views="clr-namespace:ForgeTekApplicationReleaseManager.Views"
+             xmlns:conv="clr-namespace:ForgeTekApplicationReleaseManager.Converters">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services.Security;
+namespace ForgeTekApplicationReleaseManager.Services.Security;
 
 /// <summary>
 /// Encrypts/decrypts secret strings (passwords, tokens, keys) for storage at rest. Abstracts the

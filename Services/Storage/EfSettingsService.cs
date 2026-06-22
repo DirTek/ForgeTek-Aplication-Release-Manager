@@ -1,11 +1,11 @@
 using System.IO;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services.Security;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services.Security;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>
 /// EF Core-backed settings store. <see cref="Global"/> is the single shared global-settings row, cached in

@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>Per-app metadata used to generate a Windows Package Manager (winget) manifest.
 /// All non-secret, persisted in <see cref="AppSettings"/>.</summary>

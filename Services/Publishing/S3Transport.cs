@@ -2,9 +2,9 @@ using System.IO;
 using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>S3-compatible transport (AWS S3 / Cloudflare R2 / MinIO) via AWSSDK.S3.</summary>
 internal sealed class S3Transport : IFileTransport

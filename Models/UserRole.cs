@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>Fixed roles that gate what a signed-in user may do.</summary>
 public enum UserRole

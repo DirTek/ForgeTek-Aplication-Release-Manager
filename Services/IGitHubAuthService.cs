@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>A pending device-flow authorization: show <see cref="UserCode"/> and open <see cref="VerificationUri"/>.</summary>
 public record DeviceCodeInfo(string DeviceCode, string UserCode, string VerificationUri, int Interval, int ExpiresIn);

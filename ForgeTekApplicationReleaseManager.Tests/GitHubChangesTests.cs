@@ -3,9 +3,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using Xunit;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class GitHubChangesTests
 {

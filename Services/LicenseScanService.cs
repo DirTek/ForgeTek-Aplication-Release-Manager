@@ -2,9 +2,9 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Lists a project's NuGet dependencies (`dotnet list package --include-transitive`) and
 /// resolves each package's license from its nuspec on nuget.org, producing a Third-Party Components

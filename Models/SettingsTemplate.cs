@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>
 /// A reusable preset of an app's non-secret pipeline settings (build runner, packaging, publishing).

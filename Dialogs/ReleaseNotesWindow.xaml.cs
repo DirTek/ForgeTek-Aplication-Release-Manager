@@ -7,9 +7,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 public partial class ReleaseNotesWindow : Window
 {

@@ -3,13 +3,13 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Xunit;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Security;
-using ForgeTekUpdatePackager.Services.Storage;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Security;
+using ForgeTekApplicationReleaseManager.Services.Storage;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 /// <summary>A SQLite (in-memory, kept alive) DbContext factory for exercising the EF services without a server.</summary>
 sealed class TestDbFactory : IDbContextFactory<ForgeTekDbContext>, IDisposable
@@ -303,7 +303,7 @@ public class FileBlobStoreTests
             // An orphan blob not referenced by any version.
             using (var db = factory.CreateDbContext())
             {
-                db.FileBlobs.Add(new ForgeTekUpdatePackager.Data.FileBlobRow
+                db.FileBlobs.Add(new ForgeTekApplicationReleaseManager.Data.FileBlobRow
                 { Sha256 = "deadbeef", Length = 3, Content = new byte[] { 1, 2, 3 } });
                 db.SaveChanges();
             }
@@ -425,7 +425,7 @@ public class SharedCertificateStoreTests
 
         // The row has no password column at all — the secret never lands in the DB.
         using var db = factory.CreateDbContext();
-        Assert.DoesNotContain(typeof(ForgeTekUpdatePackager.Data.CertificateRow).GetProperties(),
+        Assert.DoesNotContain(typeof(ForgeTekApplicationReleaseManager.Data.CertificateRow).GetProperties(),
             p => p.Name.Contains("Password", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -472,9 +472,9 @@ public class LogServiceTests
             File.WriteAllText(Path.Combine(logs, "2026-06-21.log"), "[10:00:00.000] [Scan] twenty-first\n");
             File.WriteAllText(Path.Combine(logs, "2026-06-22.log"), "[11:00:00.000] [Scan] twenty-second\n");
 
-            var settings = NSubstitute.Substitute.For<ForgeTekUpdatePackager.Services.ISettingsService>();
+            var settings = NSubstitute.Substitute.For<ForgeTekApplicationReleaseManager.Services.ISettingsService>();
             settings.RootFolder.Returns(root);
-            var svc = new ForgeTekUpdatePackager.Services.LogService(settings);
+            var svc = new ForgeTekApplicationReleaseManager.Services.LogService(settings);
 
             // Single day.
             var oneDay = svc.ReadRange(new DateOnly(2026, 6, 21), new DateOnly(2026, 6, 21));
@@ -499,9 +499,9 @@ public class LogServiceTests
             var logs = Directory.CreateDirectory(Path.Combine(root, "logs")).FullName;
             File.WriteAllText(Path.Combine(logs, "2026-06-20.log"), "[09:00:00.000] [X] a\n");
 
-            var settings = NSubstitute.Substitute.For<ForgeTekUpdatePackager.Services.ISettingsService>();
+            var settings = NSubstitute.Substitute.For<ForgeTekApplicationReleaseManager.Services.ISettingsService>();
             settings.RootFolder.Returns(root);
-            var svc = new ForgeTekUpdatePackager.Services.LogService(settings);
+            var svc = new ForgeTekApplicationReleaseManager.Services.LogService(settings);
 
             // From > To is tolerated (swapped).
             Assert.Single(svc.ReadRange(new DateOnly(2026, 6, 21), new DateOnly(2026, 6, 19)));
@@ -524,11 +524,11 @@ public class BackupServiceTests
             // Seed the source database.
             using (var db = source.CreateDbContext())
             {
-                db.Users.Add(new ForgeTekUpdatePackager.Data.UserRow { UsernameKey = "alice", Payload = "{\"role\":\"Admin\"}" });
-                db.GlobalSettingsRows.Add(new ForgeTekUpdatePackager.Data.GlobalSettingsRow { Id = 1, Payload = "{\"companyName\":\"Acme\"}", ProtectionEnabled = true });
-                db.Apps.Add(new ForgeTekUpdatePackager.Data.AppRow { Id = "app1", Name = "MyApp", Payload = "{\"name\":\"MyApp\"}" });
-                db.FileBlobs.Add(new ForgeTekUpdatePackager.Data.FileBlobRow { Sha256 = "abc123", Length = 4, Compressed = false, Content = new byte[] { 1, 2, 3, 4 } });
-                db.Certificates.Add(new ForgeTekUpdatePackager.Data.CertificateRow { Id = "cert1", Subject = "CN=Test", FriendlyName = "f", Thumbprint = "THUMB", Pfx = new byte[] { 9, 8, 7 } });
+                db.Users.Add(new ForgeTekApplicationReleaseManager.Data.UserRow { UsernameKey = "alice", Payload = "{\"role\":\"Admin\"}" });
+                db.GlobalSettingsRows.Add(new ForgeTekApplicationReleaseManager.Data.GlobalSettingsRow { Id = 1, Payload = "{\"companyName\":\"Acme\"}", ProtectionEnabled = true });
+                db.Apps.Add(new ForgeTekApplicationReleaseManager.Data.AppRow { Id = "app1", Name = "MyApp", Payload = "{\"name\":\"MyApp\"}" });
+                db.FileBlobs.Add(new ForgeTekApplicationReleaseManager.Data.FileBlobRow { Sha256 = "abc123", Length = 4, Compressed = false, Content = new byte[] { 1, 2, 3, 4 } });
+                db.Certificates.Add(new ForgeTekApplicationReleaseManager.Data.CertificateRow { Id = "cert1", Subject = "CN=Test", FriendlyName = "f", Thumbprint = "THUMB", Pfx = new byte[] { 9, 8, 7 } });
                 db.SaveChanges();
             }
 
@@ -566,7 +566,7 @@ public class BackupServiceTests
         {
             using (var db = factory.CreateDbContext())
             {
-                db.Apps.Add(new ForgeTekUpdatePackager.Data.AppRow { Id = "app1", Name = "Original", Payload = "{}" });
+                db.Apps.Add(new ForgeTekApplicationReleaseManager.Data.AppRow { Id = "app1", Name = "Original", Payload = "{}" });
                 db.SaveChanges();
             }
 

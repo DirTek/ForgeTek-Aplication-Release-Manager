@@ -2,7 +2,7 @@ using System.IO;
 using System.Text;
 using FluentFTP;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 public class FtpService : IFtpService
 {

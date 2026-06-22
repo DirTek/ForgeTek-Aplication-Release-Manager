@@ -1,6 +1,6 @@
 using Microsoft.Win32;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Stores the "protection enabled" marker in the Windows registry (HKCU), DPAPI-protected so it can't

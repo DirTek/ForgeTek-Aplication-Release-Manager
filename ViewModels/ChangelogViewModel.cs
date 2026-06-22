@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class ChangelogViewModel : ObservableObject
 {

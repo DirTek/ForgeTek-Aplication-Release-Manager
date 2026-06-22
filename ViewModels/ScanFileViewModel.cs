@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class ScanFileViewModel(FileRecord record) : ObservableObject
 {

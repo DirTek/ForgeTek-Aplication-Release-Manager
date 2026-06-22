@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>The latest published GitHub Release of a repo.</summary>
 public record GitHubRelease(string TagName, string Name, string HtmlUrl, DateTime? PublishedAt);

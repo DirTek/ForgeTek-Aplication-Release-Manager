@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>EF Core-backed shared certificate store (networked mode). Stores the password-protected .pfx
 /// and metadata; never the password.</summary>

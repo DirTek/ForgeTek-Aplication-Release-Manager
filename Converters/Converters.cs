@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Data;
 
-namespace ForgeTekUpdatePackager.Converters;
+namespace ForgeTekApplicationReleaseManager.Converters;
 
 /// <summary>Converts an int count of 0 to Visible, anything else to Collapsed (for "empty" labels).</summary>
 public class ZeroToVisibleConverter : IValueConverter

@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class SignableFileItem : ObservableObject
 {

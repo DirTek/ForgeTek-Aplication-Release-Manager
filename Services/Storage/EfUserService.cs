@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services.Security;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services.Security;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>EF Core-backed user store (shared across operators). Passwords are PBKDF2-hashed via
 /// <see cref="PasswordHasher"/> — never stored in plaintext. Usernames match case-insensitively.</summary>

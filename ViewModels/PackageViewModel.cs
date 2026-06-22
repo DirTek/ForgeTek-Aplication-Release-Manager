@@ -2,12 +2,12 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Helpers;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
-using ForgeTekUpdatePackager.Services.Publishing;
+using ForgeTekApplicationReleaseManager.Helpers;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
+using ForgeTekApplicationReleaseManager.Services.Publishing;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class PackageViewModel : ObservableObject
 {

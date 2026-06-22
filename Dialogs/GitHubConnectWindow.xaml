@@ -1,4 +1,4 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.GitHubConnectWindow"
+<Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.GitHubConnectWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Connect GitHub" Width="440"

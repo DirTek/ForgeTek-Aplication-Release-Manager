@@ -1,7 +1,7 @@
 using System.Windows;
 using Microsoft.Win32;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>
 /// Swaps the active theme ResourceDictionary (Themes/Dark.xaml ↔ Themes/Light.xaml) merged into

@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>One third-party NuGet component and its license, as resolved from NuGet metadata.</summary>
 public sealed record LicenseComponent(

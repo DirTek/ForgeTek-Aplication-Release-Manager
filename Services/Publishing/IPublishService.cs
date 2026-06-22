@@ -1,6 +1,6 @@
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>
 /// Transport-agnostic publishing facade. Routes upload / catalog / retract operations to the app's

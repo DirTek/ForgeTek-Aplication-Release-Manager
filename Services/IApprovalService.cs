@@ -1,6 +1,6 @@
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Records and evaluates release sign-offs. A release is publishable only when its
 /// <see cref="GetState"/> is <see cref="ApprovalState.Approved"/> (an Admin and a QA Tester have both

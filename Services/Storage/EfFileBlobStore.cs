@@ -1,10 +1,10 @@
 using System.IO;
 using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
-using ForgeTekUpdatePackager.Data;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Data;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services.Storage;
+namespace ForgeTekApplicationReleaseManager.Services.Storage;
 
 /// <summary>
 /// EF Core-backed content-addressed blob store (networked mode). Stores shippable source files keyed by

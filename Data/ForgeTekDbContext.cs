@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace ForgeTekUpdatePackager.Data;
+namespace ForgeTekApplicationReleaseManager.Data;
 
 /// <summary>
 /// EF Core context for the shared/local store. Holds the document-on-RDBMS rows (one JSON payload per

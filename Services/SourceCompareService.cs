@@ -1,9 +1,9 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.Services;
+namespace ForgeTekApplicationReleaseManager.Services;
 
 /// <summary>Compares the file sets and SHA256 content hashes of the app's tracked files, its solution
 /// build output, and its GitHub build output — a "SLN = files = GitHub" integrity check.</summary>

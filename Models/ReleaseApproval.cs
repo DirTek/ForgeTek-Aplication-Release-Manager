@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>A binding vote or a non-binding note cast on a release.</summary>
 public enum ApprovalDecision

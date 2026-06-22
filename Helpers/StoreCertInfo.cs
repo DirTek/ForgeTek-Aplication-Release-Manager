@@ -1,6 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 
-namespace ForgeTekUpdatePackager.Helpers;
+namespace ForgeTekApplicationReleaseManager.Helpers;
 
 public record StoreCertInfo(string Thumbprint, string Subject, string Issuer, DateTime NotAfter)
 {

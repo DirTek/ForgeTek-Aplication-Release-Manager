@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace ForgeTekUpdatePackager.Services.Security;
+namespace ForgeTekApplicationReleaseManager.Services.Security;
 
 /// <summary>PBKDF2-SHA256 password hashing with a per-user salt — matches the parameters the original
 /// file-based <c>UserService</c> used, so hashes round-trip after migration.</summary>

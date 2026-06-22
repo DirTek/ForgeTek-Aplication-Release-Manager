@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ForgeTekUpdatePackager.Dialogs;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Dialogs;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public partial class ReviseViewModel : ObservableObject
 {

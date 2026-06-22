@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace ForgeTekUpdatePackager.Helpers;
+namespace ForgeTekApplicationReleaseManager.Helpers;
 
 /// <summary>
 /// Resolves <c>{Variable}</c> build-variable tokens in user-supplied templates (file names, setup

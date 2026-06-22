@@ -1,8 +1,8 @@
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
-using ForgeTekUpdatePackager.Models;
+using ForgeTekApplicationReleaseManager.Models;
 
-namespace ForgeTekUpdatePackager.ViewModels;
+namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public enum VersionDisplayMode { None, Published, InProgress, Retracted }
 

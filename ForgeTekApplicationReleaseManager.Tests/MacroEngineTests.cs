@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Xunit;
-using ForgeTekUpdatePackager.Helpers;
+using ForgeTekApplicationReleaseManager.Helpers;
 
-namespace ForgeTekUpdatePackager.Tests;
+namespace ForgeTekApplicationReleaseManager.Tests;
 
 public class MacroEngineTests
 {

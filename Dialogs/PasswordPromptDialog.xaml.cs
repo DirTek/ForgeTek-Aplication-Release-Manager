@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Input;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 public partial class PasswordPromptDialog : Window
 {

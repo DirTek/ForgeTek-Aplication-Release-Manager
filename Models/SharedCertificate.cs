@@ -1,4 +1,4 @@
-namespace ForgeTekUpdatePackager.Models;
+namespace ForgeTekApplicationReleaseManager.Models;
 
 /// <summary>
 /// Metadata for a code-signing certificate shared through the networked database. The .pfx bytes live in

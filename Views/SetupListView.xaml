@@ -1,8 +1,8 @@
-﻿<UserControl x:Class="ForgeTekUpdatePackager.Views.SetupListView"
+﻿<UserControl x:Class="ForgeTekApplicationReleaseManager.Views.SetupListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:ForgeTekUpdatePackager.ViewModels"
-             xmlns:models="clr-namespace:ForgeTekUpdatePackager.Models"
+             xmlns:vm="clr-namespace:ForgeTekApplicationReleaseManager.ViewModels"
+             xmlns:models="clr-namespace:ForgeTekApplicationReleaseManager.Models"
              xmlns:colorpicker="clr-namespace:ColorPicker;assembly=ColorPicker"
              Background="{DynamicResource BackgroundBrush}">
     <UserControl.Resources>

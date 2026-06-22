@@ -7,6 +7,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>appicon.ico</ApplicationIcon>
+    <!-- Output is FARM.exe / FARM.dll; the namespace is ForgeTekApplicationReleaseManager. -->
+    <AssemblyName>FARM</AssemblyName>
+    <RootNamespace>ForgeTekApplicationReleaseManager</RootNamespace>
+    <Product>ForgeTek Application Release Manager</Product>
+    <AssemblyTitle>ForgeTek Application Release Manager</AssemblyTitle>
+    <Company>ForgeTek</Company>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,13 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="ForgeTekUpdatePackager.Tests\**" />
+    <Compile Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <Compile Remove="SetupBootstrapper\**" />
     <Compile Remove="SetupUninstaller\**" />
-    <EmbeddedResource Remove="ForgeTekUpdatePackager.Tests\**" />
+    <EmbeddedResource Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <EmbeddedResource Remove="SetupBootstrapper\**" />
     <EmbeddedResource Remove="SetupUninstaller\**" />
-    <None Remove="ForgeTekUpdatePackager.Tests\**" />
+    <None Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <None Remove="SetupBootstrapper\**" />
     <None Remove="SetupUninstaller\**" />
     <Page Remove="SetupBootstrapper\**" />

@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
-namespace ForgeTekUpdatePackager.Services.Publishing;
+namespace ForgeTekApplicationReleaseManager.Services.Publishing;
 
 /// <summary>HttpContent that streams a file in chunks and reports cumulative bytes sent, so uploads
 /// (e.g. a setup .exe to GitHub Releases) can drive a progress bar. Sets Content-Length up front.</summary>

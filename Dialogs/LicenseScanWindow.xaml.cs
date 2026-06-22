@@ -2,10 +2,10 @@ using System.IO;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
-using ForgeTekUpdatePackager.Models;
-using ForgeTekUpdatePackager.Services;
+using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
-namespace ForgeTekUpdatePackager.Dialogs;
+namespace ForgeTekApplicationReleaseManager.Dialogs;
 
 /// <summary>Resolves a project's third-party NuGet licenses, applies the allow/warn/block policy, and
 /// exports a Third-Party Components report.</summary>

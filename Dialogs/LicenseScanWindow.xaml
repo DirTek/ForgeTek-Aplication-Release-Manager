@@ -1,4 +1,4 @@
-<Window x:Class="ForgeTekUpdatePackager.Dialogs.LicenseScanWindow"
+<Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.LicenseScanWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="License Compliance" Width="820" Height="720" MinWidth="680" MinHeight="560"
