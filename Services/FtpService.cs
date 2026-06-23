@@ -260,9 +260,12 @@ public class FtpService : IFtpService
         string remotePath, string host, int port, string username, string password,
         CancellationToken ct = default)
     {
+        // Do NOT use 'using' — Dispose() sends QUIT and waits for 221, which hangs on
+        // servers that never ACK the control channel. Disconnect gracefully (bounded by a
+        // short CTS) in finally, then dispose, exactly as the upload/delete paths do.
+        var client = CreateClient(host, port, username, password);
         try
         {
-            using var client = CreateClient(host, port, username, password);
             await client.AutoConnect(ct);
 
             if (!await client.FileExists(remotePath, ct))
@@ -274,6 +277,13 @@ public class FtpService : IFtpService
         catch
         {
             return null;
+        }
+        finally
+        {
+            using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            discCts.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await client.Disconnect(discCts.Token); } catch { }
+            client.Dispose();
         }
     }
 }

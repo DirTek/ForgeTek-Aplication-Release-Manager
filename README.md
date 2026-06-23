@@ -1,3 +1,39 @@
+# FARM — ForgeTek Application Release Manager
+
+**FARM** is a desktop tool that covers the whole "ship my app" journey: getting the first install onto a user's machine, and keeping it up to date afterward. You point it at your app's build output, and it can both **build an installer** and **publish auto-updates** — without the moving parts that usually come with either.
+
+What FARM does for you:
+
+**Auto-updates**
+
+- **Packages releases** into self-contained `.ftu` files with built-in SHA-256 integrity checks.
+- **Builds incremental updates** automatically — it diffs against a baseline so users download only what changed, not the whole app every time.
+- **Maintains the update catalog** (a simple JSON file) with stable/beta channels and full version history.
+- **Publishes everywhere** — FTP, SFTP, S3, or GitHub Releases — and can roll a release back if something goes wrong.
+- **Self-healing client logic** — the format is designed so a client can always recover a complete, correct install no matter what version it started from.
+
+**Installer setups**
+
+- **Builds a single-file installer `.exe`** that bundles one or more of your apps into a guided, branded setup wizard — no separate installer toolchain to learn.
+- **Bundles redistributables** (e.g. .NET, VC++ runtimes) with detection rules so they install only when missing.
+- **Runs custom pre/post-install actions** — scripts, executables, registry entries — plus EULA, shortcuts, and per-app optional/required selection.
+- **Brands the experience** with your icon, banner/background, color theme, and button styling; can also emit a plain **portable ZIP** alongside the installer.
+- **Signs and self-uninstalls** — optional Authenticode signing of the output, and a per-app uninstaller baked into each install.
+
+**Signing, storage & team workflow**
+
+- **Generates code-signing certificates** — create a self-signed code-signing PFX right in the app (or import your own), then sign your packages and installers with it.
+- **Runs solo or networked** — store everything in a local **SQLite** file for single-machine use (the zero-setup default), or point FARM at a shared **Microsoft SQL Server** so a whole team works from one source of truth.
+- **Multi-user with roles** — networked mode adds sign-in and role-based access: **Admin**, **Publisher**, **Scanner**, **Setup Builder**, and **QA Tester** — including a review/approval gate so releases can be signed off before they go public.
+
+### Who it's for
+
+FARM is aimed at **small teams, solo developers, and beginners** who want a professional installer and auto-updates without standing up update servers, CI pipelines, installer toolchains, or paid delivery services. If you can build your app and you have somewhere to host files, you have everything you need. The defaults are sensible, the workflow is step-by-step, and the on-disk formats are plain JSON and ZIP — nothing proprietary to lock you in or learn from scratch.
+
+> **Built with AI.** FARM was designed and built with heavy use of AI assistance. It's a real, working tool — and also a demonstration that a capable, polished release manager can be created this way.
+
+---
+
 # ForgeTek Update Client Integration Guide
 
 This guide explains how to integrate ForgeTek Application Release Manager-generated updates into your application. Use this documentation to implement automatic update checking, download, and installation for your app.
