@@ -16,6 +16,9 @@ public class GlobalSettings
     // UI appearance: "Dark" (default) or "Light".
     public string  Theme               { get; set; } = "Dark";
 
+    // UI language (culture code, e.g. "en"). English is the default and currently the only option.
+    public string  Language            { get; set; } = "en";
+
     /// <summary>Version-list channel filter, remembered across sessions: "All", "Stable", or "Beta".</summary>
     public string  VersionChannelFilter { get; set; } = "All";
 

@@ -1,20 +1,18 @@
 <Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.GitHubConnectWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Connect GitHub" Width="440"
+        Title="{DynamicResource Str.GhConnect.Title}" Width="440"
         SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}">
     <StackPanel Margin="28,24,28,24">
 
-        <TextBlock Text="Connect GitHub" FontSize="22" FontWeight="Bold"
+        <TextBlock Text="{DynamicResource Str.GhConnect.Title}" FontSize="22" FontWeight="Bold"
                    Foreground="{DynamicResource TextBrush}"/>
         <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                   TextWrapping="Wrap" Margin="0,4,0,16">
-            Click “Open GitHub” (your code is copied to the clipboard), then enter/confirm the code in the
-            browser and authorize. This window completes automatically once you approve.
-        </TextBlock>
+                   TextWrapping="Wrap" Margin="0,4,0,16"
+                   Text="{DynamicResource Str.GhConnect.Desc}"/>
 
         <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,14">
@@ -22,20 +20,20 @@
                        HorizontalAlignment="Center" Foreground="{DynamicResource AccentBrush}"/>
         </Border>
 
-        <Button x:Name="OpenButton" Content="Open GitHub &amp; copy code" Style="{StaticResource PrimaryButton}"
+        <Button x:Name="OpenButton" Content="{DynamicResource Str.GhConnect.OpenButton}" Style="{StaticResource PrimaryButton}"
                 Padding="0,10" Margin="0,0,0,14" Click="Open_Click" IsEnabled="False"/>
 
         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
             <ProgressBar x:Name="Spinner" IsIndeterminate="True" Width="120" Height="4"
                          VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBlock x:Name="StatusText" Text="Requesting a code…" FontSize="12"
+            <TextBlock x:Name="StatusText" Text="{DynamicResource Str.GhConnect.Requesting}" FontSize="12"
                        VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
         </StackPanel>
 
         <TextBlock x:Name="ErrorText" FontSize="12" Foreground="{DynamicResource RemovedBrush}"
                    TextWrapping="Wrap" Margin="0,6,0,0" Visibility="Collapsed"/>
 
-        <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+        <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                 Padding="20,9" Margin="0,14,0,0" HorizontalAlignment="Right" Click="Cancel_Click"/>
     </StackPanel>
 </Window>

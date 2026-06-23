@@ -13,6 +13,8 @@
     <Product>ForgeTek Application Release Manager</Product>
     <AssemblyTitle>ForgeTek Application Release Manager</AssemblyTitle>
     <Company>ForgeTek</Company>
+    <!-- Default/fallback UI language. Localized strings live in Strings/&lt;culture&gt;.xaml. -->
+    <NeutralResourcesLanguage>en</NeutralResourcesLanguage>
   </PropertyGroup>
 
   <ItemGroup>

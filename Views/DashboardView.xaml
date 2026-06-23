@@ -117,12 +117,12 @@
                     </Viewbox>
                 </Border>
 
-                <TextBlock Text="ForgeTek Application Release Manager" FontSize="28" FontWeight="Bold"
+                <TextBlock Text="{DynamicResource Str.App.Title}" FontSize="28" FontWeight="Bold"
                            Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center" Margin="0,22,0,0"/>
-                <TextBlock Text="Add your first application to get started."
+                <TextBlock Text="{DynamicResource Str.Dashboard.EmptyHint}"
                            FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                <Button Content="+ Add Application" Style="{StaticResource PrimaryButton}"
+                <Button Content="{DynamicResource Str.Main.AddApplication}" Style="{StaticResource PrimaryButton}"
                         Padding="22,10" Margin="0,20,0,0" HorizontalAlignment="Center"
                         Command="{Binding AddAppCommand}"/>
             </StackPanel>
@@ -140,9 +140,9 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Dashboard" FontSize="24" FontWeight="Bold"
+                        <TextBlock Text="{DynamicResource Str.Dashboard.Title}" FontSize="24" FontWeight="Bold"
                                    Foreground="{DynamicResource TextBrush}"/>
-                        <TextBlock Text="Your apps at a glance — pick one from the sidebar to manage it."
+                        <TextBlock Text="{DynamicResource Str.Dashboard.Subtitle}"
                                    FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <!-- GitHub connection status -->
@@ -174,39 +174,39 @@
                             BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,8,0">
                         <StackPanel>
                             <TextBlock Text="{Binding TotalApps}" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource TextBrush}"/>
-                            <TextBlock Text="Apps" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            <TextBlock Text="{DynamicResource Str.Dashboard.Apps}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,8,0">
                         <StackPanel>
                             <TextBlock Text="{Binding PublishedCount}" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource AddedBrush}"/>
-                            <TextBlock Text="Published" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            <TextBlock Text="{DynamicResource Str.Dashboard.Published}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="10" Padding="16,14" Margin="0,0,8,0">
                         <StackPanel>
                             <TextBlock Text="{Binding InProgressCount}" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource ModifiedBrush}"/>
-                            <TextBlock Text="In progress" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            <TextBlock Text="{DynamicResource Str.Dashboard.InProgress}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Border>
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                             BorderThickness="1" CornerRadius="10" Padding="16,14">
                         <StackPanel>
                             <TextBlock Text="{Binding SetupCount}" FontSize="26" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
-                            <TextBlock Text="Setups" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                            <TextBlock Text="{DynamicResource Str.Dashboard.Setups}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
                         </StackPanel>
                     </Border>
                 </UniformGrid>
 
                 <!-- Your apps -->
                 <Grid Margin="0,0,0,10">
-                    <TextBlock Text="YOUR APPS" Style="{StaticResource SectionHeader}" VerticalAlignment="Center"/>
-                    <Button Content="Re-check connections" Style="{StaticResource SecondaryButton}"
+                    <TextBlock Text="{DynamicResource Str.Dashboard.YourApps}" Style="{StaticResource SectionHeader}" VerticalAlignment="Center"/>
+                    <Button Content="{DynamicResource Str.Dashboard.RecheckConnections}" Style="{StaticResource SecondaryButton}"
                             Padding="10,4" FontSize="11" HorizontalAlignment="Right"
                             Command="{Binding RecheckConnectionsCommand}"
-                            ToolTip="Clear cached statuses and test each app's publish target again"/>
+                            ToolTip="{DynamicResource Str.Dashboard.RecheckTooltip}"/>
                 </Grid>
                 <ItemsControl ItemsSource="{Binding Apps}" Margin="0,0,0,24">
                     <ItemsControl.ItemsPanel>
@@ -219,6 +219,10 @@
                                     CommandParameter="{Binding}">
                                 <StackPanel>
                                     <DockPanel LastChildFill="True">
+                                        <Image DockPanel.Dock="Right" Source="{Binding AppIcon}"
+                                               Width="24" Height="24" VerticalAlignment="Top" Margin="10,0,0,0"
+                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                               Visibility="{Binding HasAppIcon, Converter={StaticResource BoolToVisibility}}"/>
                                         <Ellipse Width="9" Height="9" DockPanel.Dock="Right" VerticalAlignment="Center"
                                                  Fill="{DynamicResource AccentBrush}"
                                                  Visibility="{Binding NeedsAttention, Converter={StaticResource BoolToVisibility}}"/>
@@ -237,12 +241,31 @@
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <Grid Margin="0,12,0,0">
-                                        <Border CornerRadius="4" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                                Background="{DynamicResource SurfaceHoverBrush}">
+                                        <Border CornerRadius="4" Padding="7,2" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <!-- Neutral default; colored to match the app-flow status colors. -->
+                                                    <Setter Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding BadgeState}" Value="Signed">
+                                                            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding BadgeState}" Value="Packed">
+                                                            <Setter Property="Background" Value="{DynamicResource ModifiedBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding BadgeState}" Value="Published">
+                                                            <Setter Property="Background" Value="{DynamicResource AddedBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding BadgeState}" Value="Retracted">
+                                                            <Setter Property="Background" Value="{DynamicResource RemovedBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock Text="{Binding StatusBadge}" FontSize="11"
                                                        Foreground="{DynamicResource TextBrush}"/>
                                         </Border>
-                                        <Button Content="{Binding NextActionLabel}" Style="{StaticResource SecondaryButton}"
+                                        <Button Content="{Binding NextActionLabel}" Style="{StaticResource PrimaryButton}"
                                                 Padding="12,5" FontSize="11" HorizontalAlignment="Right"
                                                 Command="{Binding DataContext.RunAppActionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -255,7 +278,7 @@
 
                 <!-- Recent activity -->
                 <StackPanel Visibility="{Binding HasActivity, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="RECENT ACTIVITY" Style="{StaticResource SectionHeader}" Margin="0,0,0,10"/>
+                    <TextBlock Text="{DynamicResource Str.Dashboard.RecentActivity}" Style="{StaticResource SectionHeader}" Margin="0,0,0,10"/>
                     <ItemsControl ItemsSource="{Binding RecentActivity}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:ActivityItem}">

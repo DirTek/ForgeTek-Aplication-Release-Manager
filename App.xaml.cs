@@ -82,6 +82,7 @@ public partial class App : Application
         services.AddSingleton<IScannerService, ScannerService>();
         services.AddSingleton<ISigningService, SigningService>();
         services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<ISessionService, SessionService>();
         services.AddSingleton<IGitHubService, GitHubService>();
         services.AddSingleton<IGitHubAuthService, GitHubAuthService>();
@@ -137,8 +138,10 @@ public partial class App : Application
         try { if (importer.NeedsImport()) importer.ImportFromFiles(); }
         catch (Exception ex) { _services.GetService<ILogService>()?.Write("Import", $"JSON import failed: {ex.Message}"); }
 
-        // Apply the saved theme before any window is shown so it paints correctly on first render.
+        // Apply the saved theme and language before any window is shown so it paints correctly on
+        // first render (both mirror each other: swap a merged ResourceDictionary, persist the choice).
         _services.GetRequiredService<IThemeService>().ApplySaved();
+        _services.GetRequiredService<ILocalizationService>().ApplySaved();
 
         // Access control is opt-in. Protection is "on" when there are users OR a tamper-evident
         // marker says so — so deleting users.json alone can't silently disable the login.

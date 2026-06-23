@@ -18,7 +18,7 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
-                    <Run Text="Package — "/><Run Text="{Binding AppName, Mode=OneWay}"/>
+                    <Run Text="{DynamicResource Str.Package.HeaderPrefix}"/><Run Text="{Binding AppName, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Text="{Binding VersionLabel}" FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
@@ -63,11 +63,11 @@
                 </Border>
 
                 <!-- Labels -->
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Sign"     Style="{StaticResource StepLabel}" Tag="{Binding SignState}"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="Manifest" Style="{StaticResource StepLabel}" Tag="{Binding ManifestState}"/>
-                <TextBlock Grid.Row="1" Grid.Column="4" Text="Package"  Style="{StaticResource StepLabel}" Tag="{Binding PackageState}"/>
-                <TextBlock Grid.Row="1" Grid.Column="6" Text="Catalog"  Style="{StaticResource StepLabel}" Tag="{Binding JsonState}"/>
-                <TextBlock Grid.Row="1" Grid.Column="8" Text="Upload"   Style="{StaticResource StepLabel}" Tag="{Binding FtpState}"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str.Package.StepSign}"     Style="{StaticResource StepLabel}" Tag="{Binding SignState}"/>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{DynamicResource Str.Package.StepManifest}" Style="{StaticResource StepLabel}" Tag="{Binding ManifestState}"/>
+                <TextBlock Grid.Row="1" Grid.Column="4" Text="{DynamicResource Str.Package.StepPackage}"  Style="{StaticResource StepLabel}" Tag="{Binding PackageState}"/>
+                <TextBlock Grid.Row="1" Grid.Column="6" Text="{DynamicResource Str.Package.StepCatalog}"  Style="{StaticResource StepLabel}" Tag="{Binding JsonState}"/>
+                <TextBlock Grid.Row="1" Grid.Column="8" Text="{DynamicResource Str.Package.StepUpload}"   Style="{StaticResource StepLabel}" Tag="{Binding FtpState}"/>
             </Grid>
         </Border>
 
@@ -83,19 +83,19 @@
                         Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1"
                         Visibility="{Binding IsGlobalCertActive, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
-                        <TextBlock Text="Global certificate active" FontSize="12" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Package.GlobalCertActive}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextBrush}"/>
                         <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0">
-                            <Run Text="Using "/>
+                            <Run Text="{DynamicResource Str.Package.UsingPrefix}"/>
                             <Run Text="{Binding GlobalCertFileName, Mode=OneWay}"
                                  Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold"/>
-                            <Run Text=" from Options. Fields below are read-only."/>
+                            <Run Text="{DynamicResource Str.Package.UsingSuffix}"/>
                         </TextBlock>
                     </StackPanel>
                 </Border>
 
                 <!-- Cert fields — always visible, disabled when global cert overrides -->
-                <TextBlock Text="CERTIFICATE" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.Certificate}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <Grid Margin="0,0,0,16" IsEnabled="{Binding IsGlobalCertInactive}">
                     <Grid.ColumnDefinitions>
@@ -111,15 +111,15 @@
                              Text="{Binding StoreThumbprint, Mode=OneWay}"
                              Height="36" Margin="0,0,8,0" IsReadOnly="True"
                              Visibility="{Binding UseStoreCert, Converter={StaticResource BoolToVisibility}}"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                    <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
                             Command="{Binding BrowsePfxCommand}"/>
-                    <Button Grid.Column="2" Content="From Store…" Style="{StaticResource SecondaryButton}"
+                    <Button Grid.Column="2" Content="{DynamicResource Str.Package.FromStore}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8"
                             Command="{Binding BrowseStoreCertCommand}"/>
                 </Grid>
 
-                <TextBlock Text="PASSWORD" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.Password}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <PasswordBox x:Name="PfxPasswordBox" Height="36" Margin="0,0,0,16"
                              IsEnabled="{Binding IsGlobalCertInactive}"
@@ -136,17 +136,17 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="FILES TO SIGN" FontSize="10" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.FilesToSign}" FontSize="10" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding FilesLabel}" FontSize="11"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="  ·  " Foreground="{DynamicResource BorderBrush}"
                                            FontSize="11" VerticalAlignment="Center"/>
-                                <Button Content="All" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Filter.All}" Style="{StaticResource SecondaryButton}"
                                         Padding="8,3" FontSize="11" Margin="0,0,4,0"
                                         Command="{Binding SelectAllCommand}"/>
-                                <Button Content="None" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.None}" Style="{StaticResource SecondaryButton}"
                                         Padding="8,3" FontSize="11"
                                         Command="{Binding DeselectAllCommand}"/>
                             </StackPanel>
@@ -207,7 +207,7 @@
             <!-- Manifest step content -->
             <StackPanel Margin="28,20,28,0"
                         Visibility="{Binding IsManifestCurrent, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="OUTPUT PATH" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.OutputPath}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -217,7 +217,7 @@
                     <TextBox Grid.Column="0"
                              Text="{Binding ManifestOutputPath, UpdateSourceTrigger=PropertyChanged}"
                              Height="36" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                    <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Command="{Binding BrowseManifestOutputCommand}"/>
                 </Grid>
             </StackPanel>
@@ -225,7 +225,7 @@
             <!-- Package step content -->
             <StackPanel Margin="28,20,28,0"
                         Visibility="{Binding IsPackageCurrent, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="PACKAGE TYPE" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.PackageType}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,10"/>
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                     <Border CornerRadius="6" Padding="14,8" Margin="0,0,8,0" Cursor="Hand">
@@ -249,9 +249,9 @@
                                          IsEnabled="{Binding IsIncrementalAvailable}"
                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <StackPanel>
-                                <TextBlock Text="Incremental" FontSize="13" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource Str.Package.Incremental}" FontSize="13" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextBrush}"/>
-                                <TextBlock Text="Added and modified files only" FontSize="11"
+                                <TextBlock Text="{DynamicResource Str.Package.IncrementalDesc}" FontSize="11"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
@@ -273,9 +273,9 @@
                             <RadioButton IsChecked="{Binding IsFullSelected}"
                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <StackPanel>
-                                <TextBlock Text="Full" FontSize="13" FontWeight="SemiBold"
+                                <TextBlock Text="{DynamicResource Str.Package.Full}" FontSize="13" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextBrush}"/>
-                                <TextBlock Text="All non-debug files" FontSize="11"
+                                <TextBlock Text="{DynamicResource Str.Package.FullDesc}" FontSize="11"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </StackPanel>
                         </StackPanel>
@@ -298,12 +298,12 @@
                         </Style>
                     </Border.Style>
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
-                        <Run Text="⚠  Manifest not generated."/>
-                        <Run Text=" Go back to Step 2 to build the manifest before packaging."/>
+                        <Run Text="{DynamicResource Str.Package.NoManifestWarn}"/>
+                        <Run Text="{DynamicResource Str.Package.NoManifestHint}"/>
                     </TextBlock>
                 </Border>
 
-                <TextBlock Text="OUTPUT PATH" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.OutputPath}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -313,7 +313,7 @@
                     <TextBox Grid.Column="0"
                              Text="{Binding PackageOutputPath, UpdateSourceTrigger=PropertyChanged}"
                              Height="36" Margin="0,0,8,0"/>
-                    <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                    <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Command="{Binding BrowsePackageOutputCommand}"/>
                 </Grid>
             </StackPanel>
@@ -322,14 +322,12 @@
             <StackPanel Margin="28,20,28,0"
                         Visibility="{Binding IsJsonCurrent, Converter={StaticResource BoolToVisibility}}">
 
-                <TextBlock Text="UPDATE CATALOG" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.UpdateCatalog}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                            TextWrapping="Wrap" Margin="0,0,0,16">
-                    Generates the <Run Text="{Binding AppName, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/>
-                    update catalog JSON with the version list. Any existing catalog will be downloaded
-                    from FTP and merged so all previous versions are preserved.
+                    <Run Text="{DynamicResource Str.Package.CatalogDescPre}"/><Run Text="{Binding AppName, Mode=OneWay}" Foreground="{DynamicResource TextBrush}"/><Run Text="{DynamicResource Str.Package.CatalogDescPost}"/>
                 </TextBlock>
 
                 <!-- Info grid -->
@@ -340,7 +338,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Local catalog" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.LocalCatalog}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding CatalogLocalPath}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -350,7 +348,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="FTP catalog path" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.FtpCatalogPath}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding CatalogRemotePath}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -360,7 +358,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Package URL" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.PackageUrl}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding PackageDownloadUrl}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -374,7 +372,7 @@
             <StackPanel Margin="28,20,28,0"
                         Visibility="{Binding IsFtpCurrent, Converter={StaticResource BoolToVisibility}}">
 
-                <TextBlock Text="UPLOAD TO FTP" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Package.UploadToFtp}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <!-- No FTP warning -->
@@ -391,10 +389,10 @@
                         </Style>
                     </Border.Style>
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap">
-                        <Run Text="⚠  No FTP credentials configured."/>
-                        <Run Text=" Go to App Settings to add FTP host, username, password, and remote path, then come back."/>
+                        <Run Text="{DynamicResource Str.Package.NoFtpWarn}"/>
+                        <Run Text="{DynamicResource Str.Package.NoFtpHint}"/>
                         <LineBreak/>
-                        <Run Text="You can also Skip → to finish without uploading."/>
+                        <Run Text="{DynamicResource Str.Package.NoFtpSkipHint}"/>
                     </TextBlock>
                 </Border>
 
@@ -406,7 +404,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Server" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.Server}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding FtpSummary}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -416,7 +414,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Package → FTP" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.PackageToFtp}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding PackageRemotePath}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -426,7 +424,7 @@
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Catalog → FTP" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Package.CatalogToFtp}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Top"/>
                             <TextBlock Grid.Column="1" Text="{Binding CatalogRemotePath}" FontSize="11"
                                        Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
@@ -446,7 +444,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Text="OUTPUT" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Grid.Row="0" Text="{DynamicResource Str.Package.Output}" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="14,10,14,6"/>
                 <ScrollViewer x:Name="LogScrollViewer" Grid.Row="1"
                               VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
@@ -475,19 +473,19 @@
 
                 <!-- Progress labels -->
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Signing in progress…" FontSize="13"
+                    <TextBlock Text="{DynamicResource Str.Package.ProgSigning}" FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding IsSigning, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Generating manifest…" FontSize="13"
+                    <TextBlock Text="{DynamicResource Str.Package.ProgManifest}" FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Building package…" FontSize="13"
+                    <TextBlock Text="{DynamicResource Str.Package.ProgPackaging}" FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding IsPackaging, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Generating update catalog…" FontSize="13"
+                    <TextBlock Text="{DynamicResource Str.Package.ProgJson}" FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding IsGeneratingJson, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Uploading to FTP…" FontSize="13"
+                    <TextBlock Text="{DynamicResource Str.Package.ProgUploading}" FontSize="13"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding IsUploading, Converter={StaticResource BoolToVisibility}}"/>
                 </StackPanel>
@@ -496,31 +494,31 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
 
                     <!-- Sign Files -->
-                    <Button Content="Sign Files" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Package.SignFiles}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding SignCommand}"
                             Visibility="{Binding IsSignStepIdle, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Generate Manifest -->
-                    <Button Content="Generate Manifest" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Package.GenerateManifest}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding GenerateManifestCommand}"
                             Visibility="{Binding IsManifestStepIdle, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Build Package -->
-                    <Button Content="Build Package" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Package.BuildPackage}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding BuildPackageCommand}"
                             Visibility="{Binding IsPackageStepIdle, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Generate JSON -->
-                    <Button Content="Generate JSON" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Package.GenerateJson}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding GenerateUpdateJsonCommand}"
                             Visibility="{Binding IsJsonStepIdle, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Upload to FTP -->
-                    <Button Content="Upload to FTP" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Package.UploadFtpButton}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding UploadToFtpCommand}"
                             Visibility="{Binding IsFtpStepIdle, Converter={StaticResource BoolToVisibility}}"/>
@@ -532,19 +530,19 @@
                             Visibility="{Binding IsReadyToAdvance, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Stop -->
-                    <Button Content="Stop" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Package.Stop}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
                             Command="{Binding StopOperationCommand}"
                             Visibility="{Binding IsOperationInProgress, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Skip → (Sign or FTP) -->
-                    <Button Content="Skip →" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Package.Skip}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
                             Command="{Binding SkipCommand}"
                             Visibility="{Binding IsSkipVisible, Converter={StaticResource BoolToVisibility}}"/>
 
                     <!-- Cancel -->
-                    <Button Content="Cancel" Style="{StaticResource DangerButton}"
+                    <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource DangerButton}"
                             Padding="14,8"
                             Command="{Binding CancelPipelineCommand}"/>
 

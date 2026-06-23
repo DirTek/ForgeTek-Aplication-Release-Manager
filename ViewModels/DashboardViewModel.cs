@@ -17,6 +17,7 @@ public partial class DashboardViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IPublishService _publish;
     private readonly IConnectionStatusCache _connCache;
+    private readonly ILocalizationService _loc;
     private MainViewModel _main = null!;
 
     public ISessionService Session { get; }
@@ -36,7 +37,7 @@ public partial class DashboardViewModel : ObservableObject
 
     public DashboardViewModel(IStorageService storage, ISetupStorageService setupStorage,
         ISessionService session, ISettingsService settings, IPublishService publish,
-        IConnectionStatusCache connCache)
+        IConnectionStatusCache connCache, ILocalizationService loc)
     {
         _storage = storage;
         _setupStorage = setupStorage;
@@ -44,6 +45,7 @@ public partial class DashboardViewModel : ObservableObject
         _settings = settings;
         _publish = publish;
         _connCache = connCache;
+        _loc = loc;
     }
 
     // Tests each app's configured publish target on load and flags the card online/offline.
@@ -112,7 +114,7 @@ public partial class DashboardViewModel : ObservableObject
         var entries = _storage.GetAll();
         Apps.Clear();
         foreach (var e in entries)
-            Apps.Add(new AppEntryViewModel(e));
+            Apps.Add(new AppEntryViewModel(e, _loc));
 
         TotalApps       = Apps.Count;
         HasApps         = Apps.Count > 0;

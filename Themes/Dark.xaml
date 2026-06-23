@@ -6,6 +6,9 @@
     <SolidColorBrush x:Key="SidebarBrush"        Color="#111113"/>
     <SolidColorBrush x:Key="SurfaceBrush"        Color="#2C2C2E"/>
     <SolidColorBrush x:Key="SurfaceHoverBrush"   Color="#3A3A3C"/>
+    <!-- Recessed fill for editable controls (TextBox/ComboBox/etc.) so they read distinctly
+         against SurfaceBrush cards and the page background. -->
+    <SolidColorBrush x:Key="InputBrush"          Color="#242426"/>
     <SolidColorBrush x:Key="AccentBrush"         Color="#0A84FF"/>
     <SolidColorBrush x:Key="AccentHoverBrush"    Color="#409CFF"/>
     <SolidColorBrush x:Key="TextBrush"           Color="#FFFFFF"/>

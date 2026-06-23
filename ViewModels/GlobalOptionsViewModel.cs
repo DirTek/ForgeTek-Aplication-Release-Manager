@@ -22,9 +22,11 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private readonly ICertificateService _certService;
     private readonly IBackupService      _backupService;
     private readonly IThemeService       _theme;
+    private readonly ILocalizationService _loc;
     private readonly IUserService        _userService;
     private CancellationTokenSource?    _cts;
     private bool _suppressThemeApply;
+    private bool _suppressLanguageApply;
 
     public ISessionService Session { get; }
 
@@ -52,6 +54,28 @@ public partial class GlobalOptionsViewModel : ObservableObject
     {
         if (_suppressThemeApply) return;
         _theme.Apply(value);   // applies live + persists the preference
+    }
+
+    // Language options as display→code pairs. English only for now; add entries as languages ship.
+    public IReadOnlyList<LanguageOption> LanguageOptions { get; } = new[]
+    {
+        new LanguageOption("English", "en"),
+    };
+
+    [ObservableProperty] private LanguageOption _selectedLanguage = new("English", "en");
+
+    partial void OnSelectedLanguageChanged(LanguageOption value)
+    {
+        if (_suppressLanguageApply || value is null) return;
+        _loc.Apply(value.Code);   // applies live + persists the preference
+    }
+
+    /// <summary>A selectable UI language: a display name bound in the dropdown and its culture code.
+    /// ToString returns the display name so it renders correctly even where the themed ComboBox
+    /// template doesn't honor DisplayMemberPath for the selection box.</summary>
+    public sealed record LanguageOption(string Display, string Code)
+    {
+        public override string ToString() => Display;
     }
 
     [ObservableProperty]
@@ -231,7 +255,8 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private readonly ILogService _log;
 
     public GlobalOptionsViewModel(ISettingsService settings, ICertificateService certService,
-        IBackupService backupService, IThemeService theme, IUserService userService, ISessionService session,
+        IBackupService backupService, IThemeService theme, ILocalizationService loc,
+        IUserService userService, ISessionService session,
         IProtectionStateService protection, IGitHubAuthService githubAuth, ILogService log,
         Services.Storage.ISharedCertificateStore certStore, IDialogService dialog)
     {
@@ -239,6 +264,7 @@ public partial class GlobalOptionsViewModel : ObservableObject
         _certService = certService;
         _backupService = backupService;
         _theme = theme;
+        _loc = loc;
         _userService = userService;
         Session = session;
         _protection = protection;
@@ -432,6 +458,10 @@ public partial class GlobalOptionsViewModel : ObservableObject
         _suppressThemeApply = true;
         SelectedTheme = _theme.Current;
         _suppressThemeApply = false;
+
+        _suppressLanguageApply = true;
+        SelectedLanguage = LanguageOptions.FirstOrDefault(o => o.Code == _loc.Current) ?? LanguageOptions[0];
+        _suppressLanguageApply = false;
 
         var g = _settings.Global;
         CompanyName            = g.CompanyName;

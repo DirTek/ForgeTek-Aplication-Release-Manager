@@ -44,14 +44,14 @@
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <TextBlock Text="{Binding GitHubStatus}" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextBrush}" TextTrimming="CharacterEllipsis" MaxWidth="560"/>
-                            <Button Content="Re-check" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.AppDetail.Recheck}" Style="{StaticResource SecondaryButton}"
                                     Padding="10,4" FontSize="11" Margin="12,0,0,0"
                                     Command="{Binding CheckGitHubCommand}"/>
-                            <Button Content="Build from GitHub" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.AppDetail.BuildFromGitHub}" Style="{StaticResource SecondaryButton}"
                                     Padding="10,4" FontSize="11" Margin="8,0,0,0"
                                     Command="{Binding BuildFromGitHubCommand}"
                                     Visibility="{Binding Session.CanScan, Converter={StaticResource BoolToVisibility}}"/>
-                            <Button Content="Release Notes" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.AppDetail.ReleaseNotes}" Style="{StaticResource SecondaryButton}"
                                     Padding="10,4" FontSize="11" Margin="8,0,0,0"
                                     Command="{Binding OpenReleaseNotesCommand}"/>
                         </StackPanel>
@@ -64,7 +64,7 @@
                                    VerticalAlignment="Center" Margin="0,0,8,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="620">
-                            <Run Text="Last commit: " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
+                            <Run Text="{DynamicResource Str.AppDetail.LastCommit}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                             <Run Text="{Binding LastCommitSummary, Mode=OneWay}" Foreground="{DynamicResource TextBrush}" FontSize="12"/>
                             <Run Text="  —  " Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                             <Run Text="{Binding LastCommitMeta, Mode=OneWay}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
@@ -81,26 +81,26 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"
                                    MaxWidth="320" ToolTip="{Binding SolutionPathDisplay}"
                                    Visibility="{Binding HasSolution, Converter={StaticResource BoolToVisibility}}"/>
-                        <Button Content="Build from solution" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.AppDetail.BuildFromSolution}" Style="{StaticResource SecondaryButton}"
                                 Padding="10,4" FontSize="11" Margin="12,0,0,0"
-                                ToolTip="dotnet publish -c Release from the app's solution, then scan the output"
+                                ToolTip="{DynamicResource Str.AppDetail.BuildFromSolutionTip}"
                                 Visibility="{Binding HasSolution, Converter={StaticResource BoolToVisibility}}"
                                 Command="{Binding BuildFromSolutionCommand}"/>
-                        <Button Content="Scan dependencies" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.AppDetail.ScanDependencies}" Style="{StaticResource SecondaryButton}"
                                 Padding="10,4" FontSize="11" Margin="8,0,0,0"
-                                ToolTip="Check NuGet dependencies for known vulnerabilities"
+                                ToolTip="{DynamicResource Str.AppDetail.ScanDependenciesTip}"
                                 Command="{Binding ScanDependenciesCommand}"/>
-                        <Button Content="Licenses" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.AppDetail.Licenses}" Style="{StaticResource SecondaryButton}"
                                 Padding="10,4" FontSize="11" Margin="8,0,0,0"
-                                ToolTip="Third-party NuGet license compliance report"
+                                ToolTip="{DynamicResource Str.AppDetail.LicensesTip}"
                                 Command="{Binding ScanLicensesCommand}"/>
-                        <Button Content="Compare" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.AppDetail.Compare}" Style="{StaticResource SecondaryButton}"
                                 Padding="10,4" FontSize="11" Margin="8,0,0,0"
-                                ToolTip="Compare the app's files vs. the solution build vs. the GitHub build"
+                                ToolTip="{DynamicResource Str.AppDetail.CompareTip}"
                                 Command="{Binding CompareSourcesCommand}"/>
-                        <Button Content="Compare w/ GitHub" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.AppDetail.CompareGitHub}" Style="{StaticResource SecondaryButton}"
                                 Padding="10,4" FontSize="11" Margin="8,0,0,0"
-                                ToolTip="Compare your local project source against the connected GitHub repo"
+                                ToolTip="{DynamicResource Str.AppDetail.CompareGitHubTip}"
                                 Visibility="{Binding GitHubConfigured, Converter={StaticResource BoolToVisibility}}"
                                 Command="{Binding CompareWithGitHubCommand}"/>
                     </StackPanel>
@@ -113,7 +113,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Settings" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.AppDetail.Settings}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource SecondaryButton}"
@@ -122,7 +122,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Edit" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.AppDetail.Edit}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource DangerButton}"
@@ -131,7 +131,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Delete" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.AppDetail.Delete}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -177,10 +177,10 @@
                         <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xE898;" Style="{StaticResource StepGlyph}" Tag="{Binding PublishState}"/>
                     </Border>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Scan"    Style="{StaticResource StepLabel}" Tag="{Binding ScanState}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Review"  Style="{StaticResource StepLabel}" Tag="{Binding ReviewState}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="4" Text="Package" Style="{StaticResource StepLabel}" Tag="{Binding PackageState}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="6" Text="Publish" Style="{StaticResource StepLabel}" Tag="{Binding PublishState}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str.AppDetail.StepScan}"    Style="{StaticResource StepLabel}" Tag="{Binding ScanState}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{DynamicResource Str.AppDetail.StepReview}"  Style="{StaticResource StepLabel}" Tag="{Binding ReviewState}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="4" Text="{DynamicResource Str.AppDetail.StepPackage}" Style="{StaticResource StepLabel}" Tag="{Binding PackageState}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="6" Text="{DynamicResource Str.AppDetail.StepPublish}" Style="{StaticResource StepLabel}" Tag="{Binding PublishState}"/>
                 </Grid>
 
                 <!-- Stage hint -->
@@ -205,7 +205,7 @@
                 Background="#CC111113" Visibility="{Binding IsScanning, Converter={StaticResource BoolToVisibility}}"
                 Panel.ZIndex="10">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="380">
-                <TextBlock Text="Scanning folder…" FontSize="18" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.AppDetail.ScanningFolder}" FontSize="18" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
                 <ProgressBar Minimum="0" Maximum="100" Height="6" Margin="0,18,0,6"
                              Value="{Binding ScanProgress.Percentage, Mode=OneWay}"/>
@@ -214,13 +214,13 @@
                     <Run Text="{Binding ScanProgress.ProcessedFiles, Mode=OneWay}"/>
                     <Run Text=" / "/>
                     <Run Text="{Binding ScanProgress.TotalFiles, Mode=OneWay}"/>
-                    <Run Text=" files"/>
+                    <Run Text="{DynamicResource Str.AppDetail.FilesSuffix}"/>
                 </TextBlock>
                 <TextBlock Text="{Binding ScanProgress.CurrentFile, Mode=OneWay}"
                            FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,4,0,0"
                            TextTrimming="CharacterEllipsis"/>
-                <Button Content="Cancel" Command="{Binding CancelScanCommand}"
+                <Button Content="{DynamicResource Str.Common.Cancel}" Command="{Binding CancelScanCommand}"
                         Style="{StaticResource SecondaryButton}"
                         Margin="0,18,0,0" Padding="28,8" HorizontalAlignment="Center"/>
             </StackPanel>
@@ -231,7 +231,7 @@
                 Background="#CC111113" Visibility="{Binding IsDiffing, Converter={StaticResource BoolToVisibility}}"
                 Panel.ZIndex="10">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="320">
-                <TextBlock Text="Computing changes…" FontSize="18" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.AppDetail.ComputingChanges}" FontSize="18" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
                 <ProgressBar Minimum="0" Maximum="100" Height="6" Margin="0,18,0,10"
                              Value="{Binding DiffProgress.Percentage, Mode=OneWay}"/>
@@ -255,7 +255,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Build from GitHub" Style="{StaticResource H2}" Margin="0,0,0,12"/>
+                    <TextBlock Grid.Row="0" Text="{DynamicResource Str.AppDetail.BuildFromGitHub}" Style="{StaticResource H2}" Margin="0,0,0,12"/>
 
                     <Border Grid.Row="1" Background="{DynamicResource BackgroundBrush}"
                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
@@ -272,13 +272,13 @@
                     </Border>
 
                     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-                        <Button Content="Cancel" Style="{StaticResource SecondaryButton}" Padding="20,9" Margin="0,0,8,0"
+                        <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}" Padding="20,9" Margin="0,0,8,0"
                                 Command="{Binding CancelBuildCommand}"
                                 Visibility="{Binding IsBuilding, Converter={StaticResource BoolToVisibility}}"/>
-                        <Button Content="Close" Style="{StaticResource SecondaryButton}" Padding="20,9" Margin="0,0,8,0"
+                        <Button Content="{DynamicResource Str.Common.Close}" Style="{StaticResource SecondaryButton}" Padding="20,9" Margin="0,0,8,0"
                                 Command="{Binding CloseBuildCommand}"
                                 Visibility="{Binding BuildFinished, Converter={StaticResource BoolToVisibility}}"/>
-                        <Button Content="Scan build output" Style="{StaticResource PrimaryButton}" Padding="22,9"
+                        <Button Content="{DynamicResource Str.AppDetail.ScanBuildOutput}" Style="{StaticResource PrimaryButton}" Padding="22,9"
                                 Command="{Binding ScanArtifactCommand}"
                                 Visibility="{Binding BuildSucceeded, Converter={StaticResource BoolToVisibility}}"/>
                     </StackPanel>
@@ -293,12 +293,12 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="VERSION HISTORY"
+                <TextBlock Text="{DynamicResource Str.AppDetail.VersionHistory}"
                            FontSize="11" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,16,0"/>
                 <!-- Channel filter (remembered across sessions) -->
-                <Button Content="Both" FontSize="11" Padding="12,4" Margin="0,0,6,0"
+                <Button Content="{DynamicResource Str.AppDetail.ChannelBoth}" FontSize="11" Padding="12,4" Margin="0,0,6,0"
                         Command="{Binding SetChannelFilterCommand}" CommandParameter="All">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -310,7 +310,7 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="Stable" FontSize="11" Padding="12,4" Margin="0,0,6,0"
+                <Button Content="{DynamicResource Str.AppDetail.ChannelStable}" FontSize="11" Padding="12,4" Margin="0,0,6,0"
                         Command="{Binding SetChannelFilterCommand}" CommandParameter="Stable">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -322,7 +322,7 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <Button Content="Beta" FontSize="11" Padding="12,4"
+                <Button Content="{DynamicResource Str.AppDetail.ChannelBeta}" FontSize="11" Padding="12,4"
                         Command="{Binding SetChannelFilterCommand}" CommandParameter="Beta">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -336,42 +336,42 @@
                 </Button>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button Content="Start Packing" Style="{StaticResource PrimaryButton}"
+                <Button Content="{DynamicResource Str.AppDetail.StartPacking}" Style="{StaticResource PrimaryButton}"
                         Padding="14,6" FontSize="12" Margin="0,0,8,0"
                         Command="{Binding StartPackingCommand}"/>
-                <Button Content="View Changes" Style="{StaticResource SecondaryButton}"
+                <Button Content="{DynamicResource Str.AppDetail.ViewChanges}" Style="{StaticResource SecondaryButton}"
                         Padding="14,6" FontSize="12" Margin="0,0,8,0"
                         Command="{Binding ViewVersionDiffCommand}"/>
 
                 <!-- Overflow: secondary + destructive actions, so they're not one slip away. -->
                 <Grid>
-                    <ToggleButton x:Name="MoreBtn" Content="More  ▾" Style="{StaticResource DropdownToggle}"/>
+                    <ToggleButton x:Name="MoreBtn" Content="{DynamicResource Str.AppDetail.More}" Style="{StaticResource DropdownToggle}"/>
                     <Popup PlacementTarget="{Binding ElementName=MoreBtn}" Placement="Bottom"
                            VerticalOffset="4" StaysOpen="False" AllowsTransparency="True"
                            IsOpen="{Binding IsChecked, ElementName=MoreBtn, Mode=TwoWay}">
                         <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
                                 BorderThickness="1" CornerRadius="6" Padding="4" MinWidth="180">
                             <StackPanel>
-                                <Button Content="Sign Files" Style="{StaticResource MenuItemButton}"
+                                <Button Content="{DynamicResource Str.AppDetail.SignFiles}" Style="{StaticResource MenuItemButton}"
                                         HorizontalAlignment="Stretch" Click="MoreItem_Click"
                                         Command="{Binding SignFilesCommand}"
-                                        ToolTip="Code-sign selected files of this version before packing into a setup"/>
-                                <Button Content="Revise Files" Style="{StaticResource MenuItemButton}"
+                                        ToolTip="{DynamicResource Str.AppDetail.SignFilesTip}"/>
+                                <Button Content="{DynamicResource Str.AppDetail.ReviseFiles}" Style="{StaticResource MenuItemButton}"
                                         HorizontalAlignment="Stretch" Click="MoreItem_Click"
                                         Command="{Binding ReviseVersionCommand}"
-                                        ToolTip="Edit which files are included for this version"/>
+                                        ToolTip="{DynamicResource Str.AppDetail.ReviseFilesTip}"/>
                                 <Rectangle Height="1" Fill="{DynamicResource BorderBrush}" Margin="6,4"/>
-                                <Button Content="Retract" Style="{StaticResource MenuItemButton}"
+                                <Button Content="{DynamicResource Str.AppDetail.Retract}" Style="{StaticResource MenuItemButton}"
                                         HorizontalAlignment="Stretch" Click="MoreItem_Click"
                                         Foreground="{DynamicResource RemovedBrush}"
                                         Command="{Binding RetractVersionCommand}"
-                                        ToolTip="Delete uploaded FTP files and un-publish this version"/>
-                                <Button Content="Scrap" Style="{StaticResource MenuItemButton}"
+                                        ToolTip="{DynamicResource Str.AppDetail.RetractTip}"/>
+                                <Button Content="{DynamicResource Str.AppDetail.Scrap}" Style="{StaticResource MenuItemButton}"
                                         HorizontalAlignment="Stretch" Click="MoreItem_Click"
                                         Foreground="{DynamicResource RemovedBrush}"
                                         Command="{Binding ScrapVersionCommand}"
-                                        ToolTip="Permanently discard this retracted version"/>
-                                <Button Content="Delete Version" Style="{StaticResource MenuItemButton}"
+                                        ToolTip="{DynamicResource Str.AppDetail.ScrapTip}"/>
+                                <Button Content="{DynamicResource Str.AppDetail.DeleteVersion}" Style="{StaticResource MenuItemButton}"
                                         HorizontalAlignment="Stretch" Click="MoreItem_Click"
                                         Foreground="{DynamicResource RemovedBrush}"
                                         Command="{Binding DeleteVersionCommand}"/>
@@ -431,23 +431,23 @@
 
             <DataGrid.Columns>
 
-                <DataGridTextColumn Header="Version"   Width="110"
+                <DataGridTextColumn Header="{DynamicResource Str.AppDetail.ColVersion}"   Width="110"
                                     Binding="{Binding VersionNumber, StringFormat='v\{0\}'}"/>
 
                 <!-- Channel chip (Stable / Beta) -->
-                <DataGridTemplateColumn Header="Channel" Width="95">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColChannel}" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Border x:Name="chanChip" CornerRadius="4" Padding="6,2" Margin="8,0"
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Background="{DynamicResource SurfaceBrush}">
-                                <TextBlock x:Name="chanText" Text="Stable" FontSize="10" FontWeight="SemiBold"
+                                <TextBlock x:Name="chanText" Text="{DynamicResource Str.AppDetail.ChannelStable}" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Channel}" Value="Beta">
                                     <Setter TargetName="chanChip" Property="Background" Value="{DynamicResource ModifiedBrush}"/>
-                                    <Setter TargetName="chanText" Property="Text" Value="Beta"/>
+                                    <Setter TargetName="chanText" Property="Text" Value="{DynamicResource Str.AppDetail.ChannelBeta}"/>
                                     <Setter TargetName="chanText" Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                 </DataTrigger>
                             </DataTemplate.Triggers>
@@ -456,11 +456,11 @@
                 </DataGridTemplateColumn>
 
                 <!-- Package kind (Full / Incremental) -->
-                <DataGridTextColumn Header="Type" Width="110"
+                <DataGridTextColumn Header="{DynamicResource Str.AppDetail.ColType}" Width="110"
                                     Binding="{Binding PackageKindLabel}"/>
 
                 <!-- Status badge -->
-                <DataGridTemplateColumn Header="Status" Width="140">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColStatus}" Width="140">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Border x:Name="badge" CornerRadius="4" Padding="8,3"
@@ -496,7 +496,7 @@
                                 <!-- Initial version overrides everything above -->
                                 <DataTrigger Binding="{Binding IsInitial}" Value="True">
                                     <Setter TargetName="badge"     Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-                                    <Setter TargetName="badgeText" Property="Text"       Value="Initial"/>
+                                    <Setter TargetName="badgeText" Property="Text"       Value="{DynamicResource Str.AppDetail.Initial}"/>
                                     <Setter TargetName="badgeText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                 </DataTrigger>
                             </DataTemplate.Triggers>
@@ -504,17 +504,17 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <DataGridTextColumn Header="Scan Date" Width="180"
+                <DataGridTextColumn Header="{DynamicResource Str.AppDetail.ColScanDate}" Width="180"
                                     Binding="{Binding ScanDate, StringFormat='yyyy-MM-dd  HH:mm'}"/>
 
-                <DataGridTextColumn Header="Files"         Width="80"
+                <DataGridTextColumn Header="{DynamicResource Str.AppDetail.ColFiles}"         Width="80"
                                     Binding="{Binding PackageFileCount}"/>
 
-                <DataGridTextColumn Header="Debug"         Width="80"
+                <DataGridTextColumn Header="{DynamicResource Str.AppDetail.ColDebug}"         Width="80"
                                     Binding="{Binding DebugFileCount}"/>
 
                 <!-- Added -->
-                <DataGridTemplateColumn Header="Added" Width="85">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColAdded}" Width="85">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -537,7 +537,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Modified -->
-                <DataGridTemplateColumn Header="Modified" Width="95">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColModified}" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -560,7 +560,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Removed -->
-                <DataGridTemplateColumn Header="Removed" Width="95">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColRemoved}" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
@@ -583,17 +583,17 @@
                 </DataGridTemplateColumn>
 
                 <!-- Manifest -->
-                <DataGridTemplateColumn Header="Manifest" Width="100">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColManifest}" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text"       Value="No"/>
+                                        <Setter Property="Text"       Value="{DynamicResource Str.Common.No}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasManifest}" Value="True">
-                                                <Setter Property="Text"       Value="Yes"/>
+                                                <Setter Property="Text"       Value="{DynamicResource Str.Common.Yes}"/>
                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsInitial}" Value="True">
@@ -610,17 +610,17 @@
                 </DataGridTemplateColumn>
 
                 <!-- Package -->
-                <DataGridTemplateColumn Header="Package" Width="100">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColPackage}" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
-                                        <Setter Property="Text"       Value="No"/>
+                                        <Setter Property="Text"       Value="{DynamicResource Str.Common.No}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding HasPackage}" Value="True">
-                                                <Setter Property="Text"       Value="Yes"/>
+                                                <Setter Property="Text"       Value="{DynamicResource Str.Common.Yes}"/>
                                                 <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding IsInitial}" Value="True">
@@ -637,7 +637,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Setup generated (date a setup bundle that shipped this version was built) -->
-                <DataGridTemplateColumn Header="Setup Built" Width="160">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColSetupBuilt}" Width="160">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock VerticalAlignment="Center" Margin="12,0">
@@ -662,10 +662,10 @@
                 </DataGridTemplateColumn>
 
                 <!-- Changelog -->
-                <DataGridTemplateColumn Header="Changelog" Width="*" MinWidth="110">
+                <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColChangelog}" Width="*" MinWidth="110">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Button Content="View"
+                            <Button Content="{DynamicResource Str.AppDetail.View}"
                                     Command="{Binding DataContext.ViewChangelogCommand,
                                             RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                     CommandParameter="{Binding}">
@@ -694,13 +694,13 @@
             <TextBlock FontFamily="Segoe Fluent Icons" Text="&#xE721;" FontSize="40"
                        HorizontalAlignment="Center"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
-            <TextBlock Text="No versions yet" FontSize="16" FontWeight="SemiBold"
+            <TextBlock Text="{DynamicResource Str.AppDetail.NoVersionsYet}" FontSize="16" FontWeight="SemiBold"
                        HorizontalAlignment="Center" Margin="0,12,0,0"
                        Foreground="{DynamicResource TextBrush}"/>
-            <TextBlock Text="Scan the app folder to register the initial version."
+            <TextBlock Text="{DynamicResource Str.AppDetail.NoVersionsHint}"
                        Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"
                        HorizontalAlignment="Center" Margin="0,4,0,0"/>
-            <Button Content="Scan Now" Style="{StaticResource PrimaryButton}"
+            <Button Content="{DynamicResource Str.AppDetail.ScanNow}" Style="{StaticResource PrimaryButton}"
                     Padding="22,9" Margin="0,16,0,0" HorizontalAlignment="Center"
                     Command="{Binding ScanNowCommand}"/>
         </StackPanel>
@@ -712,7 +712,7 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                 Visibility="{Binding ShowApprovalPanel, Converter={StaticResource BoolToVisibility}}">
             <StackPanel>
-                <TextBlock Text="Release Approvals" FontWeight="SemiBold" FontSize="14"
+                <TextBlock Text="{DynamicResource Str.AppDetail.ReleaseApprovals}" FontWeight="SemiBold" FontSize="14"
                            Foreground="{DynamicResource TextBrush}"/>
                 <TextBlock Text="{Binding ApprovalSummary}" Margin="0,4,0,0"
                            Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
@@ -728,16 +728,16 @@
 
                 <TextBox Text="{Binding ReviewNoteDraft, UpdateSourceTrigger=PropertyChanged}"
                          Margin="0,10,0,0" Padding="8,6"
-                         ToolTip="Add a review note, or a required reason when rejecting."/>
+                         ToolTip="{DynamicResource Str.AppDetail.ReviewNoteTip}"/>
 
                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                    <Button Content="Approve" Style="{StaticResource SuccessButton}" Padding="16,7"
+                    <Button Content="{DynamicResource Str.AppDetail.Approve}" Style="{StaticResource SuccessButton}" Padding="16,7"
                             Command="{Binding ApproveSelectedCommand}"
                             Visibility="{Binding CanCastVote, Converter={StaticResource BoolToVisibility}}"/>
-                    <Button Content="Reject" Style="{StaticResource DangerButton}" Padding="16,7" Margin="8,0,0,0"
+                    <Button Content="{DynamicResource Str.AppDetail.Reject}" Style="{StaticResource DangerButton}" Padding="16,7" Margin="8,0,0,0"
                             Command="{Binding RejectSelectedCommand}"
                             Visibility="{Binding CanCastVote, Converter={StaticResource BoolToVisibility}}"/>
-                    <Button Content="Add Note" Style="{StaticResource SecondaryButton}" Padding="16,7" Margin="8,0,0,0"
+                    <Button Content="{DynamicResource Str.AppDetail.AddNote}" Style="{StaticResource SecondaryButton}" Padding="16,7" Margin="8,0,0,0"
                             Command="{Binding AddReviewNoteCommand}"/>
                 </StackPanel>
             </StackPanel>

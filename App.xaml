@@ -10,6 +10,9 @@
                 <!-- Active theme palette — swapped at runtime by ThemeService (default Dark).
                      All 14 theme brushes live here + in Themes/Light.xaml with identical keys. -->
                 <ResourceDictionary Source="Themes/Dark.xaml"/>
+                <!-- Active string set — swapped at runtime by LocalizationService (default en).
+                     Localized strings are referenced via {DynamicResource Str.*}. -->
+                <ResourceDictionary Source="Strings/en.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
         <!-- ══ CONVERTERS ════════════════════════════════════════════ -->
@@ -156,13 +159,14 @@
 
         <!-- ══ TEXTBOX ═══════════════════════════════════════════════ -->
         <Style TargetType="TextBox">
-            <Setter Property="Background"    Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Background"    Value="{DynamicResource InputBrush}"/>
             <Setter Property="Foreground"    Value="{DynamicResource TextBrush}"/>
             <Setter Property="CaretBrush"    Value="{DynamicResource TextBrush}"/>
             <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderBrush"   Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"       Value="10,0"/>
+            <Setter Property="MinHeight"     Value="36"/>
             <Setter Property="FontSize"      Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
@@ -189,13 +193,14 @@
 
         <!-- ══ PASSWORDBOX ═══════════════════════════════════════════ -->
         <Style TargetType="PasswordBox">
-            <Setter Property="Background"     Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Background"     Value="{DynamicResource InputBrush}"/>
             <Setter Property="Foreground"     Value="{DynamicResource TextBrush}"/>
             <Setter Property="CaretBrush"     Value="{DynamicResource TextBrush}"/>
             <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="BorderBrush"    Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding"        Value="10,0"/>
+            <Setter Property="MinHeight"      Value="36"/>
             <Setter Property="FontSize"       Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
@@ -306,10 +311,11 @@
         </Style>
 
         <Style TargetType="ComboBox">
-            <Setter Property="Background"      Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Background"      Value="{DynamicResource InputBrush}"/>
             <Setter Property="Foreground"      Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderBrush"     Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="MinHeight"       Value="36"/>
             <Setter Property="FontSize"        Value="13"/>
             <Setter Property="Cursor"          Value="Hand"/>
             <Setter Property="Template">
@@ -323,7 +329,7 @@
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="bd"
-                                                Background="{DynamicResource SurfaceBrush}"
+                                                Background="{DynamicResource InputBrush}"
                                                 BorderBrush="{DynamicResource BorderBrush}"
                                                 BorderThickness="1" CornerRadius="6">
                                             <Grid>
@@ -404,7 +410,7 @@
         </Style>
 
         <Style TargetType="DatePicker">
-            <Setter Property="Background"               Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Background"               Value="{DynamicResource InputBrush}"/>
             <Setter Property="Foreground"               Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderBrush"              Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness"          Value="1"/>

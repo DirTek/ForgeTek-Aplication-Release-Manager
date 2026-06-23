@@ -350,10 +350,10 @@
                                                     </TextBlock>
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                    <Button Content="{DynamicResource Str.Options.Download}" Style="{StaticResource SecondaryButton}" Padding="14,7"
+                                                    <Button Content="Download" Style="{StaticResource SecondaryButton}" Padding="14,7"
                                                             Command="{Binding DataContext.DownloadCertCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                             CommandParameter="{Binding}"/>
-                                                    <Button Content="{DynamicResource Str.Options.Register}" Style="{StaticResource PrimaryButton}" Padding="14,7" Margin="8,0,0,0"
+                                                    <Button Content="Register" Style="{StaticResource PrimaryButton}" Padding="14,7" Margin="8,0,0,0"
                                                             Command="{Binding DataContext.RegisterCertCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                             CommandParameter="{Binding}"/>
                                                 </StackPanel>
@@ -363,7 +363,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Text="{DynamicResource Str.Options.NoSharedCerts}"
+                            <TextBlock Text="No shared certificates yet — generate one above."
                                        FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,28"
                                        Visibility="{Binding SharedCertificates.Count, Converter={StaticResource ZeroToVisible}}"/>
                         </StackPanel>
@@ -377,28 +377,30 @@
                 <StackPanel>
 
                         <!-- ══ BACKUP & MIGRATE ════════════════════════════════════ -->
-                        <TextBlock Text="{DynamicResource Str.Options.BackupMigrate}" FontSize="10" FontWeight="SemiBold"
+                        <TextBlock Text="BACKUP &amp; MIGRATE" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                         <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,0,0,16" TextWrapping="Wrap"
-                                   Text="{DynamicResource Str.Options.BackupDesc}"/>
+                                   Margin="0,0,0,16" TextWrapping="Wrap">
+                            Export all app data, certificates, and logs into a single ZIP archive.
+                            Use this to migrate to a new machine or create a point-in-time backup.
+                        </TextBlock>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <Button Content="{DynamicResource Str.Options.CreateBackup}" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Create Backup…" Style="{StaticResource SecondaryButton}"
                                     Padding="16,10" Command="{Binding CreateBackupCommand}"/>
-                            <Button Content="{DynamicResource Str.Options.RestoreBackup}" Style="{StaticResource SecondaryButton}"
+                            <Button Content="Restore Backup…" Style="{StaticResource SecondaryButton}"
                                     Padding="16,10" Margin="12,0,0,0"
                                     Command="{Binding RestoreBackupCommand}"
                                     IsEnabled="{Binding IsRestoring, Converter={StaticResource InvertBool}}"/>
-                            <TextBlock Text="{DynamicResource Str.Options.Restoring}" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0"
+                            <TextBlock Text="Restoring…" FontSize="13" VerticalAlignment="Center" Margin="12,0,0,0"
                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                        Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVisibility}}"/>
                         </StackPanel>
 
                         <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
                                    Margin="0,0,0,28"
-                                   Text="{DynamicResource Str.Options.RestoreNote}"/>
+                                   Text="Restore overwrites current data with the backup's contents and restarts the app. Works across modes — a standalone (SQLite) backup can be restored into a networked SQL Server."/>
 
                 </StackPanel>
             </ScrollViewer>
@@ -407,12 +409,12 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,16,12,0"
                           Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Database'}">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource Str.Options.Database}" FontSize="10" FontWeight="SemiBold"
+                    <TextBlock Text="DATABASE" FontSize="10" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,4"
-                               Text="{DynamicResource Str.Options.DatabaseDesc}"/>
+                               Text="Where app data is stored. Standalone keeps a local SQLite database — the default, works with no server. Networked points every operator at one shared SQL Server so they work against the same data at once."/>
                     <TextBlock Margin="0,0,0,16" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}">
-                        <Run Text="{DynamicResource Str.Options.CurrentlyUsing}"/><Run Text="{Binding CurrentStorageMode, Mode=OneWay}" FontWeight="SemiBold"/>
+                        <Run Text="Currently using: "/><Run Text="{Binding CurrentStorageMode, Mode=OneWay}" FontWeight="SemiBold"/>
                     </TextBlock>
 
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
@@ -421,26 +423,26 @@
                             <RadioButton GroupName="StorageMode" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,4"
                                          Foreground="{DynamicResource TextBrush}"
                                          IsChecked="{Binding UseNetworkedDatabase, Converter={StaticResource InvertBool}}"
-                                         Content="{DynamicResource Str.Options.StandaloneOption}"/>
+                                         Content="Standalone — local SQLite database"/>
                             <RadioButton GroupName="StorageMode" FontSize="13" FontWeight="SemiBold"
                                          Foreground="{DynamicResource TextBrush}"
                                          IsEnabled="{Binding CanUseNetworked}"
                                          IsChecked="{Binding UseNetworkedDatabase}"
-                                         Content="{DynamicResource Str.Options.NetworkedOption}"/>
+                                         Content="Networked — shared SQL Server"/>
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
                                        Margin="22,2,0,0"
                                        Visibility="{Binding CanUseNetworked, Converter={StaticResource InvertVisibility}}"
-                                       Text="{DynamicResource Str.Options.NeedAdminNote}"/>
+                                       Text="Create at least one Admin user before switching to a shared server, so the shared store has an owner."/>
 
                             <StackPanel Margin="22,12,0,0"
                                         Visibility="{Binding IsNetworkedSelected, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="{DynamicResource Str.Options.SqlConnString}" FontSize="12"
+                                <TextBlock Text="SQL Server connection string" FontSize="12"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                 <TextBox Text="{Binding SqlServerConnectionString, UpdateSourceTrigger=PropertyChanged}"
                                          Padding="8,6" FontFamily="Consolas"
-                                         ToolTip="{DynamicResource Str.Options.SqlConnTip}"/>
+                                         ToolTip="e.g. Server=HOST;Database=ForgeTek;User Id=svc_forgetek;Password=…;TrustServerCertificate=True"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <Button Content="{DynamicResource Str.Options.TestConnection}" Style="{StaticResource SecondaryButton}" Padding="16,8"
+                                    <Button Content="Test connection" Style="{StaticResource SecondaryButton}" Padding="16,8"
                                             Command="{Binding TestConnectionCommand}" IsEnabled="{Binding IsTestingConnection, Converter={StaticResource InvertBool}}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding ConnectionStatus}" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
@@ -450,9 +452,9 @@
                     </Border>
 
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,12"
-                               Text="{DynamicResource Str.Options.DbNote}"/>
+                               Text="On first connection to an empty SQL Server, your existing local data is imported automatically. Note: shared secret encryption isn't configured yet, so saved credentials (FTP/SFTP/S3/cert/GitHub) stay local and aren't copied to the shared database — re-enter them per machine for now. Changing mode restarts the app."/>
 
-                    <Button Content="{DynamicResource Str.Options.SaveRestart}" Style="{StaticResource PrimaryButton}"
+                    <Button Content="Save &amp; Restart…" Style="{StaticResource PrimaryButton}"
                             Padding="16,10" HorizontalAlignment="Left" Margin="0,0,0,28"
                             Command="{Binding SaveConnectionCommand}"/>
                 </StackPanel>
@@ -467,40 +469,40 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0" Text="{DynamicResource Str.Options.ActivityLog}" FontSize="10" FontWeight="SemiBold"
+                <TextBlock Grid.Row="0" Text="ACTIVITY LOG" FontSize="10" FontWeight="SemiBold"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
 
                 <StackPanel Grid.Row="1" Margin="0,0,0,12">
                     <!-- Period presets + custom date range -->
                     <WrapPanel Orientation="Horizontal">
-                        <Button Content="{DynamicResource Str.Options.Today}" Style="{StaticResource SecondaryButton}"
+                        <Button Content="Today" Style="{StaticResource SecondaryButton}"
                                 Padding="14,7" Command="{Binding LogsTodayCommand}"/>
-                        <Button Content="{DynamicResource Str.Options.Last7}" Style="{StaticResource SecondaryButton}"
+                        <Button Content="Last 7 days" Style="{StaticResource SecondaryButton}"
                                 Padding="14,7" Margin="8,0,0,0" Command="{Binding LogsLast7Command}"/>
-                        <Button Content="{DynamicResource Str.Options.Last30}" Style="{StaticResource SecondaryButton}"
+                        <Button Content="Last 30 days" Style="{StaticResource SecondaryButton}"
                                 Padding="14,7" Margin="8,0,0,0" Command="{Binding LogsLast30Command}"/>
 
-                        <TextBlock Text="{DynamicResource Str.Options.From}" VerticalAlignment="Center" Margin="20,0,6,0"
+                        <TextBlock Text="From" VerticalAlignment="Center" Margin="20,0,6,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         <DatePicker SelectedDate="{Binding LogFrom}" VerticalAlignment="Center" Width="130"/>
-                        <TextBlock Text="{DynamicResource Str.Options.To}" VerticalAlignment="Center" Margin="12,0,6,0"
+                        <TextBlock Text="To" VerticalAlignment="Center" Margin="12,0,6,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         <DatePicker SelectedDate="{Binding LogTo}" VerticalAlignment="Center" Width="130"/>
 
-                        <TextBlock Text="{DynamicResource Str.Options.Category}" VerticalAlignment="Center" Margin="20,0,6,0"
+                        <TextBlock Text="Category" VerticalAlignment="Center" Margin="20,0,6,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         <ComboBox ItemsSource="{Binding LogCategories}" SelectedItem="{Binding SelectedLogCategory}"
                                   VerticalAlignment="Center" Width="160"/>
                     </WrapPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Button Content="{DynamicResource Str.Common.Refresh}" Style="{StaticResource SecondaryButton}"
+                        <Button Content="Refresh" Style="{StaticResource SecondaryButton}"
                                 Padding="16,8" Command="{Binding RefreshLogsCommand}"/>
-                        <Button Content="{DynamicResource Str.Options.OpenLogFolder}" Style="{StaticResource SecondaryButton}"
+                        <Button Content="Open log folder" Style="{StaticResource SecondaryButton}"
                                 Padding="16,8" Margin="8,0,0,0" Command="{Binding OpenLogFolderCommand}"/>
                         <TextBlock VerticalAlignment="Center" Margin="14,0,0,0" FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}">
-                            <Run Text="{Binding LogEntries.Count, Mode=OneWay}"/><Run Text="{DynamicResource Str.Options.LinesSuffix}"/>
+                            <Run Text="{Binding LogEntries.Count, Mode=OneWay}"/><Run Text=" line(s)"/>
                         </TextBlock>
                     </StackPanel>
                 </StackPanel>
@@ -520,7 +522,7 @@
                     </ListBox>
                 </Border>
 
-                <TextBlock Grid.Row="2" Text="{DynamicResource Str.Options.NoLogEntries}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                <TextBlock Grid.Row="2" Text="No log entries for the selected period." VerticalAlignment="Center" HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
                            Visibility="{Binding HasLogEntries, Converter={StaticResource InvertVisibility}}"/>
             </Grid>
@@ -529,19 +531,19 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,16,12,0"
                           Visibility="{Binding SelectedCategory, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Users'}">
                 <StackPanel>
-                    <TextBlock Text="{DynamicResource Str.Options.UsersAccess}" FontSize="10" FontWeight="SemiBold"
+                    <TextBlock Text="USERS &amp; ACCESS" FontSize="10" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,16"
-                               Text="{DynamicResource Str.Options.UsersDesc}"/>
+                               Text="Local accounts that can sign in. Roles control what each user may do; passwords are stored only as salted hashes. This is app-level access control, not OS or file-system security."/>
 
                     <!-- Release approval gate -->
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="14" Margin="0,0,0,18">
                         <StackPanel>
                             <CheckBox IsChecked="{Binding RequireReleaseApproval}" FontSize="13" FontWeight="SemiBold"
-                                      Content="{DynamicResource Str.Options.RequireApproval}"/>
+                                      Content="Require release approval before publishing"/>
                             <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="24,6,0,0"
-                                       Text="{DynamicResource Str.Options.RequireApprovalDesc}"/>
+                                       Text="When on, a version update or generated setup can't be published until an Admin and a QA Tester both approve it (on the version's Approvals panel). Other roles can leave review notes. Only enforced while access protection is on."/>
                         </StackPanel>
                     </Border>
 
@@ -549,14 +551,14 @@
                     <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="6" Padding="12,10" Margin="0,0,0,16"
                             Visibility="{Binding ProtectionEnabled, Converter={StaticResource InvertVisibility}}">
                         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextBrush}"
-                                   Text="{DynamicResource Str.Options.NoUsersHint}"/>
+                                   Text="No users yet — the app is unprotected. Create the first user to enable login. The first user becomes the administrator."/>
                     </Border>
 
                     <!-- Add user -->
                     <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
                             CornerRadius="8" Padding="14" Margin="0,0,0,18">
                         <StackPanel>
-                            <TextBlock Text="{DynamicResource Str.Options.AddUser}" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+                            <TextBlock Text="Add user" FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -568,12 +570,12 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBox Grid.Column="0" Height="34" VerticalContentAlignment="Center"
-                                         Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" ToolTip="{DynamicResource Str.Options.UsernameTip}"/>
+                                         Text="{Binding NewUsername, UpdateSourceTrigger=PropertyChanged}" ToolTip="Username"/>
                                 <PasswordBox Grid.Column="2" Height="34" x:Name="NewUserPasswordBox"
                                              PasswordChanged="NewUserPasswordBox_PasswordChanged"/>
                                 <ComboBox Grid.Column="4" Height="34" MinWidth="130" VerticalContentAlignment="Center"
                                           ItemsSource="{Binding RoleOptions}" SelectedItem="{Binding NewUserRole}"/>
-                                <Button Grid.Column="6" Content="{DynamicResource Str.Common.Add}" Style="{StaticResource PrimaryButton}"
+                                <Button Grid.Column="6" Content="Add" Style="{StaticResource PrimaryButton}"
                                         Padding="18,8" Command="{Binding AddUserCommand}"/>
                             </Grid>
                             <TextBlock Text="{Binding UserMessage}" FontSize="11" Margin="0,10,0,0" TextWrapping="Wrap"
@@ -582,7 +584,7 @@
                     </Border>
 
                     <!-- Accounts -->
-                    <TextBlock Text="{DynamicResource Str.Options.Accounts}" FontSize="10" FontWeight="SemiBold"
+                    <TextBlock Text="ACCOUNTS" FontSize="10" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,8"
                                Visibility="{Binding ProtectionEnabled, Converter={StaticResource BoolToVisibility}}"/>
                     <ListBox ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}"
@@ -611,13 +613,13 @@
                                                        Foreground="{DynamicResource TextBrush}"/>
                                             <Border CornerRadius="4" Padding="6,1" Margin="8,0,0,0" Background="{DynamicResource AccentSoftBrush}"
                                                     Visibility="{Binding IsCurrent, Converter={StaticResource BoolToVisibility}}">
-                                                <TextBlock Text="{DynamicResource Str.Options.You}" FontSize="10" Foreground="{DynamicResource AccentBrush}"/>
+                                                <TextBlock Text="you" FontSize="10" Foreground="{DynamicResource AccentBrush}"/>
                                             </Border>
                                         </StackPanel>
                                         <ComboBox Grid.Column="1" MinWidth="130" Margin="0,0,8,0" VerticalContentAlignment="Center"
                                                   ItemsSource="{Binding DataContext.RoleOptions, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                   SelectedItem="{Binding Role, Mode=TwoWay}"/>
-                                        <Button Grid.Column="2" Content="{DynamicResource Str.Common.Delete}" Style="{StaticResource DangerButton}"
+                                        <Button Grid.Column="2" Content="Delete" Style="{StaticResource DangerButton}"
                                                 Padding="12,6" FontSize="11"
                                                 Command="{Binding DataContext.DeleteUserCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
@@ -633,7 +635,7 @@
                             Visibility="{Binding HasSelectedUser, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10">
-                                <Run Text="{DynamicResource Str.Options.ResetPasswordFor}"/><Run Text="{Binding SelectedUser.Username, Mode=OneWay}" FontWeight="Bold"/>
+                                <Run Text="Reset password for "/><Run Text="{Binding SelectedUser.Username, Mode=OneWay}" FontWeight="Bold"/>
                             </TextBlock>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -643,7 +645,7 @@
                                 </Grid.ColumnDefinitions>
                                 <PasswordBox Grid.Column="0" Height="34" x:Name="ResetPasswordBox"
                                              PasswordChanged="ResetPasswordBox_PasswordChanged"/>
-                                <Button Grid.Column="2" Content="{DynamicResource Str.Options.ResetPassword}" Style="{StaticResource SecondaryButton}"
+                                <Button Grid.Column="2" Content="Reset password" Style="{StaticResource SecondaryButton}"
                                         Padding="16,8"
                                         Command="{Binding ResetUserPasswordCommand}" CommandParameter="{Binding SelectedUser}"/>
                             </Grid>
@@ -659,13 +661,13 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="{DynamicResource Str.Common.Save}" Style="{StaticResource SecondaryButton}"
+                <Button Content="Save" Style="{StaticResource SecondaryButton}"
                         Padding="14,8" Margin="0,0,8,0"
                         Command="{Binding SaveCommand}"/>
-                <Button Content="{DynamicResource Str.Common.Close}" Style="{StaticResource SecondaryButton}"
+                <Button Content="Close" Style="{StaticResource SecondaryButton}"
                         Padding="14,8" Margin="0,0,8,0"
                         Command="{Binding CloseCommand}"/>
-                <Button Content="{DynamicResource Str.Options.SaveAndClose}" Style="{StaticResource PrimaryButton}"
+                <Button Content="Save and Close" Style="{StaticResource PrimaryButton}"
                         Padding="18,8"
                         Command="{Binding SaveAndCloseCommand}"/>
             </StackPanel>

@@ -1,7 +1,7 @@
 <Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.WingetManifestWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Winget Manifest" Width="720" Height="760" MinWidth="640" MinHeight="560"
+        Title="{DynamicResource Str.Winget.Title}" Width="720" Height="760" MinWidth="640" MinHeight="560"
         WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}">
@@ -23,7 +23,7 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Generate Winget Manifest" FontSize="18" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource Str.Winget.HeaderTitle}" FontSize="18" FontWeight="Bold"
                        Foreground="{DynamicResource TextBrush}"/>
             <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -32,7 +32,7 @@
         <!-- Form -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
             <StackPanel>
-                <TextBlock Text="Package identifier" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.Identifier}" Style="{StaticResource FieldLabel}"/>
                 <TextBox x:Name="IdentifierBox" Margin="0,0,0,10"/>
 
                 <Grid Margin="0,0,0,10">
@@ -42,11 +42,11 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Publisher" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.Publisher}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PublisherBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Package name" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.PackageName}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PackageNameBox"/>
                     </StackPanel>
                 </Grid>
@@ -58,11 +58,11 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Version" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.Version}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="VersionBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Moniker (winget install &lt;moniker&gt;)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.Moniker}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="MonikerBox"/>
                     </StackPanel>
                 </Grid>
@@ -74,19 +74,19 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="License (required)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.License}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="LicenseBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="License URL" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.LicenseUrl}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="LicenseUrlBox"/>
                     </StackPanel>
                 </Grid>
 
-                <TextBlock Text="Short description (required)" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.ShortDesc}" Style="{StaticResource FieldLabel}"/>
                 <TextBox x:Name="ShortDescriptionBox" Margin="0,0,0,10"/>
 
-                <TextBlock Text="Description (optional)" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.Description}" Style="{StaticResource FieldLabel}"/>
                 <TextBox x:Name="DescriptionBox" Margin="0,0,0,10"
                          AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" MaxHeight="96"
                          VerticalScrollBarVisibility="Auto"/>
@@ -98,11 +98,11 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Package URL (home page)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.PackageUrl}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PackageUrlBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Tags (comma-separated)" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.Tags}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="TagsBox"/>
                     </StackPanel>
                 </Grid>
@@ -114,11 +114,11 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Publisher URL" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.PublisherUrl}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PublisherUrlBox"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Publisher support URL" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.PublisherSupportUrl}" Style="{StaticResource FieldLabel}"/>
                         <TextBox x:Name="PublisherSupportUrlBox"/>
                     </StackPanel>
                 </Grid>
@@ -130,7 +130,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Text="Architecture" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.Architecture}" Style="{StaticResource FieldLabel}"/>
                         <ComboBox x:Name="ArchitectureBox">
                             <ComboBoxItem Content="x64"/>
                             <ComboBoxItem Content="x86"/>
@@ -139,7 +139,7 @@
                         </ComboBox>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Text="Installer type" Style="{StaticResource FieldLabel}"/>
+                        <TextBlock Text="{DynamicResource Str.Winget.InstallerType}" Style="{StaticResource FieldLabel}"/>
                         <ComboBox x:Name="InstallerTypeBox">
                             <ComboBoxItem Content="exe"/>
                             <ComboBoxItem Content="inno"/>
@@ -151,7 +151,7 @@
                     </StackPanel>
                 </Grid>
 
-                <TextBlock Text="Installer URL (public https)" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.InstallerUrl}" Style="{StaticResource FieldLabel}"/>
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -159,26 +159,26 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="InstallerUrlBox" Grid.Column="0"/>
-                    <Button x:Name="SuggestUrlBtn" Grid.Column="1" Content="Suggest" Margin="8,0,0,0"
+                    <Button x:Name="SuggestUrlBtn" Grid.Column="1" Content="{DynamicResource Str.Winget.Suggest}" Margin="8,0,0,0"
                             Padding="14,6" Style="{StaticResource SecondaryButton}"
                             Click="SuggestUrl_Click"/>
-                    <Button x:Name="UploadUrlBtn" Grid.Column="2" Content="Upload &amp; use" Margin="8,0,0,0"
+                    <Button x:Name="UploadUrlBtn" Grid.Column="2" Content="{DynamicResource Str.Winget.UploadUse}" Margin="8,0,0,0"
                             Padding="14,6" Style="{StaticResource SecondaryButton}"
                             Click="UploadUrl_Click"/>
                 </Grid>
 
-                <TextBlock Text="Installer SHA256" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.Sha256}" Style="{StaticResource FieldLabel}"/>
                 <TextBox x:Name="Sha256Box" Margin="0,0,0,10" IsReadOnly="True"
                          Foreground="{DynamicResource TextSecondaryBrush}"/>
 
-                <TextBlock Text="Output folder" Style="{StaticResource FieldLabel}"/>
+                <TextBlock Text="{DynamicResource Str.Winget.OutputFolder}" Style="{StaticResource FieldLabel}"/>
                 <Grid Margin="0,0,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="OutputFolderBox" Grid.Column="0"/>
-                    <Button Grid.Column="1" Content="Browse…" Margin="8,0,0,0"
+                    <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Margin="8,0,0,0"
                             Padding="14,6" Style="{StaticResource SecondaryButton}"
                             Click="BrowseOutput_Click"/>
                 </Grid>
@@ -205,13 +205,13 @@
                        FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                        TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="GenerateBtn" Content="Generate" Style="{StaticResource PrimaryButton}"
+                <Button x:Name="GenerateBtn" Content="{DynamicResource Str.Winget.Generate}" Style="{StaticResource PrimaryButton}"
                         Padding="20,8" Click="Generate_Click"/>
-                <Button x:Name="ValidateBtn" Content="Validate" Style="{StaticResource SecondaryButton}"
+                <Button x:Name="ValidateBtn" Content="{DynamicResource Str.Winget.Validate}" Style="{StaticResource SecondaryButton}"
                         Padding="20,8" Margin="8,0,0,0" Click="Validate_Click"/>
-                <Button x:Name="SubmitBtn" Content="Submit…" Style="{StaticResource SecondaryButton}"
+                <Button x:Name="SubmitBtn" Content="{DynamicResource Str.Winget.Submit}" Style="{StaticResource SecondaryButton}"
                         Padding="20,8" Margin="8,0,0,0" Click="Submit_Click"/>
-                <Button Content="Close" Style="{StaticResource SecondaryButton}"
+                <Button Content="{DynamicResource Str.Common.Close}" Style="{StaticResource SecondaryButton}"
                         Padding="20,8" Margin="8,0,0,0" Click="Close_Click"/>
             </StackPanel>
         </Grid>

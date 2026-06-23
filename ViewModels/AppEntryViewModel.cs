@@ -1,17 +1,49 @@
+using System.IO;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using ForgeTekApplicationReleaseManager.Models;
+using ForgeTekApplicationReleaseManager.Services;
 
 namespace ForgeTekApplicationReleaseManager.ViewModels;
 
 public enum VersionDisplayMode { None, Published, InProgress, Retracted }
 
-public class AppEntryViewModel(AppEntry entry) : ObservableObject
+public class AppEntryViewModel : ObservableObject
 {
-    public AppEntry Entry { get; private set; } = entry;
+    private readonly ILocalizationService _loc;
+
+    public AppEntryViewModel(AppEntry entry, ILocalizationService loc)
+    {
+        Entry = entry;
+        _loc  = loc;
+        // Re-translate computed status/action labels when the language changes.
+        _loc.LanguageChanged += (_, _) => Refresh();
+    }
+
+    public AppEntry Entry { get; private set; }
     public string Name => Entry.Name;
     public string AccentColor => Entry.AccentColor;
     public SolidColorBrush AccentBrush => ParseColor(AccentColor);
+
+    /// <summary>The app's <c>appicon.ico</c> (from its folder) if present, for the sidebar row and
+    /// dashboard card. Loaded once and cached; null when the file is missing or unreadable.</summary>
+    private ImageSource? _appIcon;
+    private bool _appIconLoaded;
+    public ImageSource? AppIcon
+    {
+        get
+        {
+            if (!_appIconLoaded)
+            {
+                _appIconLoaded = true;
+                _appIcon = LoadAppIcon(Entry.FolderPath);
+            }
+            return _appIcon;
+        }
+    }
+
+    public bool HasAppIcon => AppIcon is not null;
 
     /// <summary>Subtle left-to-right wash of the app's accent color fading to transparent,
     /// used as the sidebar row background for a splash of per-app color.</summary>
@@ -40,10 +72,13 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
 
     public void Refresh()
     {
+        _appIconLoaded = false;   // re-read appicon.ico (folder may have changed)
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(AccentColor));
         OnPropertyChanged(nameof(AccentBrush));
         OnPropertyChanged(nameof(AccentGradientBrush));
+        OnPropertyChanged(nameof(AppIcon));
+        OnPropertyChanged(nameof(HasAppIcon));
         OnPropertyChanged(nameof(DisplayMode));
         OnPropertyChanged(nameof(CurrentVersionText));
         OnPropertyChanged(nameof(HasCurrentVersion));
@@ -54,6 +89,7 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
         OnPropertyChanged(nameof(HasPreviousVersion));
         OnPropertyChanged(nameof(VersionLine));
         OnPropertyChanged(nameof(StatusBadge));
+        OnPropertyChanged(nameof(BadgeState));
         OnPropertyChanged(nameof(NeedsAttention));
         OnPropertyChanged(nameof(NextActionLabel));
     }
@@ -61,17 +97,17 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
     /// <summary>The app's next logical step, used as the dashboard card's call-to-action label.</summary>
     public string NextActionLabel => DisplayMode switch
     {
-        VersionDisplayMode.None      => "Scan",
-        VersionDisplayMode.Published => "Scan",
-        VersionDisplayMode.Retracted => "Package",
+        VersionDisplayMode.None      => _loc.Get("Str.Action.Scan"),
+        VersionDisplayMode.Published => _loc.Get("Str.Action.Scan"),
+        VersionDisplayMode.Retracted => _loc.Get("Str.Action.Package"),
         VersionDisplayMode.InProgress => Entry.LatestVersion?.Status switch
         {
-            VersionStatus.Review => "Review",
-            VersionStatus.Signed => "Package",
-            VersionStatus.Packed => "Publish",
-            _                    => "Package",
+            VersionStatus.Review => _loc.Get("Str.Action.Review"),
+            VersionStatus.Signed => _loc.Get("Str.Action.Package"),
+            VersionStatus.Packed => _loc.Get("Str.Action.Publish"),
+            _                    => _loc.Get("Str.Action.Package"),
         },
-        _ => "Scan",
+        _ => _loc.Get("Str.Action.Scan"),
     };
 
     // ── Compact status, used by the Home dashboard cards ──────────────────
@@ -88,10 +124,28 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
     /// <summary>Short release-state label for the dashboard badge.</summary>
     public string StatusBadge => DisplayMode switch
     {
-        VersionDisplayMode.None       => "No versions",
+        VersionDisplayMode.None       => _loc.Get("Str.Status.NoVersions"),
+        VersionDisplayMode.Retracted  => _loc.Get("Str.Status.Retracted"),
+        VersionDisplayMode.InProgress => Entry.LatestVersion?.Status == VersionStatus.Packed
+            ? _loc.Get("Str.Status.ReadyToPublish") : _loc.Get("Str.Status.InProgress"),
+        _                             => _loc.Get("Str.Status.Published"),
+    };
+
+    /// <summary>Coarse state token used to color the dashboard status badge, mirroring the app-flow
+    /// status colors (Signed→accent, Packed→modified, Published→added, Retracted→removed). One of:
+    /// "None" | "Review" | "Signed" | "Packed" | "Published" | "Retracted".</summary>
+    public string BadgeState => DisplayMode switch
+    {
+        VersionDisplayMode.None       => "None",
         VersionDisplayMode.Retracted  => "Retracted",
-        VersionDisplayMode.InProgress => Entry.LatestVersion?.Status == VersionStatus.Packed ? "Ready to publish" : "In progress",
-        _                             => "Published",
+        VersionDisplayMode.Published  => "Published",
+        VersionDisplayMode.InProgress => Entry.LatestVersion?.Status switch
+        {
+            VersionStatus.Signed => "Signed",
+            VersionStatus.Packed => "Packed",
+            _                    => "Review",
+        },
+        _                             => "None",
     };
 
     /// <summary>True when the app wants a nudge (no versions yet, or a build is ready to publish).</summary>
@@ -219,6 +273,29 @@ public class AppEntryViewModel(AppEntry entry) : ObservableObject
         "Offline" => new SolidColorBrush(Color.FromRgb(0xFF, 0x45, 0x3A)),  // red
         _         => new SolidColorBrush(Color.FromRgb(0x8E, 0x8E, 0x93)),  // grey (checking)
     };
+
+    // Loads {folderPath}/appicon.ico fully into memory (OnLoad) and freezes it, so the file isn't
+    // locked and the image is safe to use from any thread / binding. Returns null on any failure.
+    private static ImageSource? LoadAppIcon(string folderPath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(folderPath)) return null;
+            var path = Path.Combine(folderPath, "appicon.ico");
+            if (!File.Exists(path)) return null;
+
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption    = BitmapCacheOption.OnLoad;
+            bmp.CreateOptions  = BitmapCreateOptions.IgnoreImageCache;
+            bmp.DecodePixelWidth = 64;   // rendered small; pick/scale a small frame
+            bmp.UriSource      = new Uri(path, UriKind.Absolute);
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch { return null; }
+    }
 
     private static SolidColorBrush ParseColor(string hex)
     {

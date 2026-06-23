@@ -33,9 +33,9 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Setup Bundles" FontSize="22" FontWeight="Bold"
+                    <TextBlock Text="{DynamicResource Str.Setup.BundlesTitle}" FontSize="22" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}"/>
-                    <TextBlock Text="Create and generate Windows installers for one or more apps."
+                    <TextBlock Text="{DynamicResource Str.Setup.BundlesSubtitle}"
                                FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
@@ -50,31 +50,31 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE768;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Generate" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Setup.Generate}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource SecondaryButton}"
                             Padding="14,9" Margin="0,0,8,0"
                             IsEnabled="{Binding HasSelection}"
-                            ToolTip="Publish the most recently generated setup for this bundle"
+                            ToolTip="{DynamicResource Str.Setup.PublishLatestTip}"
                             Command="{Binding PublishBundleSetupCommand}"
                             CommandParameter="{Binding SelectedBundle}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE898;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Publish…" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Setup.Publish}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource SecondaryButton}"
                             Padding="14,9" Margin="0,0,8,0"
                             IsEnabled="{Binding HasSelection}"
-                            ToolTip="Where this bundle's installer is published (separate from app updates)"
+                            ToolTip="{DynamicResource Str.Setup.PublishSettingsTip}"
                             Command="{Binding ConfigureSetupPublishCommand}"
                             CommandParameter="{Binding SelectedBundle}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Publish settings…" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Setup.PublishSettings}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource SecondaryButton}"
@@ -85,7 +85,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE70F;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Edit" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Common.Edit}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource DangerButton}"
@@ -96,7 +96,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Delete" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Common.Delete}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource PrimaryButton}"
@@ -105,7 +105,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="New Setup" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Setup.NewSetup}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -118,10 +118,10 @@
                 <TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" FontSize="40"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBlock Text="No setup bundles yet" FontSize="16" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Setup.NoBundles}" FontSize="16" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,12,0,0"
                            Foreground="{DynamicResource TextBrush}"/>
-                <TextBlock Text="Bundle one or more apps into a single Windows installer."
+                <TextBlock Text="{DynamicResource Str.Setup.NoBundlesHint}"
                            FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 <Button Style="{StaticResource PrimaryButton}"
@@ -130,7 +130,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                    VerticalAlignment="Center" Margin="0,0,7,0"/>
-                        <TextBlock Text="New Setup" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource Str.Setup.NewSetup}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -202,7 +202,7 @@
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xE72E;" FontFamily="Segoe Fluent Icons" FontSize="10"
                                                                Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock Text="Signed" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
+                                                    <TextBlock Text="{DynamicResource Str.Setup.SignedBadge}" FontSize="11" Foreground="{DynamicResource AccentBrush}"/>
                                                 </StackPanel>
                                             </Border>
                                             <!-- Published badge -->
@@ -213,7 +213,7 @@
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="10"
                                                                Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                    <TextBlock Text="Published" FontSize="11" Foreground="{DynamicResource AddedBrush}"/>
+                                                    <TextBlock Text="{DynamicResource Str.Setup.PublishedBadge}" FontSize="11" Foreground="{DynamicResource AddedBrush}"/>
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
@@ -238,7 +238,7 @@
                                                 <TextBlock FontSize="11" Foreground="{DynamicResource AddedBrush}"
                                                            Text="{Binding LastGeneratedDate, StringFormat='Generated {0:yyyy-MM-dd HH:mm}'}"/>
                                             </StackPanel>
-                                            <TextBlock Text="·   Not generated yet" FontSize="11" Margin="8,0,0,0"
+                                            <TextBlock Text="{DynamicResource Str.Setup.NotGenerated}" FontSize="11" Margin="8,0,0,0"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        Visibility="{Binding IsGenerated, Converter={StaticResource InvertVisibility}}"/>
                                             <StackPanel Orientation="Horizontal" Margin="8,0,0,0"
@@ -247,7 +247,7 @@
                                                 <TextBlock Text="&#xE753;" FontFamily="Segoe Fluent Icons" FontSize="11"
                                                            Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                 <TextBlock FontSize="11" Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center">
-                                                    <Run Text="Published to "/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
+                                                    <Run Text="{DynamicResource Str.Setup.PublishedToPrefix}"/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
                                                     <Run Text="{Binding PublishedDate, Mode=OneWay, StringFormat=' · {0:yyyy-MM-dd HH:mm}'}"/>
                                                 </TextBlock>
                                             </StackPanel>
@@ -285,9 +285,9 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Text="Past Bundles" FontSize="22" FontWeight="Bold"
+                    <TextBlock Text="{DynamicResource Str.Setup.PastTitle}" FontSize="22" FontWeight="Bold"
                                Foreground="{DynamicResource TextBrush}"/>
-                    <TextBlock Text="Every setup you've generated, newest first."
+                    <TextBlock Text="{DynamicResource Str.Setup.PastSubtitle}"
                                FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
@@ -299,7 +299,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="13"
                                        VerticalAlignment="Center" Margin="0,0,7,0"/>
-                            <TextBlock Text="Clear History" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource Str.Setup.ClearHistory}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -311,10 +311,10 @@
                 <TextBlock Text="&#xE81C;" FontFamily="Segoe Fluent Icons" FontSize="40"
                            HorizontalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}"/>
-                <TextBlock Text="No setups generated yet" FontSize="16" FontWeight="SemiBold"
+                <TextBlock Text="{DynamicResource Str.Setup.NoHistory}" FontSize="16" FontWeight="SemiBold"
                            HorizontalAlignment="Center" Margin="0,12,0,0"
                            Foreground="{DynamicResource TextBrush}"/>
-                <TextBlock Text="Generated setups will be listed here with a timestamp."
+                <TextBlock Text="{DynamicResource Str.Setup.NoHistoryHint}"
                            FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                            HorizontalAlignment="Center" Margin="0,4,0,0"/>
             </StackPanel>
@@ -366,7 +366,7 @@
                                             <TextBlock Text="&#xE7BA;" FontFamily="Segoe Fluent Icons" FontSize="10"
                                                        Foreground="#FF6B6B" VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBlock FontSize="11" Foreground="#FF6B6B"
-                                                       Text="Setup file is missing — re-generate to publish."/>
+                                                       Text="{DynamicResource Str.Setup.FileMissing}"/>
                                         </StackPanel>
                                         <StackPanel Orientation="Horizontal" Margin="0,2,0,0"
                                                     Visibility="{Binding ArchivedPath, Converter={StaticResource BoolToVisibility}}">
@@ -385,7 +385,7 @@
                                                        VerticalAlignment="Center" Margin="0,0,5,0"/>
                                             <TextBlock FontSize="11" Foreground="{DynamicResource AddedBrush}"
                                                        TextTrimming="CharacterEllipsis">
-                                                <Run Text="Published to "/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
+                                                <Run Text="{DynamicResource Str.Setup.PublishedToPrefix}"/><Run Text="{Binding PublishedProvider, Mode=OneWay}"/>
                                                 <Run Text="{Binding PublishedDate, Mode=OneWay, StringFormat=' · {0:yyyy-MM-dd HH:mm} · '}"/>
                                                 <Run Text="{Binding PublishedUrl, Mode=OneWay}"/>
                                             </TextBlock>
@@ -393,19 +393,19 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
+                                        <Button Content="{DynamicResource Str.Setup.Publish}" Style="{StaticResource SecondaryButton}"
                                                 Padding="16,8" Margin="0,0,8,0"
                                                 IsEnabled="{Binding OutputPath, Converter={StaticResource FileExists}}"
-                                                ToolTip="Publish this setup to its target"
+                                                ToolTip="{DynamicResource Str.Setup.PublishToTargetTip}"
                                                 Command="{Binding DataContext.PublishSetupCommand,
                                                     RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="Winget…" Style="{StaticResource SecondaryButton}"
+                                        <Button Content="{DynamicResource Str.Setup.Winget}" Style="{StaticResource SecondaryButton}"
                                                 Padding="16,8" Margin="0,0,8,0"
                                                 Command="{Binding DataContext.GenerateWingetManifestCommand,
                                                     RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                 CommandParameter="{Binding}"/>
-                                        <Button Content="Open Folder" Style="{StaticResource SecondaryButton}"
+                                        <Button Content="{DynamicResource Str.Setup.OpenFolder}" Style="{StaticResource SecondaryButton}"
                                                 Padding="16,8"
                                                 Command="{Binding DataContext.OpenSetupFolderCommand,
                                                     RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -432,7 +432,7 @@
 
             <!-- Header -->
             <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                <TextBlock Text="Setup Bundle" FontSize="22" FontWeight="Bold"
+                <TextBlock Text="{DynamicResource Str.Setup.EditTitle}" FontSize="22" FontWeight="Bold"
                            Foreground="{DynamicResource TextBrush}"/>
                 <TextBlock Text="{Binding EditStepTitle}"
                            FontSize="13" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"
@@ -497,12 +497,12 @@
                         </Border>
                     </Button>
 
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="General"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep1State}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Apps"       Style="{StaticResource StepLabel}" Tag="{Binding EditStep2State}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="4" Text="Signing"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep3State}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="6" Text="Appearance" Style="{StaticResource StepLabel}" Tag="{Binding EditStep4State}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="8" Text="Launch"     Style="{StaticResource StepLabel}" Tag="{Binding EditStep5State}"/>
-                    <TextBlock Grid.Row="1" Grid.Column="10" Text="Actions"   Style="{StaticResource StepLabel}" Tag="{Binding EditStep6State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str.Setup.StepGeneral}"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep1State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="2" Text="{DynamicResource Str.Setup.StepApps}"       Style="{StaticResource StepLabel}" Tag="{Binding EditStep2State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="4" Text="{DynamicResource Str.Setup.StepSigning}"    Style="{StaticResource StepLabel}" Tag="{Binding EditStep3State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="6" Text="{DynamicResource Str.Setup.StepAppearance}" Style="{StaticResource StepLabel}" Tag="{Binding EditStep4State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="8" Text="{DynamicResource Str.Setup.StepLaunch}"     Style="{StaticResource StepLabel}" Tag="{Binding EditStep5State}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="10" Text="{DynamicResource Str.Setup.StepActions}"   Style="{StaticResource StepLabel}" Tag="{Binding EditStep6State}"/>
                 </Grid>
             </Border>
 
@@ -516,23 +516,23 @@
 
                     <!-- Name -->
                     <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Setup Name" FontSize="12" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.Name}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                                         <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
-                                                 ToolTip="e.g. STLVerse Suite 1.0"/>
+                                                 ToolTip="{DynamicResource Str.Setup.NameTip}"/>
                     </StackPanel>
 
                     <!-- Version -->
                     <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Setup Version" FontSize="12" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.Version}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                         <TextBox Text="{Binding EditVersion, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="Leave empty to auto-generate (e.g. 2026.0512.1830)"/>
+                                 ToolTip="{DynamicResource Str.Setup.VersionTip}"/>
                     </StackPanel>
 
                     <!-- Output Folder -->
                     <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Output Folder" FontSize="12" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.OutputFolder}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -540,9 +540,9 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0" Text="{Binding EditOutputFolder, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Where to save the generated Setup.exe"
+                                     ToolTip="{DynamicResource Str.Setup.OutputFolderTip}"
                                      Margin="0,0,8,0"/>
-                            <Button Grid.Column="1" Content="Browse…"
+                            <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}"
                                     Style="{StaticResource SecondaryButton}" Padding="16,8"
                                     Command="{Binding BrowseOutputFolderCommand}"/>
                         </Grid>
@@ -550,39 +550,33 @@
 
                     <!-- Output File Name (build variables) -->
                     <StackPanel Margin="0,0,0,16">
-                        <TextBlock Text="Output File Name" FontSize="12" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.OutputFileName}" FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,6"/>
                         <TextBox Text="{Binding EditFileNameTemplate, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="e.g. {AppName}_{Version}_Setup — blank uses {AppName}Setup"/>
+                                 ToolTip="{DynamicResource Str.Setup.OutputFileNameTip}"/>
                         <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap" Margin="0,4,0,0">
-                            Blank uses “{AppName}Setup”. The .exe extension is added automatically.
-                            Variables: {AppName} {Version} {Company} {Date} {Year} {Date:format}
-                        </TextBlock>
+                                   TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Text="{DynamicResource Str.Setup.OutputFileNameDesc}"/>
                     </StackPanel>
 
                     <!-- Preserve old setups -->
                     <StackPanel Margin="0,0,0,16">
                         <CheckBox IsChecked="{Binding EditPreserveOldSetups}" FontSize="13"
                                   Foreground="{DynamicResource TextBrush}"
-                                  Content="Preserve old setups"/>
+                                  Content="{DynamicResource Str.Setup.PreserveOld}"/>
                         <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap" Margin="24,4,0,0">
-                            Before overwriting an existing setup in the output folder, rename the old one to
-                            “{name}Setup-{date}.exe” so previous builds are kept as backups.
-                        </TextBlock>
+                                   TextWrapping="Wrap" Margin="24,4,0,0"
+                                   Text="{DynamicResource Str.Setup.PreserveOldDesc}"/>
                     </StackPanel>
 
                     <!-- Portable package -->
                     <StackPanel Margin="0,0,0,24">
                         <CheckBox IsChecked="{Binding EditGeneratePortableZip}" FontSize="13"
                                   Foreground="{DynamicResource TextBrush}"
-                                  Content="Also generate a portable ZIP"/>
+                                  Content="{DynamicResource Str.Setup.PortableZip}"/>
                         <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap" Margin="24,4,0,0">
-                            Writes “{name}_Portable.zip” of the app files next to the setup — no installer,
-                            no registry, no prerequisites. Good for tools that run unpacked.
-                        </TextBlock>
+                                   TextWrapping="Wrap" Margin="24,4,0,0"
+                                   Text="{DynamicResource Str.Setup.PortableZipDesc}"/>
                     </StackPanel>
 
                         </StackPanel>
@@ -594,7 +588,7 @@
                         <StackPanel>
 
                     <!-- App Selection -->
-                    <TextBlock Text="Applications to Include" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.AppsToInclude}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,12"/>
 
                     <ItemsControl ItemsSource="{Binding AvailableApps}">
@@ -628,14 +622,14 @@
                                                   SelectedIndex="{Binding VersionModeIndex}"
                                                   VerticalAlignment="Center"
                                                   IsEnabled="{Binding IsSelected}">
-                                            <ComboBoxItem Content="Latest only"/>
-                                            <ComboBoxItem Content="Cumulative (all versions)"/>
+                                            <ComboBoxItem Content="{DynamicResource Str.Setup.LatestOnly}"/>
+                                            <ComboBoxItem Content="{DynamicResource Str.Setup.Cumulative}"/>
                                         </ComboBox>
 
                                         <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2"
                                                     Orientation="Horizontal" Margin="12,6,0,0"
                                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
-                                            <TextBlock Text="Run as admin:" FontSize="11"
+                                            <TextBlock Text="{DynamicResource Str.Setup.RunAsAdmin}" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <ItemsControl ItemsSource="{Binding AdminExes}" VerticalAlignment="Center">
@@ -655,32 +649,32 @@
                                         <StackPanel Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
                                                     Orientation="Horizontal" Margin="12,6,0,0"
                                                     Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
-                                            <TextBlock Text="App Icon:" FontSize="11"
+                                            <TextBlock Text="{DynamicResource Str.Setup.AppIcon}" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <ComboBox MinWidth="160" IsEditable="False"
                                                       ItemsSource="{Binding AvailableIcons}"
                                                       SelectedItem="{Binding SetupIcon}"
                                                       FontSize="11" Padding="4,2"/>
-                                            <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                            <Button Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                                                     Padding="10,2" Margin="6,0,0,0" FontSize="10"
                                                     Command="{Binding DataContext.BrowseSetupIconCommand,
                                                         RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                     CommandParameter="{Binding}"/>
                                             <CheckBox IsChecked="{Binding CreateShortcut}"
-                                                      Content="Desktop shortcut"
+                                                      Content="{DynamicResource Str.Setup.DesktopShortcut}"
                                                       FontSize="11" Margin="16,0,0,0"
                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                       VerticalAlignment="Center"/>
                                             <CheckBox IsChecked="{Binding IsOptional}"
-                                                      Content="Optional"
-                                                      ToolTip="Let the end user deselect this app during install"
+                                                      Content="{DynamicResource Str.Setup.Optional}"
+                                                      ToolTip="{DynamicResource Str.Setup.OptionalTip}"
                                                       FontSize="11" Margin="16,0,0,0"
                                                       Foreground="{DynamicResource TextSecondaryBrush}"
                                                       VerticalAlignment="Center"/>
                                             <CheckBox IsChecked="{Binding DefaultSelected}"
-                                                      Content="Checked by default"
-                                                      ToolTip="Whether the install-time checkbox starts checked"
+                                                      Content="{DynamicResource Str.Setup.CheckedByDefault}"
+                                                      ToolTip="{DynamicResource Str.Setup.CheckedByDefaultTip}"
                                                       FontSize="11" Margin="12,0,0,0"
                                                       IsEnabled="{Binding IsOptional}"
                                                       Foreground="{DynamicResource TextSecondaryBrush}"
@@ -695,9 +689,9 @@
                                                 Visibility="{Binding IsSelected, Converter={StaticResource BoolToVisibility}}">
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                                    <TextBlock Text="Registry Entries" FontSize="11" FontWeight="SemiBold"
+                                                    <TextBlock Text="{DynamicResource Str.Setup.RegistryEntries}" FontSize="11" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                                                    <Button Content="+ Add" Style="{StaticResource SecondaryButton}"
+                                                    <Button Content="{DynamicResource Str.Setup.AddShort}" Style="{StaticResource SecondaryButton}"
                                                             Padding="10,2" Margin="12,0,0,0" FontSize="10"
                                                             Command="{Binding DataContext.AddRegistryEntryCommand,
                                                                 RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -731,7 +725,7 @@
                                                                     </ComboBox>
                                                                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding KeyPath, UpdateSourceTrigger=PropertyChanged}"
                                                                              FontSize="10" Padding="4,2" Margin="0,0,4,0"
-                                                                             ToolTip="e.g. SOFTWARE\ForgeTek\MyApp"/>
+                                                                             ToolTip="{DynamicResource Str.Setup.KeyPathTip}"/>
                                                                     <Button Grid.Row="0" Grid.Column="2" Content="X"
                                                                             Style="{StaticResource DangerButton}"
                                                                             Padding="6,1" FontSize="10"
@@ -742,10 +736,10 @@
                                                                     <!-- Row 1: ValueName + ValueData + ValueKind -->
                                                                     <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ValueName, UpdateSourceTrigger=PropertyChanged}"
                                                                              FontSize="10" Padding="4,2" Margin="0,4,4,0"
-                                                                             ToolTip="Value name"/>
+                                                                             ToolTip="{DynamicResource Str.Setup.ValueNameTip}"/>
                                                                     <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ValueData, UpdateSourceTrigger=PropertyChanged}"
                                                                              FontSize="10" Padding="4,2" Margin="0,4,4,0"
-                                                                             ToolTip="Value data. Use [InstallDir] for the app's install path"/>
+                                                                             ToolTip="{DynamicResource Str.Setup.ValueDataTip}"/>
                                                                     <ComboBox Grid.Row="1" Grid.Column="2" MinWidth="60"
                                                                               SelectedItem="{Binding ValueKind}"
                                                                               FontSize="10" Padding="4,2" Margin="0,4,0,0">
@@ -756,7 +750,7 @@
                                                                     </ComboBox>
 
                                                                     <!-- Row 2: pick the app's exe to fill ValueData with [InstallDir]\<exe> -->
-                                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Exe:" FontSize="10"
+                                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource Str.Setup.Exe}" FontSize="10"
                                                                                Foreground="{DynamicResource TextSecondaryBrush}"
                                                                                VerticalAlignment="Center" Margin="0,4,4,0"/>
                                                                     <ComboBox Grid.Row="2" Grid.Column="1" FontSize="10"
@@ -764,7 +758,7 @@
                                                                               ItemsSource="{Binding DataContext.AppExes,
                                                                                   RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"
                                                                               SelectedItem="{Binding ExeName}"
-                                                                              ToolTip="Pick the app's exe to fill the value with [InstallDir]\&lt;exe&gt;"/>
+                                                                              ToolTip="{DynamicResource Str.Setup.ExePickTip}"/>
                                                                 </Grid>
                                                             </Border>
                                                         </DataTemplate>
@@ -788,13 +782,13 @@
                         <StackPanel>
 
                     <!-- ══ SIGNING ══════════════════════════════════════════ -->
-                    <TextBlock Text="Code Signing" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.CodeSigning}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,24,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <StackPanel>
-                            <CheckBox Content="Sign the setup executable"
+                            <CheckBox Content="{DynamicResource Str.Setup.SignExe}"
                                       IsChecked="{Binding EditSignOutput}"
                                       FontSize="13" Foreground="{DynamicResource TextBrush}"/>
                             <TextBlock Text="{Binding SigningConfigInfo}"
@@ -804,23 +798,22 @@
                     </Border>
 
                     <!-- ══ LICENSE AGREEMENT (EULA) ═══════════════════════════════ -->
-                    <TextBlock Text="License Agreement" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.LicenseAgreement}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,24,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,16">
                         <StackPanel>
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                       TextWrapping="Wrap" Margin="0,0,0,8">
-                                The EULA text shown to users during setup. Leave blank for a default license agreement.
-                            </TextBlock>
+                                       TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Text="{DynamicResource Str.Setup.EulaDesc}"/>
                             <TextBox Text="{Binding EditEulaText, UpdateSourceTrigger=PropertyChanged}"
                                      AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="120" MaxHeight="240"
                                      FontSize="11" FontFamily="Consolas"
                                      VerticalScrollBarVisibility="Auto"
                                      Padding="8,6"/>
-                            <Button Content="Reset to default" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.Setup.ResetToDefault}" Style="{StaticResource SecondaryButton}"
                                     Padding="12,4" Margin="0,8,0,0" FontSize="11"
                                     Command="{Binding ResetEulaTextCommand}" HorizontalAlignment="Right"/>
                         </StackPanel>
@@ -835,13 +828,14 @@
                         <StackPanel>
 
                     <!-- ══ BANNER IMAGE ═══════════════════════════════════════ -->
-                    <TextBlock Text="Setup Banner" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.Banner}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <Grid>
                             <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
@@ -852,14 +846,19 @@
 
                             <TextBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                      Text="{Binding EditBannerImage, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Path to a PNG or JPG image (recommended width: 660px)"
+                                     ToolTip="{DynamicResource Str.Setup.BannerTip}"
                                      FontSize="11" Padding="8,6" Margin="0,0,0,8"/>
 
+                            <TextBlock Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"
+                                       Text="{DynamicResource Str.Setup.BannerHint}"/>
+
                             <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                                         Padding="16,6" FontSize="11"
                                         Command="{Binding BrowseBannerImageCommand}"/>
-                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.Clear}" Style="{StaticResource SecondaryButton}"
                                         Padding="16,6" Margin="8,0,0,0" FontSize="11"
                                         Visibility="{Binding EditBannerImage, Converter={StaticResource BoolToVisibility}}"
                                         Command="{Binding ClearBannerImageCommand}"/>
@@ -868,7 +867,7 @@
                             <Border Grid.Row="1" Grid.Column="1" Width="128" Height="48"
                                     Background="{DynamicResource SubtlePanelBrush}" CornerRadius="4"
                                     Visibility="{Binding EditBannerImage, Converter={StaticResource BoolToVisibility}}">
-                                <TextBlock Text="Preview"
+                                <TextBlock Text="{DynamicResource Str.Setup.Preview}"
                                            FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -876,14 +875,14 @@
                     </Border>
 
                     <!-- ══ SETUP APPEARANCE ════════════════════════════════════ -->
-                    <TextBlock Text="Setup Appearance" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.Appearance}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Background:" FontSize="12" Width="80"
+                                <TextBlock Text="{DynamicResource Str.Setup.Background}" FontSize="12" Width="80"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <ComboBox Width="150" FontSize="11"
                                           ItemsSource="{Binding BackgroundModes}"
@@ -893,7 +892,7 @@
                             <!-- Solid / gradient start color -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
                                         Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Solid,Gradient'}">
-                                <TextBlock Text="Color:" FontSize="12" Width="80"
+                                <TextBlock Text="{DynamicResource Str.Setup.Color}" FontSize="12" Width="80"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditBgColor1, UpdateSourceTrigger=PropertyChanged}"/>
@@ -906,7 +905,7 @@
                             <!-- Gradient end color -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
                                         Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Gradient'}">
-                                <TextBlock Text="To color:" FontSize="12" Width="80"
+                                <TextBlock Text="{DynamicResource Str.Setup.ToColor}" FontSize="12" Width="80"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditBgColor2, UpdateSourceTrigger=PropertyChanged}"/>
@@ -919,7 +918,7 @@
                             <!-- Gradient direction -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
                                         Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Gradient'}">
-                                <TextBlock Text="Direction:" FontSize="12" Width="80"
+                                <TextBlock Text="{DynamicResource Str.Setup.Direction}" FontSize="12" Width="80"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <ComboBox Width="150" FontSize="11"
                                           ItemsSource="{Binding GradientDirections}"
@@ -931,39 +930,44 @@
                                         Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Image'}">
                                 <TextBox Width="260" FontSize="11" Padding="6,4"
                                          Text="{Binding EditBackgroundImage, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="Full-window background image"/>
-                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                         ToolTip="{DynamicResource Str.Setup.BgImageTip}"/>
+                                <Button Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                                         Padding="12,4" Margin="6,0,0,0" FontSize="10"
                                         Command="{Binding BrowseBackgroundImageCommand}"/>
-                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.Clear}" Style="{StaticResource SecondaryButton}"
                                         Padding="12,4" Margin="6,0,0,0" FontSize="10"
                                         Command="{Binding ClearBackgroundImageCommand}"/>
                             </StackPanel>
 
-                            <CheckBox Content="Fixed-size window (no resizing)"
+                            <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
+                                       TextWrapping="Wrap" Margin="0,0,0,6"
+                                       Visibility="{Binding EditBackgroundMode, Converter={StaticResource StringMatchToVisibility}, ConverterParameter='Image'}"
+                                       Text="{DynamicResource Str.Setup.BgImageHint}"/>
+
+                            <CheckBox Content="{DynamicResource Str.Setup.FixedSize}"
                                       FontSize="12" Foreground="{DynamicResource TextBrush}" Margin="0,6,0,0"
                                       IsChecked="{Binding EditFixedSize}"/>
 
                             <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" Margin="0,12,0,0"
-                                       Text="A small &quot;Installer by ForgeTek Application Release Manager&quot; attribution is shown in the installer footer."/>
+                                       Text="{DynamicResource Str.Setup.AttributionNote}"/>
                         </StackPanel>
                     </Border>
 
                     <!-- ══ COLORS & BUTTONS ═══════════════════════════════════ -->
-                    <TextBlock Text="Colors &amp; Buttons" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.ColorsButtons}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <StackPanel>
-                            <TextBlock Text="Leave a color empty to keep the installer's built-in dark theme."
+                            <TextBlock Text="{DynamicResource Str.Setup.ColorsDesc}"
                                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" Margin="0,0,0,10"/>
 
                             <!-- Accent (button fill) -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Button fill:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.ButtonFill}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditAccentColor, UpdateSourceTrigger=PropertyChanged}"/>
@@ -975,7 +979,7 @@
 
                             <!-- Accent hover -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Button hover:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.ButtonHover}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditAccentHoverColor, UpdateSourceTrigger=PropertyChanged}"/>
@@ -987,7 +991,7 @@
 
                             <!-- Button text -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Button text:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.ButtonTextColor}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditButtonTextColor, UpdateSourceTrigger=PropertyChanged}"/>
@@ -999,7 +1003,7 @@
 
                             <!-- Window text -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Window text:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.WindowText}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditTextColor, UpdateSourceTrigger=PropertyChanged}"/>
@@ -1011,7 +1015,7 @@
 
                             <!-- Surface / panels -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="Panels:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.Panels}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <TextBox Width="110" FontSize="11" Padding="6,4"
                                          Text="{Binding EditSurfaceColor, UpdateSourceTrigger=PropertyChanged}"/>
@@ -1023,7 +1027,7 @@
 
                             <!-- Button shape -->
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Button shape:" FontSize="12" Width="90"
+                                <TextBlock Text="{DynamicResource Str.Setup.ButtonShape}" FontSize="12" Width="90"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                 <ComboBox Width="150" FontSize="11"
                                           ItemsSource="{Binding ButtonShapes}"
@@ -1033,23 +1037,23 @@
                     </Border>
 
                     <!-- ══ SETUP ICON ═════════════════════════════════════════ -->
-                    <TextBlock Text="Setup Icon" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.SetupIcon}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <StackPanel>
-                            <TextBlock Text="Icon (.ico or .exe) shown on the generated setup file. Leave empty to use the first app's icon."
+                            <TextBlock Text="{DynamicResource Str.Setup.SetupIconDesc}"
                                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" Margin="0,0,0,8"/>
                             <TextBox Text="{Binding EditSetupIcon, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Path to an .ico or .exe whose icon will be used for the setup"
+                                     ToolTip="{DynamicResource Str.Setup.SetupIconTip}"
                                      FontSize="11" Padding="8,6" Margin="0,0,0,8"/>
                             <StackPanel Orientation="Horizontal">
-                                <Button Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                                         Padding="16,6" FontSize="11"
                                         Command="{Binding BrowseBundleSetupIconCommand}"/>
-                                <Button Content="Clear" Style="{StaticResource SecondaryButton}"
+                                <Button Content="{DynamicResource Str.Common.Clear}" Style="{StaticResource SecondaryButton}"
                                         Padding="16,6" Margin="8,0,0,0" FontSize="11"
                                         Visibility="{Binding EditSetupIcon, Converter={StaticResource BoolToVisibility}}"
                                         Command="{Binding ClearBundleSetupIconCommand}"/>
@@ -1066,20 +1070,20 @@
                         <StackPanel>
 
                     <!-- ══ LAUNCH ON FINISH ═══════════════════════════════════ -->
-                    <TextBlock Text="Launch on Finish" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.LaunchOnFinish}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
 
                     <Border Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                             Padding="12,10" Margin="0,0,0,24">
                         <StackPanel>
-                            <TextBlock Text="Which app and exe the setup offers to launch on its final page (optional)."
+                            <TextBlock Text="{DynamicResource Str.Setup.LaunchDesc}"
                                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                        TextWrapping="Wrap" Margin="0,0,0,8"/>
                             <StackPanel Orientation="Horizontal">
                                 <ComboBox Width="200" FontSize="11"
                                           ItemsSource="{Binding AvailableApps}"
                                           SelectedItem="{Binding EditLaunchApp, Mode=TwoWay}"
-                                          ToolTip="App to launch">
+                                          ToolTip="{DynamicResource Str.Setup.LaunchAppTip}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding AppName}"/>
@@ -1089,8 +1093,8 @@
                                 <ComboBox Width="180" FontSize="11" Margin="8,0,0,0"
                                           ItemsSource="{Binding EditLaunchApp.AppExes}"
                                           SelectedItem="{Binding EditLaunchExe, Mode=TwoWay}"
-                                          ToolTip="Exe to launch (required when an app is chosen)"/>
-                                <Button Content="None" Style="{StaticResource SecondaryButton}"
+                                          ToolTip="{DynamicResource Str.Setup.LaunchExeTip}"/>
+                                <Button Content="{DynamicResource Str.Common.None}" Style="{StaticResource SecondaryButton}"
                                         Padding="16,6" Margin="8,0,0,0" FontSize="11"
                                         Command="{Binding ClearLaunchAppCommand}"/>
                             </StackPanel>
@@ -1099,17 +1103,16 @@
 
                     <!-- ══ AFTER INSTALL COMPLETES ════════════════════════════ -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="After Install Completes" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.AfterInstall}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                        <Button Content="+ Add action" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.Setup.AddAction}" Style="{StaticResource SecondaryButton}"
                                 Padding="12,4" Margin="12,0,0,0" FontSize="11"
                                 Command="{Binding AddCompletionActionCommand}"/>
                     </StackPanel>
 
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                               Margin="0,0,0,12" TextWrapping="Wrap">
-                        Shown as checkboxes the user can toggle on the final page (URLs open in the browser; files open with their default app).
-                    </TextBlock>
+                               Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="{DynamicResource Str.Setup.CompletionDesc}"/>
 
                     <ItemsControl ItemsSource="{Binding CompletionActions}">
                         <ItemsControl.ItemTemplate>
@@ -1122,7 +1125,7 @@
                                                       ItemsSource="{Binding DataContext.CompletionActionKinds,
                                                           RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                       SelectedItem="{Binding Kind}"/>
-                                            <Button Content="Remove" Style="{StaticResource SecondaryButton}"
+                                            <Button Content="{DynamicResource Str.Common.Remove}" Style="{StaticResource SecondaryButton}"
                                                     Padding="12,4" Margin="12,0,0,0" FontSize="10"
                                                     HorizontalAlignment="Right"
                                                     Command="{Binding DataContext.RemoveCompletionActionCommand,
@@ -1130,7 +1133,7 @@
                                                     CommandParameter="{Binding}"/>
                                         </StackPanel>
 
-                                        <TextBlock Text="Checkbox label (e.g. Visit our website)" FontSize="10"
+                                        <TextBlock Text="{DynamicResource Str.Setup.CheckboxLabelHint}" FontSize="10"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,2"/>
                                         <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
                                                  FontSize="11" Padding="6,4" Margin="0,0,0,6"/>
@@ -1145,7 +1148,7 @@
                                             <TextBox Grid.Column="0"
                                                      Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
                                                      FontSize="11" Padding="6,4"/>
-                                            <Button Grid.Column="1" Content="Browse…"
+                                            <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}"
                                                     Style="{StaticResource SecondaryButton}"
                                                     Padding="12,4" Margin="6,0,0,0" FontSize="10"
                                                     Visibility="{Binding IsFileAction, Converter={StaticResource BoolToVisibility}}"
@@ -1155,7 +1158,7 @@
                                         </Grid>
 
                                         <CheckBox IsChecked="{Binding DefaultChecked}"
-                                                  Content="Checked by default"
+                                                  Content="{DynamicResource Str.Setup.CheckedByDefault}"
                                                   FontSize="11"
                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
                                     </StackPanel>
@@ -1165,13 +1168,12 @@
                     </ItemsControl>
 
                     <!-- ══ REDISTRIBUTABLES ═══════════════════════════════════ -->
-                    <TextBlock Text="Redistributables" FontSize="14" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource Str.Setup.Redistributables}" FontSize="14" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextBrush}" Margin="0,24,0,8"/>
 
                     <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                               Margin="0,0,0,12" TextWrapping="Wrap">
-                        Bundled runtimes and prerequisites. The bootstrapper checks the registry and auto-installs missing items.
-                    </TextBlock>
+                               Margin="0,0,0,12" TextWrapping="Wrap"
+                               Text="{DynamicResource Str.Setup.RedistDesc}"/>
 
                     <!-- Presets -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -1236,12 +1238,12 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="EXE:" FontSize="11"
+                                            <TextBlock Grid.Column="0" Text="{DynamicResource Str.Setup.ExeUpper}" FontSize="11"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        VerticalAlignment="Center" Margin="0,0,8,0"/>
                                             <TextBox Grid.Column="1" Text="{Binding SourcePath, UpdateSourceTrigger=PropertyChanged}"
                                                      FontSize="11" Padding="6,4"/>
-                                            <Button Grid.Column="2" Content="Browse…"
+                                            <Button Grid.Column="2" Content="{DynamicResource Str.Common.Browse}"
                                                     Style="{StaticResource SecondaryButton}"
                                                     Padding="10,4" Margin="6,0,0,0" FontSize="11"
                                                     Command="{Binding DataContext.BrowseRedistExeCommand,
@@ -1264,21 +1266,21 @@
                                                     <ColumnDefinition Width="*"/>
                                                 </Grid.ColumnDefinitions>
 
-                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Args:" FontSize="10"
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str.Setup.ArgsLabel}" FontSize="10"
                                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
                                                          FontSize="10" Padding="4,2" Margin="0,0,12,0"/>
 
-                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Key:" FontSize="10"
+                                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{DynamicResource Str.Setup.KeyLabel}" FontSize="10"
                                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                                                 <TextBox Grid.Row="0" Grid.Column="3" Text="{Binding DetectionKeyPath, UpdateSourceTrigger=PropertyChanged}"
-                                                         FontSize="10" Padding="4,2" ToolTip="Registry path under HKLM"/>
+                                                         FontSize="10" Padding="4,2" ToolTip="{DynamicResource Str.Setup.DetectionKeyTip}"/>
 
-                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Val:" FontSize="10"
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str.Setup.ValLabel}" FontSize="10"
                                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
                                                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding DetectionValueName, UpdateSourceTrigger=PropertyChanged}"
                                                          FontSize="10" Padding="4,2" Margin="0,4,12,0"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Exp:" FontSize="10"
+                                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{DynamicResource Str.Setup.ExpLabel}" FontSize="10"
                                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,4,0,0"/>
                                                 <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding DetectionExpectedValue, UpdateSourceTrigger=PropertyChanged}"
                                                          FontSize="10" Padding="4,2" Margin="0,4,0,0"/>
@@ -1297,17 +1299,13 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0"
                               Visibility="{Binding IsActionsStep, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel>
-                        <TextBlock Text="Custom Install Actions" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="{DynamicResource Str.Setup.CustomActions}" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                         <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Margin="0,0,0,12" TextWrapping="Wrap">
-                            Steps the installer runs beyond copying files — stop/start a Windows service, run a
-                            script or executable, or delete files. Pre-install actions run before files are copied;
-                            post-install after. Scripts/executables you point to are bundled into the setup and run
-                            elevated. Use [InstallDir] to refer to the install folder.
-                        </TextBlock>
+                                   Margin="0,0,0,12" TextWrapping="Wrap"
+                                   Text="{DynamicResource Str.Setup.CustomActionsDesc}"/>
 
-                        <Button Content="+ Add action" Style="{StaticResource SecondaryButton}"
+                        <Button Content="{DynamicResource Str.Setup.AddAction}" Style="{StaticResource SecondaryButton}"
                                 Padding="14,8" HorizontalAlignment="Left" Margin="0,0,0,12"
                                 Command="{Binding AddCustomActionCommand}"/>
 
@@ -1328,12 +1326,12 @@
                                                 <ComboBox Grid.Column="0" Width="150" FontSize="11"
                                                           ItemsSource="{Binding DataContext.ActionTypeOptions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                           SelectedItem="{Binding Type, Mode=TwoWay}"
-                                                          ToolTip="What this action does"/>
+                                                          ToolTip="{DynamicResource Str.Setup.ActionTypeTip}"/>
                                                 <ComboBox Grid.Column="1" Width="130" FontSize="11" Margin="8,0,0,0"
                                                           ItemsSource="{Binding DataContext.ActionTimingOptions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                           SelectedItem="{Binding Timing, Mode=TwoWay}"
-                                                          ToolTip="When it runs"/>
-                                                <Button Grid.Column="3" Content="Remove" Style="{StaticResource SecondaryButton}"
+                                                          ToolTip="{DynamicResource Str.Setup.ActionTimingTip}"/>
+                                                <Button Grid.Column="3" Content="{DynamicResource Str.Common.Remove}" Style="{StaticResource SecondaryButton}"
                                                         Padding="12,4" FontSize="11"
                                                         Command="{Binding DataContext.RemoveCustomActionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}"/>
@@ -1341,7 +1339,7 @@
 
                                             <TextBox Text="{Binding Label, UpdateSourceTrigger=PropertyChanged}"
                                                      FontSize="11" Padding="4,3" Margin="0,0,0,6"
-                                                     ToolTip="Label shown in the installer progress UI"
+                                                     ToolTip="{DynamicResource Str.Setup.ActionLabelTip}"
                                                      Tag="Label (shown during install)"/>
 
                                             <!-- Target (caption is contextual) -->
@@ -1354,7 +1352,7 @@
                                                 </Grid.ColumnDefinitions>
                                                 <TextBox Grid.Column="0" Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
                                                          FontSize="11" Padding="4,3"/>
-                                                <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                                                <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                                                         Padding="12,4" Margin="8,0,0,0" FontSize="11"
                                                         Command="{Binding DataContext.BrowseActionTargetCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                         CommandParameter="{Binding}"
@@ -1364,7 +1362,7 @@
                                             <!-- Arguments (executables) -->
                                             <TextBox Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}"
                                                      FontSize="11" Padding="4,3" Margin="0,0,0,6"
-                                                     ToolTip="Arguments passed to the executable / script"
+                                                     ToolTip="{DynamicResource Str.Setup.ActionArgsTip}"
                                                      Visibility="{Binding IsExecutableAction, Converter={StaticResource BoolToVisibility}}"/>
 
                                             <!-- Inline PowerShell -->
@@ -1372,21 +1370,21 @@
                                                      FontSize="11" Padding="4,3" Margin="0,0,0,6"
                                                      AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60"
                                                      VerticalScrollBarVisibility="Auto"
-                                                     ToolTip="Inline PowerShell (used when no .ps1 file is set above)"
+                                                     ToolTip="{DynamicResource Str.Setup.ActionInlineTip}"
                                                      Visibility="{Binding IsPowerShellAction, Converter={StaticResource BoolToVisibility}}"/>
 
                                             <!-- Options row -->
                                             <StackPanel Orientation="Horizontal">
-                                                <CheckBox Content="Continue install if this fails"
+                                                <CheckBox Content="{DynamicResource Str.Setup.ContinueOnFail}"
                                                           IsChecked="{Binding IgnoreFailure}" FontSize="11"
                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Text="Timeout (s):" FontSize="11" Margin="20,0,6,0"
+                                                <TextBlock Text="{DynamicResource Str.Setup.TimeoutLabel}" FontSize="11" Margin="20,0,6,0"
                                                            VerticalAlignment="Center"
                                                            Foreground="{DynamicResource TextSecondaryBrush}"
                                                            Visibility="{Binding IsDeleteAction, Converter={StaticResource InvertVisibility}}"/>
                                                 <TextBox Width="60" FontSize="11" Padding="4,3"
                                                          Text="{Binding TimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
-                                                         ToolTip="0 = wait indefinitely"
+                                                         ToolTip="{DynamicResource Str.Setup.TimeoutTip}"
                                                          Visibility="{Binding IsDeleteAction, Converter={StaticResource InvertVisibility}}"/>
                                             </StackPanel>
                                         </StackPanel>
@@ -1407,26 +1405,26 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0" Content="Cancel" Style="{StaticResource SecondaryButton}"
+                <Button Grid.Column="0" Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                         Padding="20,10"
                         Command="{Binding GoToListCommand}"/>
 
                 <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right"
                            Margin="0,0,16,0" FontSize="12"
                            Foreground="{DynamicResource ModifiedBrush}"
-                           Text="Set a name and output folder on Step 1 to save."
+                           Text="{DynamicResource Str.Setup.SaveHint}"
                            Visibility="{Binding ShowSaveHint, Converter={StaticResource BoolToVisibility}}"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                    <Button Content="← Back" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Setup.Back}" Style="{StaticResource SecondaryButton}"
                             Padding="20,10" Margin="0,0,8,0"
                             Command="{Binding PrevStepCommand}"
                             Visibility="{Binding IsFirstStep, Converter={StaticResource InvertVisibility}}"/>
-                    <Button Content="Next →" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Setup.Next}" Style="{StaticResource PrimaryButton}"
                             Padding="22,10"
                             Command="{Binding NextStepCommand}"
                             Visibility="{Binding IsLastStep, Converter={StaticResource InvertVisibility}}"/>
-                    <Button Content="Save Bundle" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Setup.SaveBundle}" Style="{StaticResource PrimaryButton}"
                             Padding="22,10"
                             Command="{Binding SaveSetupCommand}"
                             Visibility="{Binding IsLastStep, Converter={StaticResource BoolToVisibility}}"/>
@@ -1445,7 +1443,7 @@
                 <Grid>
                 <!-- Running phase -->
                 <StackPanel Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVisibility}}">
-                    <TextBlock Text="Generating Setup" Style="{StaticResource H2}"
+                    <TextBlock Text="{DynamicResource Str.Setup.GeneratingTitle}" Style="{StaticResource H2}"
                                HorizontalAlignment="Center"/>
                     <TextBlock Text="{Binding GenStageTitle}" FontSize="12" FontWeight="SemiBold"
                                Foreground="{DynamicResource AccentBrush}"
@@ -1489,12 +1487,12 @@
                             <TextBlock Text="6" Style="{StaticResource StepGlyph}" Tag="{Binding GenSignState}"/>
                         </Border>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0"  Text="Apps"     Style="{StaticResource StepLabel}" Tag="{Binding GenAppsState}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2"  Text="Redists"  Style="{StaticResource StepLabel}" Tag="{Binding GenRedistsState}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="4"  Text="Manifest" Style="{StaticResource StepLabel}" Tag="{Binding GenManifestState}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="6"  Text="Package"  Style="{StaticResource StepLabel}" Tag="{Binding GenPackageState}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="8"  Text="Build"    Style="{StaticResource StepLabel}" Tag="{Binding GenBuildState}"/>
-                        <TextBlock Grid.Row="1" Grid.Column="10" Text="Sign"     Style="{StaticResource StepLabel}" Tag="{Binding GenSignState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0"  Text="{DynamicResource Str.Setup.GenApps}"     Style="{StaticResource StepLabel}" Tag="{Binding GenAppsState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2"  Text="{DynamicResource Str.Setup.GenRedists}"  Style="{StaticResource StepLabel}" Tag="{Binding GenRedistsState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="4"  Text="{DynamicResource Str.Setup.GenManifest}" Style="{StaticResource StepLabel}" Tag="{Binding GenManifestState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="6"  Text="{DynamicResource Str.Setup.GenPackage}"  Style="{StaticResource StepLabel}" Tag="{Binding GenPackageState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="8"  Text="{DynamicResource Str.Setup.GenBuild}"    Style="{StaticResource StepLabel}" Tag="{Binding GenBuildState}"/>
+                        <TextBlock Grid.Row="1" Grid.Column="10" Text="{DynamicResource Str.Setup.GenSign}"     Style="{StaticResource StepLabel}" Tag="{Binding GenSignState}"/>
                     </Grid>
 
                     <ProgressBar Value="{Binding GenerationPercent}" Height="6" Margin="0,0,0,10"/>
@@ -1503,7 +1501,7 @@
                                HorizontalAlignment="Center"
                                TextTrimming="CharacterEllipsis"/>
 
-                    <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                             Padding="28,9" Margin="0,20,0,0" HorizontalAlignment="Center"
                             Command="{Binding CancelGenerationCommand}"/>
                 </StackPanel>
@@ -1514,24 +1512,24 @@
                     <StackPanel Visibility="{Binding GenerationSucceeded, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Text="&#xE73E;" FontFamily="Segoe Fluent Icons" FontSize="44"
                                    Foreground="{DynamicResource AddedBrush}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Setup generated" Style="{StaticResource H2}"
+                        <TextBlock Text="{DynamicResource Str.Setup.GenSuccess}" Style="{StaticResource H2}"
                                    HorizontalAlignment="Center" Margin="0,10,0,0"/>
-                        <TextBlock Text="Saved to:" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                        <TextBlock Text="{DynamicResource Str.Setup.SavedTo}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center" Margin="0,14,0,2"/>
                         <TextBlock Text="{Binding GenerationResultDetail}" FontSize="12"
                                    Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"
                                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="520"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,0">
-                            <Button Content="Open Folder" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.Setup.OpenFolder}" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding OpenGeneratedFolderCommand}"/>
-                            <Button Content="Publish…" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.Setup.Publish}" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding PublishSetupCommand}"/>
-                            <Button Content="Winget manifest…" Style="{StaticResource SecondaryButton}"
+                            <Button Content="{DynamicResource Str.Setup.WingetManifest}" Style="{StaticResource SecondaryButton}"
                                     Padding="22,9" Margin="0,0,8,0"
                                     Command="{Binding GenerateWingetManifestCommand}"/>
-                            <Button Content="Done" Style="{StaticResource PrimaryButton}"
+                            <Button Content="{DynamicResource Str.Setup.Done}" Style="{StaticResource PrimaryButton}"
                                     Padding="28,9"
                                     Command="{Binding CloseGenerationResultCommand}"/>
                         </StackPanel>
@@ -1541,12 +1539,12 @@
                     <StackPanel Visibility="{Binding GenerationSucceeded, Converter={StaticResource InvertVisibility}}">
                         <TextBlock Text="&#xEA39;" FontFamily="Segoe Fluent Icons" FontSize="44"
                                    Foreground="{DynamicResource RemovedBrush}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Generation failed" Style="{StaticResource H2}"
+                        <TextBlock Text="{DynamicResource Str.Setup.GenFailed}" Style="{StaticResource H2}"
                                    HorizontalAlignment="Center" Margin="0,10,0,0"/>
                         <TextBlock Text="{Binding GenerationResultDetail}" FontSize="12"
                                    Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
                                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="520" Margin="0,12,0,0"/>
-                        <Button Content="Close" Style="{StaticResource PrimaryButton}"
+                        <Button Content="{DynamicResource Str.Common.Close}" Style="{StaticResource PrimaryButton}"
                                 Padding="28,9" Margin="0,22,0,0" HorizontalAlignment="Center"
                                 Command="{Binding CloseGenerationResultCommand}"/>
                     </StackPanel>

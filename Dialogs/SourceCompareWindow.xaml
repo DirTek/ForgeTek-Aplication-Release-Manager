@@ -1,7 +1,7 @@
 <Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.SourceCompareWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Compare Sources" Width="860" Height="700" MinWidth="720" MinHeight="540"
+        Title="{DynamicResource Str.SrcCompare.Title}" Width="860" Height="700" MinWidth="720" MinHeight="540"
         WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}">
@@ -27,11 +27,11 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Compare Sources" FontSize="18" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource Str.SrcCompare.Title}" FontSize="18" FontWeight="Bold"
                        Foreground="{DynamicResource TextBrush}"/>
             <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       Text="Checks that the app's files, its solution build, and its GitHub build hold the same content."/>
+                       Text="{DynamicResource Str.SrcCompare.Subtitle}"/>
         </StackPanel>
 
         <!-- Source paths -->
@@ -42,9 +42,9 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Files" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str.SrcCompare.Files}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
                 <TextBox Grid.Column="1" x:Name="FilesBox" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                <Button Grid.Column="2" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                         Padding="12,6" Margin="8,0,0,0" Tag="FilesBox" Click="Browse_Click"/>
             </Grid>
             <Grid Style="{StaticResource PathRow}">
@@ -53,9 +53,9 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Solution" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str.SrcCompare.Solution}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
                 <TextBox Grid.Column="1" x:Name="SlnBox" VerticalContentAlignment="Center"/>
-                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                <Button Grid.Column="2" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                         Padding="12,6" Margin="8,0,0,0" Tag="SlnBox" Click="Browse_Click"/>
             </Grid>
             <Grid Style="{StaticResource PathRow}">
@@ -64,16 +64,16 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="GitHub" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str.SrcCompare.GitHub}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center"/>
                 <TextBox Grid.Column="1" x:Name="GitHubBox" VerticalContentAlignment="Center"
-                         ToolTip="The GitHub build OUTPUT folder (e.g. from Build from GitHub). Optional — leave empty to compare just Files vs Solution."/>
-                <Button Grid.Column="2" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                         ToolTip="{DynamicResource Str.SrcCompare.GitHubTip}"/>
+                <Button Grid.Column="2" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                         Padding="12,6" Margin="8,0,0,0" Tag="GitHubBox" Click="Browse_Click"/>
             </Grid>
             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                <Button x:Name="CompareBtn" Content="Compare" Style="{StaticResource PrimaryButton}"
+                <Button x:Name="CompareBtn" Content="{DynamicResource Str.Compare.Compare}" Style="{StaticResource PrimaryButton}"
                         Padding="20,7" Click="Compare_Click"/>
-                <CheckBox x:Name="DiffOnly" Content="Differences only" VerticalAlignment="Center"
+                <CheckBox x:Name="DiffOnly" Content="{DynamicResource Str.Compare.DifferencesOnly}" VerticalAlignment="Center"
                           Margin="16,0,0,0" Foreground="{DynamicResource TextBrush}"
                           Checked="DiffOnly_Changed" Unchecked="DiffOnly_Changed"/>
             </StackPanel>
@@ -107,17 +107,17 @@
                         <ColumnDefinition Width="90"/>
                         <ColumnDefinition Width="90"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="File" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="1" Text="Files" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="2" Text="Solution" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="3" Text="GitHub" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="4" Text="Status" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="0" Text="{DynamicResource Str.Compare.ColFile}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="1" Text="{DynamicResource Str.SrcCompare.Files}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Str.SrcCompare.Solution}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="3" Text="{DynamicResource Str.SrcCompare.GitHub}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="4" Text="{DynamicResource Str.Compare.ColStatus}" Style="{StaticResource FieldLabel}"/>
                 </Grid>
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="12,0,12,10">
                     <StackPanel>
                         <TextBlock x:Name="EmptyText" FontSize="12" Margin="0,8,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="Pick sources and click Compare."/>
+                                   Text="{DynamicResource Str.SrcCompare.EmptyText}"/>
                         <ItemsControl x:Name="ResultsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -158,8 +158,8 @@
             <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"
                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                        TextWrapping="Wrap"
-                       Text="Note: .NET assemblies aren't byte-identical across builds unless deterministic builds are enabled, so 'Differs' can reflect build metadata rather than code changes. Missing files are always meaningful."/>
-            <Button Grid.Column="1" Content="Close" Style="{StaticResource SecondaryButton}"
+                       Text="{DynamicResource Str.SrcCompare.FooterNote}"/>
+            <Button Grid.Column="1" Content="{DynamicResource Str.Common.Close}" Style="{StaticResource SecondaryButton}"
                     Padding="20,8" Margin="12,0,0,0" VerticalAlignment="Center" Click="Close_Click"/>
         </Grid>
     </Grid>

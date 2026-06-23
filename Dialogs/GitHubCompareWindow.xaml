@@ -1,7 +1,7 @@
 <Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.GitHubCompareWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Compare with GitHub" Width="820" Height="700" MinWidth="700" MinHeight="540"
+        Title="{DynamicResource Str.GhCompare.Title}" Width="820" Height="700" MinWidth="700" MinHeight="540"
         WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}">
@@ -24,11 +24,11 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Compare with GitHub" FontSize="18" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource Str.GhCompare.Title}" FontSize="18" FontWeight="Bold"
                        Foreground="{DynamicResource TextBrush}"/>
             <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       Text="Checks whether your local project matches the source on GitHub."/>
+                       Text="{DynamicResource Str.GhCompare.Subtitle}"/>
         </StackPanel>
 
         <!-- Local path + branch -->
@@ -38,16 +38,16 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" x:Name="LocalBox" VerticalContentAlignment="Center"
-                     ToolTip="Your local project / repo working copy"/>
-            <Button Grid.Column="1" Content="Browse…" Style="{StaticResource SecondaryButton}"
+                     ToolTip="{DynamicResource Str.GhCompare.LocalTip}"/>
+            <Button Grid.Column="1" Content="{DynamicResource Str.Common.Browse}" Style="{StaticResource SecondaryButton}"
                     Padding="14,6" Margin="8,0,0,0" Click="Browse_Click"/>
         </Grid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Branch:" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBlock Text="{DynamicResource Str.GhCompare.Branch}" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
             <ComboBox x:Name="BranchBox" Width="200" FontSize="12"/>
-            <Button x:Name="CompareBtn" Content="Compare" Style="{StaticResource PrimaryButton}"
+            <Button x:Name="CompareBtn" Content="{DynamicResource Str.Compare.Compare}" Style="{StaticResource PrimaryButton}"
                     Padding="20,6" Margin="12,0,0,0" Click="Compare_Click"/>
-            <CheckBox x:Name="DiffOnly" Content="Differences only" VerticalAlignment="Center"
+            <CheckBox x:Name="DiffOnly" Content="{DynamicResource Str.Compare.DifferencesOnly}" VerticalAlignment="Center"
                       Margin="16,0,0,0" Foreground="{DynamicResource TextBrush}"
                       Checked="DiffOnly_Changed" Unchecked="DiffOnly_Changed"/>
         </StackPanel>
@@ -69,16 +69,16 @@
                         <ColumnDefinition Width="90"/>
                         <ColumnDefinition Width="120"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="File" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="1" Text="Local" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="2" Text="Repo" Style="{StaticResource FieldLabel}"/>
-                    <TextBlock Grid.Column="3" Text="Status" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="0" Text="{DynamicResource Str.Compare.ColFile}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="1" Text="{DynamicResource Str.GhCompare.LocalCol}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="2" Text="{DynamicResource Str.GhCompare.RepoCol}" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Grid.Column="3" Text="{DynamicResource Str.Compare.ColStatus}" Style="{StaticResource FieldLabel}"/>
                 </Grid>
                 <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="12,0,12,10">
                     <StackPanel>
                         <TextBlock x:Name="EmptyText" FontSize="12" Margin="0,8,0,0"
                                    Foreground="{DynamicResource TextSecondaryBrush}"
-                                   Text="Pick a branch and click Compare."/>
+                                   Text="{DynamicResource Str.GhCompare.EmptyText}"/>
                         <ItemsControl x:Name="ResultsList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -116,8 +116,8 @@
             <TextBlock x:Name="StatusText" Grid.Column="0" VerticalAlignment="Center"
                        FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                        TextWrapping="Wrap"
-                       Text="Compares only files tracked in the repo. Text files may show as modified if line-endings differ (git autocrlf)."/>
-            <Button Grid.Column="1" Content="Close" Style="{StaticResource SecondaryButton}"
+                       Text="{DynamicResource Str.GhCompare.FooterNote}"/>
+            <Button Grid.Column="1" Content="{DynamicResource Str.Common.Close}" Style="{StaticResource SecondaryButton}"
                     Padding="20,8" Margin="12,0,0,0" VerticalAlignment="Center" Click="Close_Click"/>
         </Grid>
     </Grid>

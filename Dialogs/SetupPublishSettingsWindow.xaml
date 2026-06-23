@@ -1,7 +1,7 @@
 <Window x:Class="ForgeTekApplicationReleaseManager.Dialogs.SetupPublishSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Setup Publishing" Width="620" Height="660" MinWidth="560" MinHeight="520"
+        Title="{DynamicResource Str.SetupPublish.Title}" Width="620" Height="660" MinWidth="560" MinHeight="520"
         WindowStartupLocation="CenterOwner" WindowStyle="SingleBorderWindow" ShowInTaskbar="False"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}">
@@ -24,29 +24,29 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <TextBlock Text="Setup Publishing" FontSize="18" FontWeight="Bold"
+            <TextBlock Text="{DynamicResource Str.SetupPublish.Title}" FontSize="18" FontWeight="Bold"
                        Foreground="{DynamicResource TextBrush}"/>
             <TextBlock x:Name="SubtitleText" FontSize="12" Margin="0,4,0,0"
                        Foreground="{DynamicResource TextSecondaryBrush}"
-                       Text="Where this bundle's installer is published — separate from your apps' update settings."/>
+                       Text="{DynamicResource Str.SetupPublish.Subtitle}"/>
         </StackPanel>
 
         <!-- Copy from app -->
         <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="6"
                 Padding="12,10" Margin="0,0,0,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Copy from app:" FontSize="12" VerticalAlignment="Center"
+                <TextBlock Text="{DynamicResource Str.SetupPublish.CopyFromApp}" FontSize="12" VerticalAlignment="Center"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,8,0"/>
                 <ComboBox x:Name="CopyFromAppBox" Width="220" FontSize="12"
                           DisplayMemberPath="Name"/>
-                <Button Content="Copy settings" Style="{StaticResource SecondaryButton}"
+                <Button Content="{DynamicResource Str.SetupPublish.CopySettings}" Style="{StaticResource SecondaryButton}"
                         Padding="14,6" Margin="8,0,0,0" Click="CopyFromApp_Click"/>
             </StackPanel>
         </Border>
 
         <!-- Provider -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,4">
-            <TextBlock Text="Provider:" FontSize="12" VerticalAlignment="Center"
+            <TextBlock Text="{DynamicResource Str.PublishSetup.Provider}" FontSize="12" VerticalAlignment="Center"
                        Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,8,0"/>
             <ComboBox x:Name="ProviderBox" Width="200" FontSize="12"
                       SelectionChanged="Provider_SelectionChanged">
@@ -62,61 +62,61 @@
             <StackPanel>
                 <!-- FTP -->
                 <StackPanel x:Name="FtpPanel" Visibility="Collapsed">
-                    <TextBlock Text="Host" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.Host}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="FtpHostBox" Margin="0,0,0,8"/>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Username}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="FtpUserBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Password}" Style="{StaticResource FieldLabel}"/>
                             <PasswordBox x:Name="FtpPassBox"/>
                         </StackPanel>
                     </Grid>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Remote path" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.RemotePath}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="FtpPathBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Port}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="FtpPortBox"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock Text="Public base URL" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.PublicBaseUrl}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="FtpBaseUrlBox"/>
                 </StackPanel>
 
                 <!-- SFTP -->
                 <StackPanel x:Name="SftpPanel" Visibility="Collapsed">
-                    <TextBlock Text="Host" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.Host}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="SftpHostBox" Margin="0,0,0,8"/>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Username}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="SftpUserBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Password}" Style="{StaticResource FieldLabel}"/>
                             <PasswordBox x:Name="SftpPassBox"/>
                         </StackPanel>
                     </Grid>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="2*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Remote path" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.RemotePath}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="SftpPathBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Port" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Port}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="SftpPortBox"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock Text="Public base URL" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.PublicBaseUrl}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="SftpBaseUrlBox"/>
                 </StackPanel>
 
@@ -125,35 +125,35 @@
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Bucket" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Bucket}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="S3BucketBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Region" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Region}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="S3RegionBox"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock Text="Endpoint (blank = AWS)" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.Endpoint}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="S3EndpointBox" Margin="0,0,0,8"/>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Access key" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.AccessKey}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="S3AccessKeyBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Secret key" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.SecretKey}" Style="{StaticResource FieldLabel}"/>
                             <PasswordBox x:Name="S3SecretBox"/>
                         </StackPanel>
                     </Grid>
                     <Grid Margin="0,0,0,8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="2*"/></Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Prefix" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.Prefix}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="S3PrefixBox"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Public base URL" Style="{StaticResource FieldLabel}"/>
+                            <TextBlock Text="{DynamicResource Str.SetupPublish.PublicBaseUrl}" Style="{StaticResource FieldLabel}"/>
                             <TextBox x:Name="S3PublicBaseUrlBox"/>
                         </StackPanel>
                     </Grid>
@@ -161,15 +161,15 @@
 
                 <!-- GitHub Releases -->
                 <StackPanel x:Name="GitHubPanel" Visibility="Collapsed">
-                    <TextBlock Text="Repository (owner/name)" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.Repository}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="GhRepoBox" Margin="0,0,0,8"/>
-                    <TextBlock Text="Token (blank = use the connected GitHub account)" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.Token}" Style="{StaticResource FieldLabel}"/>
                     <PasswordBox x:Name="GhTokenBox" Margin="0,0,0,8"/>
-                    <TextBlock Text="Release tag pattern (default v{version})" Style="{StaticResource FieldLabel}"/>
+                    <TextBlock Text="{DynamicResource Str.SetupPublish.ReleaseTagPattern}" Style="{StaticResource FieldLabel}"/>
                     <TextBox x:Name="GhReleaseTagBox"/>
                     <TextBlock FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                TextWrapping="Wrap" Margin="0,10,0,0"
-                               Text="Note: GitHub automatically adds &quot;Source code (zip/tar.gz)&quot; to every release — that's GitHub's behavior, not part of your setup. For a closed-source app, publish to a private repo (the archives stay private) or a dedicated releases-only repo."/>
+                               Text="{DynamicResource Str.SetupPublish.GhNote}"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
@@ -184,11 +184,11 @@
                        FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
                        TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="TestBtn" Content="Test" Style="{StaticResource SecondaryButton}"
+                <Button x:Name="TestBtn" Content="{DynamicResource Str.SetupPublish.Test}" Style="{StaticResource SecondaryButton}"
                         Padding="20,8" Click="Test_Click"/>
-                <Button Content="Save" Style="{StaticResource PrimaryButton}"
+                <Button Content="{DynamicResource Str.Common.Save}" Style="{StaticResource PrimaryButton}"
                         Padding="22,8" Margin="8,0,0,0" Click="Save_Click"/>
-                <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                         Padding="20,8" Margin="8,0,0,0" Click="Cancel_Click"/>
             </StackPanel>
         </Grid>

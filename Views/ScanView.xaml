@@ -16,19 +16,19 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock FontSize="22" FontWeight="Bold" Foreground="{DynamicResource TextBrush}">
-                    <Run Text="Initial Scan — "/>
+                    <Run Text="{DynamicResource Str.Scan.HeaderPrefix}"/>
                     <Run Text="{Binding AppName, Mode=OneWay}"/>
                 </TextBlock>
                 <TextBlock Text="{Binding AppPath}" FontSize="12"
                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"/>
                 <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0">
                     <Run Text="{Binding FileCount, Mode=OneWay}"/>
-                    <Run Text=" files found — uncheck folders or files to exclude from versioning"/>
+                    <Run Text="{DynamicResource Str.Scan.FilesFoundSuffix}"/>
                 </TextBlock>
                 <TextBlock FontSize="11" Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0">
-                    <Run Text="💡 Unchecking "/>
-                    <Run Text="Include" FontWeight="SemiBold"/>
-                    <Run Text=" excludes a file from packaged builds. Debug files (.pdb, .ilk, .exp, .map) are auto-excluded."/>
+                    <Run Text="{DynamicResource Str.Scan.IncludeHintPre}"/>
+                    <Run Text="{DynamicResource Str.Scan.IncludeWord}" FontWeight="SemiBold"/>
+                    <Run Text="{DynamicResource Str.Scan.IncludeHintPost}"/>
                 </TextBlock>
             </StackPanel>
         </Border>
@@ -47,7 +47,7 @@
                 <Grid Grid.Column="0" Margin="0,0,16,0">
                     <TextBox Height="32"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="Search files…" IsHitTestVisible="False"
+                    <TextBlock Text="{DynamicResource Str.Common.SearchFiles}" IsHitTestVisible="False"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Margin="12,0,0,0" VerticalAlignment="Center" FontSize="13">
                         <TextBlock.Style>
@@ -65,9 +65,9 @@
 
                 <!-- Filter toggles -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <TextBlock Text="Show:" VerticalAlignment="Center" Margin="0,0,10,0"
+                    <TextBlock Text="{DynamicResource Str.Common.Show}" VerticalAlignment="Center" Margin="0,0,10,0"
                                FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <Button Content="All" Padding="14,6" Margin="0,0,4,0"
+                    <Button Content="{DynamicResource Str.Filter.All}" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding FilterAllCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -79,7 +79,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Included" Padding="14,6" Margin="0,0,4,0"
+                    <Button Content="{DynamicResource Str.Filter.Included}" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding FilterNonDebugCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -91,7 +91,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Excluded" Padding="14,6"
+                    <Button Content="{DynamicResource Str.Filter.Excluded}" Padding="14,6"
                             Command="{Binding FilterDebugOnlyCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -107,9 +107,9 @@
 
                 <!-- Sort toggles -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Sort:" VerticalAlignment="Center" Margin="0,0,10,0"
+                    <TextBlock Text="{DynamicResource Str.Common.Sort}" VerticalAlignment="Center" Margin="0,0,10,0"
                                FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <Button Content="Name" Padding="14,6" Margin="0,0,4,0"
+                    <Button Content="{DynamicResource Str.Sort.Name}" Padding="14,6" Margin="0,0,4,0"
                             Command="{Binding SortByNameCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -121,7 +121,7 @@
                             </Style>
                         </Button.Style>
                     </Button>
-                    <Button Content="Date" Padding="14,6"
+                    <Button Content="{DynamicResource Str.Sort.Date}" Padding="14,6"
                             Command="{Binding SortByDateCommand}">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
@@ -237,7 +237,7 @@
 
                         <CheckBox Grid.Column="0" IsChecked="{Binding IsIncluded}"
                                   VerticalAlignment="Center"
-                                  ToolTip="Include in the package. Uncheck to exclude (e.g. debug files like .pdb)."/>
+                                  ToolTip="{DynamicResource Str.Scan.IncludeTooltip}"/>
 
                         <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="13"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
@@ -287,24 +287,24 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Version:" VerticalAlignment="Center"
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str.Scan.Version}" VerticalAlignment="Center"
                            FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,10,0"/>
                 <TextBox Grid.Column="1" Text="{Binding VersionNumber, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" FontSize="14"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
-                    <CheckBox Content="Beta (pre-release)" IsChecked="{Binding IsBeta}"
+                    <CheckBox Content="{DynamicResource Str.Common.BetaCheckbox}" IsChecked="{Binding IsBeta}"
                               VerticalAlignment="Center"
-                              ToolTip="Publish to the Beta channel — only beta clients receive it."/>
+                              ToolTip="{DynamicResource Str.Common.BetaTooltip}"/>
                     <TextBlock Text="{Binding VersionMismatchText}"
                                FontSize="11" Foreground="{DynamicResource ModifiedBrush}"
                                VerticalAlignment="Center" Margin="14,0,0,0"
                                Visibility="{Binding HasVersionMismatch, Converter={StaticResource BoolToVisibility}}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="Approve &amp; Save" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Scan.ApproveSave}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding ApproveCommand}"/>
-                    <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Command="{Binding CancelCommand}"/>
                 </StackPanel>
             </Grid>

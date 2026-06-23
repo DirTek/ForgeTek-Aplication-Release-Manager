@@ -16,6 +16,11 @@ public partial class AddEditAppDialog : Window
     public string AccentColor     { get; private set; } = "#0A84FF";
     public bool   IsNewApp        { get; }
 
+    // Localized string lookup for code-behind (this dialog is created with 'new', not via DI).
+    // Reads from the merged Strings/<culture>.xaml; returns the key if missing (never crashes).
+    private string L(string key) => TryFindResource(key) as string ?? key;
+    private string L(string key, params object[] args) => string.Format(L(key), args);
+
     public AddEditAppDialog(string name = "", string path = "", string accentColor = "#0A84FF",
         string solutionPath = "")
     {
@@ -35,14 +40,14 @@ public partial class AddEditAppDialog : Window
             ExeBox.Visibility     = Visibility.Collapsed;
             VersionLabel.Visibility = Visibility.Collapsed;
             VersionBox.Visibility   = Visibility.Collapsed;
-            SaveBtn.Content         = "Save Changes";
-            Title                   = "Edit Application";
+            SaveBtn.Content         = L("Str.AddApp.SaveButton");
+            Title                   = L("Str.AddApp.EditTitle");
         }
     }
 
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFolderDialog { Title = "Select Application Folder" };
+        var dlg = new OpenFolderDialog { Title = L("Str.AddApp.SelectFolder") };
         if (dlg.ShowDialog(this) == true)
         {
             PathBox.Text = dlg.FolderName;
@@ -54,7 +59,7 @@ public partial class AddEditAppDialog : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Select the solution or project file",
+            Title = L("Str.AddApp.SelectSolution"),
             Filter = "Solution / project (*.sln;*.csproj)|*.sln;*.csproj|All files (*.*)|*.*",
             CheckFileExists = true,
         };
@@ -90,7 +95,7 @@ public partial class AddEditAppDialog : Window
         catch (Exception ex)
         {
             ScanProgress.Visibility = Visibility.Collapsed;
-            ScanErrorText.Text = $"Scan failed: {ex.Message}";
+            ScanErrorText.Text = L("Str.AddApp.ScanFailed", ex.Message);
             ScanErrorText.Visibility = Visibility.Visible;
             return;
         }
@@ -168,10 +173,10 @@ public partial class AddEditAppDialog : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(AppName))        { ShowError("Please enter an application name."); return; }
-        if (string.IsNullOrWhiteSpace(AppPath))         { ShowError("Please select a folder."); return; }
+        if (string.IsNullOrWhiteSpace(AppName))        { ShowError(L("Str.AddApp.ErrNoName")); return; }
+        if (string.IsNullOrWhiteSpace(AppPath))         { ShowError(L("Str.AddApp.ErrNoFolder")); return; }
         if (IsNewApp && string.IsNullOrWhiteSpace(InitialVersion))
-                                                        { ShowError("Please enter an initial version number."); return; }
+                                                        { ShowError(L("Str.AddApp.ErrNoVersion")); return; }
         DialogResult = true;
     }
 

@@ -13,6 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IServiceProvider _services;
     private readonly IStorageService _storage;
     private readonly IDialogService _dialog;
+    private readonly ILocalizationService _loc;
     private bool _suppressNav;
 
     /// <summary>Signed-in user + role permissions, for binding sidebar/command gating.</summary>
@@ -38,7 +39,9 @@ public partial class MainViewModel : ObservableObject
     public bool ShowBottomButtons => !IsShowingOptions;
 
     /// <summary>Sidebar Setups button doubles as the way back to apps while you're in Setups.</summary>
-    public string SetupsButtonText => IsShowingSetups ? "← Back to apps" : "Setups";
+    public string SetupsButtonText => IsShowingSetups
+        ? _loc.Get("Str.Main.BackToApps")
+        : _loc.Get("Str.Main.Setups");
 
     /// <summary>Enter Setups, or (when already there) return to the apps view.</summary>
     public void ToggleSetups()
@@ -58,7 +61,12 @@ public partial class MainViewModel : ObservableObject
         _services = services;
         _storage = services.GetRequiredService<IStorageService>();
         _dialog = services.GetRequiredService<IDialogService>();
+        _loc = services.GetRequiredService<ILocalizationService>();
         Session = services.GetRequiredService<ISessionService>();
+
+        // Re-translate the bound sidebar button text when the language changes.
+        _loc.LanguageChanged += (_, _) => OnPropertyChanged(nameof(SetupsButtonText));
+
         NavigateToWelcome();
     }
 
@@ -246,6 +254,6 @@ public partial class MainViewModel : ObservableObject
     {
         Apps.Clear();
         foreach (var app in _storage.GetAll())
-            Apps.Add(new AppEntryViewModel(app));
+            Apps.Add(new AppEntryViewModel(app, _loc));
     }
 }

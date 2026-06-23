@@ -11,20 +11,20 @@
         </Grid.RowDefinitions>
 
         <!-- Title -->
-        <TextBlock Grid.Row="0" Text="No Changes Detected" FontSize="18" FontWeight="Bold"
+        <TextBlock Grid.Row="0" Text="{DynamicResource Str.NoChanges.Title}" FontSize="18" FontWeight="Bold"
                    Foreground="{DynamicResource TextBrush}" Margin="0,0,0,16"/>
 
         <!-- Message -->
         <StackPanel Grid.Row="1">
-            <TextBlock Text="No new or modified files were detected since the last scan."
+            <TextBlock Text="{DynamicResource Str.NoChanges.Msg1}"
                        FontSize="13" Foreground="{DynamicResource TextBrush}" TextWrapping="Wrap"/>
-            <TextBlock Text="If files were signed, their checksums may have changed — try scanning again."
+            <TextBlock Text="{DynamicResource Str.NoChanges.Msg2}"
                        FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
                        Margin="0,12,0,0"/>
         </StackPanel>
 
         <!-- OK button -->
-        <Button Grid.Row="2" Content="OK" Style="{StaticResource PrimaryButton}"
+        <Button Grid.Row="2" Content="{DynamicResource Str.Common.Ok}" Style="{StaticResource PrimaryButton}"
                 Padding="32,8" HorizontalAlignment="Right" Margin="0,24,0,0"
                 Click="OkButton_Click"/>
     </Grid>

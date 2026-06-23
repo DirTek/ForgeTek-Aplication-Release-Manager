@@ -20,9 +20,9 @@
                 <TextBlock Text="{Binding SummaryText}" FontSize="13"
                            Foreground="{DynamicResource AccentBrush}" Margin="0,8,0,0" FontWeight="SemiBold"/>
                 <TextBlock FontSize="11" Foreground="{DynamicResource AccentBrush}" Margin="0,4,0,0">
-                    <Run Text="💡 In Added/Modified tabs, check "/>
-                    <Run Text="Debug" FontWeight="SemiBold"/>
-                    <Run Text=" to exclude files from packaging."/>
+                    <Run Text="{DynamicResource Str.Diff.DebugHintPre}"/>
+                    <Run Text="{DynamicResource Str.Diff.DebugWord}" FontWeight="SemiBold"/>
+                    <Run Text="{DynamicResource Str.Diff.DebugHintPost}"/>
                 </TextBlock>
             </StackPanel>
         </Border>
@@ -48,7 +48,7 @@
                                                    Foreground="{DynamicResource AddedBrush}" VerticalAlignment="Center"/>
                                         <CheckBox Grid.Column="1" IsChecked="{Binding IsDebug, Converter={StaticResource InvertBool}, Mode=TwoWay}"
                                                   VerticalAlignment="Center"
-                                                  ToolTip="Include in the package. Uncheck to exclude (e.g. debug files)."/>
+                                                  ToolTip="{DynamicResource Str.Diff.IncludeTooltip}"/>
                                         <TextBlock Grid.Column="2" Text="{Binding Path}" FontSize="13"
                                                    Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -60,7 +60,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Text="No new files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <TextBlock Text="{DynamicResource Str.Diff.NoAdded}" VerticalAlignment="Center" HorizontalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding Added.Count, Converter={StaticResource ZeroToVisible}}"/>
                 </Grid>
@@ -84,7 +84,7 @@
                                                    Foreground="{DynamicResource ModifiedBrush}" VerticalAlignment="Center"/>
                                         <CheckBox Grid.Column="1" IsChecked="{Binding IsDebug, Converter={StaticResource InvertBool}, Mode=TwoWay}"
                                                   VerticalAlignment="Center"
-                                                  ToolTip="Include in the package. Uncheck to exclude (e.g. debug files)."/>
+                                                  ToolTip="{DynamicResource Str.Diff.IncludeTooltip}"/>
                                         <TextBlock Grid.Column="2" Text="{Binding Path}" FontSize="13"
                                                    Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -96,7 +96,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Text="No modified files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <TextBlock Text="{DynamicResource Str.Diff.NoModified}" VerticalAlignment="Center" HorizontalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding Modified.Count, Converter={StaticResource ZeroToVisible}}"/>
                 </Grid>
@@ -128,7 +128,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Text="No removed files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <TextBlock Text="{DynamicResource Str.Diff.NoRemoved}" VerticalAlignment="Center" HorizontalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding Removed.Count, Converter={StaticResource ZeroToVisible}}"/>
                 </Grid>
@@ -143,7 +143,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Grid.Row="0" Margin="0,8,0,4" FontSize="12" TextWrapping="Wrap"
                                Foreground="{DynamicResource TextSecondaryBrush}"
-                               Text="Excluded files stay on the client — they are NOT shipped in the update and NOT deleted (e.g. a live self-updater that ships as a *_new.exe)."/>
+                               Text="{DynamicResource Str.Diff.ExcludedHelp}"/>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <ItemsControl ItemsSource="{Binding Excluded}" Margin="0,4">
                             <ItemsControl.ItemTemplate>
@@ -167,7 +167,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Grid.Row="1" Text="No excluded files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <TextBlock Grid.Row="1" Text="{DynamicResource Str.Diff.NoExcluded}" VerticalAlignment="Center" HorizontalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding Excluded.Count, Converter={StaticResource ZeroToVisible}}"/>
                 </Grid>
@@ -199,7 +199,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                    <TextBlock Text="No unchanged files." VerticalAlignment="Center" HorizontalAlignment="Center"
+                    <TextBlock Text="{DynamicResource Str.Diff.NoUnchanged}" VerticalAlignment="Center" HorizontalAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"
                                Visibility="{Binding Unchanged.Count, Converter={StaticResource ZeroToVisible}}"/>
                 </Grid>
@@ -218,24 +218,24 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="New Version:" VerticalAlignment="Center"
+                <TextBlock Grid.Column="0" Text="{DynamicResource Str.Diff.NewVersion}" VerticalAlignment="Center"
                            FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,10,0"/>
                 <TextBox Grid.Column="1" Text="{Binding VersionNumber, UpdateSourceTrigger=PropertyChanged}"
                          Height="36" FontSize="14"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
-                    <CheckBox Content="Beta (pre-release)" IsChecked="{Binding IsBeta}"
+                    <CheckBox Content="{DynamicResource Str.Common.BetaCheckbox}" IsChecked="{Binding IsBeta}"
                               VerticalAlignment="Center"
-                              ToolTip="Publish to the Beta channel — only beta clients receive it."/>
+                              ToolTip="{DynamicResource Str.Common.BetaTooltip}"/>
                     <TextBlock Text="{Binding VersionMismatchText}"
                                FontSize="11" Foreground="{DynamicResource ModifiedBrush}"
                                VerticalAlignment="Center" Margin="14,0,0,0"
                                Visibility="{Binding HasVersionMismatch, Converter={StaticResource BoolToVisibility}}"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="Approve &amp; Save Version" Style="{StaticResource PrimaryButton}"
+                    <Button Content="{DynamicResource Str.Diff.ApproveSave}" Style="{StaticResource PrimaryButton}"
                             Padding="18,8" Margin="0,0,8,0"
                             Command="{Binding ApproveCommand}"/>
-                    <Button Content="Cancel" Style="{StaticResource SecondaryButton}"
+                    <Button Content="{DynamicResource Str.Common.Cancel}" Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Command="{Binding CancelCommand}"/>
                 </StackPanel>
             </Grid>
@@ -246,7 +246,7 @@
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0"
                 Padding="28,14"
                 Visibility="{Binding IsReadOnly, Converter={StaticResource BoolToVisibility}}">
-            <Button Content="← Back to App" Style="{StaticResource SecondaryButton}"
+            <Button Content="{DynamicResource Str.Diff.BackToApp}" Style="{StaticResource SecondaryButton}"
                     Padding="18,8" HorizontalAlignment="Left"
                     Command="{Binding CancelCommand}"/>
         </Border>
