@@ -55,7 +55,7 @@ You can let FARM **generate a ready-made updater** for your app, or **implement 
 
 ### Option A — Use the FARM-generated updater (no apply code to write)
 
-From an app's page in FARM, click **Updater** to build a standalone, self-contained `{YourApp}.Updater.exe` (branded with your app's icon). FARM saves it — together with an `updater.json` config — **into your app's folder** and tracks both as scanned files, so they ship with your app via the installer and future packages. When the initial scan finds no updater, FARM also offers to generate one.
+From an app's page in FARM, click **Updater** to build a standalone, self-contained `{YourApp}.Updater.exe` (branded with your app's icon). Its config (app key, exe name, package extension, accent, etc.) is **embedded inside the EXE**, so it's a **single file** — FARM saves it **into your app's folder** and tracks it as a scanned file, so it ships with your app via the installer and future packages. When the initial scan finds no updater, FARM also offers to generate one.
 
 At runtime the generated updater does the **offline apply** half:
 
@@ -70,7 +70,7 @@ Your app still owns the **online** half — checking the catalog, downloading, s
 3. Write `Updates\update-plan.json` (handoff, below).
 4. Launch `{YourApp}.Updater.exe` and exit so it can replace files in place.
 
-**`updater.json`** — written by FARM next to the updater; you normally don't edit it:
+**Updater config** — embedded inside `{YourApp}.Updater.exe` by FARM (you don't edit it). The values are below for reference. As an optional override you may drop an `updater.json` with the same shape next to the EXE — if present it takes precedence over the embedded config — but FARM doesn't emit one, so the default deployment is a single file:
 ```json
 {
   "appKey": "MyApp",

@@ -65,10 +65,10 @@ public class UpdaterService(ISettingsService settings, ILogService log, ISigning
                 File.Copy(prebuilt, outputExe, overwrite: true);
             }
 
-            // 3. Always write the updater.json sidecar (drives both branded and prebuilt binaries).
-            progress.Report("Writing updater.json…");
-            var sidecarPath = Path.Combine(options.OutputFolder, "updater.json");
-            WriteSidecar(entry, appSettings, options, updaterName, sidecarPath);
+            // 3. Embed the config INTO the EXE (single-file output — no sidecar). Append before
+            //    signing so the Authenticode signature covers the embedded config.
+            progress.Report("Embedding config…");
+            AppendConfig(entry, appSettings, options, updaterName, outputExe);
 
             // 4. Optional Authenticode signature.
             if (options.Sign)
@@ -79,7 +79,6 @@ public class UpdaterService(ISettingsService settings, ILogService log, ISigning
             {
                 AppName = entry.Name,
                 OutputPath = outputExe,
-                SidecarPath = sidecarPath,
                 FileSizeBytes = fi.Exists ? fi.Length : 0,
                 Sha256 = TryHash(outputExe),
                 Branded = branded,
@@ -168,12 +167,19 @@ public class UpdaterService(ISettingsService settings, ILogService log, ISigning
         return File.Exists(exe) ? exe : null;
     }
 
-    // ── Sidecar ──────────────────────────────────────────────────────────────────
+    // ── Embedded config ───────────────────────────────────────────────────────────
 
-    private void WriteSidecar(AppEntry entry, AppSettings appSettings, UpdaterGenOptions options,
-        string updaterName, string sidecarPath)
+    /// <summary>Footer magic for config appended to the updater EXE. Must match
+    /// <c>AppUpdater.UpdaterConfig.EmbedMagic</c>. Layout: <c>[json][int32 LE length][magic]</c>.</summary>
+    private static readonly byte[] EmbedMagic = "FTUCFG01"u8.ToArray();
+
+    /// <summary>Appends the per-app config to the end of <paramref name="exePath"/> so the updater
+    /// ships as a single file (read back at runtime from the EXE). Mirrors the bootstrapper's
+    /// payload-append trick; safe on a self-contained single-file EXE.</summary>
+    private static void AppendConfig(AppEntry entry, AppSettings appSettings, UpdaterGenOptions options,
+        string updaterName, string exePath)
     {
-        var sidecar = new
+        var config = new
         {
             appKey = entry.Name,
             appExe = options.AppExeName,
@@ -185,7 +191,12 @@ public class UpdaterService(ISettingsService settings, ILogService log, ISigning
             accentColor = string.IsNullOrWhiteSpace(entry.AccentColor) ? "#0A84FF" : entry.AccentColor,
             windowTitle = $"{entry.Name} Updater",
         };
-        File.WriteAllText(sidecarPath, JsonSerializer.Serialize(sidecar, JsonOptions));
+        var json = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(config, JsonOptions));
+
+        using var fs = new FileStream(exePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        fs.Write(json, 0, json.Length);
+        fs.Write(BitConverter.GetBytes(json.Length), 0, 4); // int32 LE length
+        fs.Write(EmbedMagic, 0, EmbedMagic.Length);
     }
 
     // ── Icon ───────────────────────────────────────────────────────────────────

@@ -4,13 +4,16 @@ using System.Text.Json;
 namespace AppUpdater;
 
 /// <summary>
-/// Per-app updater configuration. Read from an <c>updater.json</c> sidecar placed next to the
-/// updater EXE by FARM's generator, falling back to baked defaults when a field is absent. This
-/// single mechanism lets the SAME binary serve as both the per-app branded build and the generic
-/// prebuilt fallback — FARM only has to write the sidecar.
+/// Per-app updater configuration. FARM bakes this JSON into the updater EXE itself (appended after
+/// the file with a magic footer — see <see cref="EmbedMagic"/>), so the updater ships as a single
+/// file. At runtime it is read from the EXE first; a sibling <c>updater.json</c> sidecar is still
+/// honoured as an optional override (and for older two-file builds), then baked defaults.
 /// </summary>
 public sealed class UpdaterConfig
 {
+    /// <summary>Footer magic marking config appended to the EXE: <c>[json][int32 LE length][magic]</c>.</summary>
+    private static readonly byte[] EmbedMagic = "FTUCFG01"u8.ToArray();
+
     /// <summary>App identifier — must match the package header's <c>appKey</c>.</summary>
     public string AppKey { get; set; } = string.Empty;
 
@@ -41,17 +44,18 @@ public sealed class UpdaterConfig
     };
 
     /// <summary>
-    /// Loads <c>updater.json</c> from <paramref name="baseDir"/> if present; otherwise returns the
-    /// baked defaults. Never throws — a malformed sidecar falls back to defaults.
+    /// Resolves the config in priority order: (a) a sibling <c>updater.json</c> sidecar in
+    /// <paramref name="baseDir"/> (optional manual override), (b) config embedded in this EXE (FARM's
+    /// default — single file), (c) baked defaults. Never throws — anything unreadable falls through.
     /// </summary>
     public static UpdaterConfig Load(string baseDir)
     {
         var cfg = new UpdaterConfig();
         try
         {
-            var path = Path.Combine(baseDir, "updater.json");
-            if (File.Exists(path))
-                cfg = JsonSerializer.Deserialize<UpdaterConfig>(File.ReadAllText(path), Options) ?? cfg;
+            var json = TryReadSidecar(baseDir) ?? TryReadEmbeddedConfig(Environment.ProcessPath);
+            if (json is not null)
+                cfg = JsonSerializer.Deserialize<UpdaterConfig>(json, Options) ?? cfg;
         }
         catch { /* fall back to defaults */ }
 
@@ -64,5 +68,42 @@ public sealed class UpdaterConfig
             cfg.WindowTitle = string.IsNullOrWhiteSpace(cfg.AppKey) ? "Updater" : $"{cfg.AppKey} Updater";
 
         return cfg;
+    }
+
+    private static string? TryReadSidecar(string baseDir)
+    {
+        var path = Path.Combine(baseDir, "updater.json");
+        return File.Exists(path) ? File.ReadAllText(path) : null;
+    }
+
+    /// <summary>Reads config appended to the updater EXE: <c>[json][int32 LE length][8-byte magic]</c>.
+    /// Returns null when the file has no such footer (a plain/dev build). Opens with shared
+    /// read/write so reading our own running EXE never fails.</summary>
+    private static string? TryReadEmbeddedConfig(string? exePath)
+    {
+        if (string.IsNullOrEmpty(exePath) || !File.Exists(exePath))
+            return null;
+
+        const int trailer = 4 + 8; // length + magic
+        using var fs = new FileStream(exePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        if (fs.Length < trailer)
+            return null;
+
+        var tail = new byte[trailer];
+        fs.Seek(-trailer, SeekOrigin.End);
+        fs.ReadExactly(tail);
+
+        for (var i = 0; i < EmbedMagic.Length; i++)
+            if (tail[4 + i] != EmbedMagic[i])
+                return null;
+
+        var length = BitConverter.ToInt32(tail, 0);
+        if (length <= 0 || length > fs.Length - trailer)
+            return null;
+
+        var json = new byte[length];
+        fs.Seek(-(trailer + length), SeekOrigin.End);
+        fs.ReadExactly(json);
+        return System.Text.Encoding.UTF8.GetString(json);
     }
 }

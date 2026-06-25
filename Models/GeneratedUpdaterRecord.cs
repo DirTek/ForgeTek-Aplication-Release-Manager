@@ -5,11 +5,8 @@ public class GeneratedUpdaterRecord
 {
     public string AppName { get; set; } = string.Empty;
 
-    /// <summary>Full path of the generated "{AppName}.Updater.exe".</summary>
+    /// <summary>Full path of the generated "{AppName}.Updater.exe" (config is embedded inside it).</summary>
     public string OutputPath { get; set; } = string.Empty;
-
-    /// <summary>Path of the updater.json sidecar written next to the EXE.</summary>
-    public string SidecarPath { get; set; } = string.Empty;
 
     public long FileSizeBytes { get; set; }
 

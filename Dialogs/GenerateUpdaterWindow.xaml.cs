@@ -188,8 +188,8 @@ public partial class GenerateUpdaterWindow : Window
             ResultBox.Text = record.OutputPath;
             ResultPanel.Visibility = Visibility.Visible;
 
-            // Track the produced files (exe + sidecar) in the app's scanned files when they live inside
-            // the app folder, so they ship with the app and are included in packages.
+            // Track the produced updater EXE in the app's scanned files when it lives inside the app
+            // folder, so it ships with the app and is included in packages.
             var tracked = RegisterScannedFiles(record);
             if (tracked > 0) Append(S("Str.GenUpdaterCB.AddedToScanFmt", tracked));
 
@@ -211,8 +211,9 @@ public partial class GenerateUpdaterWindow : Window
         }
     }
 
-    // Adds the generated updater EXE + sidecar to the latest version's scanned files (when they sit
-    // inside the app folder), replacing any prior entry for the same path. Returns how many were added.
+    // Adds the generated updater EXE (config is embedded inside it — single file) to the latest
+    // version's scanned files when it lives inside the app folder, replacing any prior entry for the
+    // same path. Returns how many were added.
     private int RegisterScannedFiles(GeneratedUpdaterRecord record)
     {
         var version = _entry.Versions
@@ -220,31 +221,27 @@ public partial class GenerateUpdaterWindow : Window
             .LastOrDefault();
         if (version is null) return 0;
 
+        if (string.IsNullOrWhiteSpace(record.OutputPath) || !File.Exists(record.OutputPath))
+            return 0;
+
         var root = Path.GetFullPath(_entry.FolderPath);
-        var added = 0;
-        foreach (var path in new[] { record.OutputPath, record.SidecarPath })
+        var full = Path.GetFullPath(record.OutputPath);
+        // Only track the updater when it actually lives under the app folder (relative path must be valid).
+        if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            return 0;
+
+        var rel = Path.GetRelativePath(root, full);
+        version.Files.RemoveAll(f => string.Equals(f.Path, rel, StringComparison.OrdinalIgnoreCase));
+        version.Files.Add(new FileRecord
         {
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) continue;
+            Path = rel,
+            Checksum = ScannerService.ComputeChecksum(full),
+            DateModified = File.GetLastWriteTime(full),
+            IsDebug = false,
+        });
 
-            var full = Path.GetFullPath(path);
-            // Only track files that actually live under the app folder (relative paths must be valid).
-            if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var rel = Path.GetRelativePath(root, full);
-            version.Files.RemoveAll(f => string.Equals(f.Path, rel, StringComparison.OrdinalIgnoreCase));
-            version.Files.Add(new FileRecord
-            {
-                Path = rel,
-                Checksum = ScannerService.ComputeChecksum(full),
-                DateModified = File.GetLastWriteTime(full),
-                IsDebug = false,
-            });
-            added++;
-        }
-
-        if (added > 0) _storage.Update(_entry);
-        return added;
+        _storage.Update(_entry);
+        return 1;
     }
 
     private void Reveal_Click(object sender, RoutedEventArgs e)
