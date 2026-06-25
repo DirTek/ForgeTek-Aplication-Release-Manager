@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -21,7 +22,7 @@ public partial class SourceCompareWindow : Window
     {
         InitializeComponent();
         _compare = compare;
-        SubtitleText.Text = $"{appName} — verify files, solution build, and GitHub build match.";
+        SubtitleText.Text = S("Str.SrcCompareCB.SubtitleFmt", appName);
         FilesBox.Text = filesDir ?? string.Empty;
         SlnBox.Text = slnDir ?? string.Empty;
         GitHubBox.Text = githubDir ?? string.Empty;
@@ -35,7 +36,7 @@ public partial class SourceCompareWindow : Window
         var github = Nz(GitHubBox.Text);
         if (new[] { files, sln, github }.Count(p => p is not null) < 2)
         {
-            StatusBar("Fill in at least two source paths to compare.");
+            StatusBar(S("Str.SrcCompareCB.FillTwoPaths"));
             return;
         }
 
@@ -52,8 +53,8 @@ public partial class SourceCompareWindow : Window
             _report = await _compare.CompareAsync(files, sln, github, progress, _cts.Token);
             Render();
         }
-        catch (OperationCanceledException) { StatusBar("Cancelled."); }
-        catch (Exception ex) { StatusBar($"Compare failed: {ex.Message}"); }
+        catch (OperationCanceledException) { StatusBar(S("Str.GhCompareCB.CancelledDot")); }
+        catch (Exception ex) { StatusBar(S("Str.GhCompareCB.CompareFailed", ex.Message)); }
         finally
         {
             _busy = false;
@@ -68,7 +69,7 @@ public partial class SourceCompareWindow : Window
         if (_report is null) return;
         if (!_report.Ran)
         {
-            EmptyText.Text = _report.Error ?? "Could not compare.";
+            EmptyText.Text = _report.Error ?? S("Str.SrcCompareCB.CouldNotCompare");
             EmptyText.Visibility = Visibility.Visible;
             return;
         }
@@ -81,25 +82,25 @@ public partial class SourceCompareWindow : Window
             .ToList();
         ResultsList.ItemsSource = rows;
         EmptyText.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        EmptyText.Text = _report.Total == 0 ? "No files found in the sources." : "No differences.";
+        EmptyText.Text = _report.Total == 0 ? S("Str.SrcCompareCB.NoFilesInSources") : S("Str.SrcCompareCB.NoDifferences");
 
-        IdenticalText.Text = $"Identical: {_report.Identical}";
-        DiffersText.Text = $"Differs: {_report.Differs}";
-        PartialText.Text = $"Missing in some: {_report.Partial}";
+        IdenticalText.Text = S("Str.SrcCompareCB.IdenticalN", _report.Identical);
+        DiffersText.Text = S("Str.SrcCompareCB.DiffersN", _report.Differs);
+        PartialText.Text = S("Str.SrcCompareCB.MissingSomeN", _report.Partial);
 
         VerdictPanel.Visibility = Visibility.Visible;
         if (_report.AllIdentical)
-            (VerdictText.Text, VerdictText.Foreground) = ("✓  All sources match.", (Brush)FindResource("AddedBrush"));
+            (VerdictText.Text, VerdictText.Foreground) = (S("Str.SrcCompareCB.AllMatch"), (Brush)FindResource("AddedBrush"));
         else if (_report.Differs > 0)
-            (VerdictText.Text, VerdictText.Foreground) = ($"✗  {_report.Differs} file(s) differ, {_report.Partial} missing in a source.", Rgb(255, 107, 107));
+            (VerdictText.Text, VerdictText.Foreground) = (S("Str.SrcCompareCB.DifferVerdictFmt", _report.Differs, _report.Partial), Rgb(255, 107, 107));
         else
-            (VerdictText.Text, VerdictText.Foreground) = ($"⚠  {_report.Partial} file(s) missing in a source.", Rgb(255, 209, 102));
+            (VerdictText.Text, VerdictText.Foreground) = (S("Str.SrcCompareCB.MissingVerdictFmt", _report.Partial), Rgb(255, 209, 102));
 
         var sources = new List<string>();
-        if (_report.HasFiles) sources.Add("files");
-        if (_report.HasSln) sources.Add("solution");
-        if (_report.HasGitHub) sources.Add("GitHub");
-        StatusBar($"Compared {_report.Total} file(s) across: {string.Join(", ", sources)}.");
+        if (_report.HasFiles) sources.Add(S("Str.SrcCompareCB.SrcFiles"));
+        if (_report.HasSln) sources.Add(S("Str.SrcCompareCB.SrcSolution"));
+        if (_report.HasGitHub) sources.Add(S("Str.SrcCompareCB.SrcGitHub"));
+        StatusBar(S("Str.SrcCompareCB.ComparedAcrossFmt", _report.Total, string.Join(", ", sources)));
     }
 
     private static int RankOf(CompareStatus s) => s switch
@@ -119,7 +120,7 @@ public partial class SourceCompareWindow : Window
         if (sender is not Button btn || btn.Tag is not string boxName) return;
         var box = FindName(boxName) as TextBox;
         if (box is null) return;
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select folder" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = S("Str.SrcCompareCB.SelectFolder") };
         if (!string.IsNullOrWhiteSpace(box.Text)) dlg.InitialDirectory = box.Text;
         if (dlg.ShowDialog() == true) box.Text = dlg.FolderName;
     }
@@ -144,9 +145,9 @@ public partial class SourceCompareWindow : Window
         public string GitHub => Short(r.GitHubHash);
         public string Status => r.Status switch
         {
-            CompareStatus.Identical => "Identical",
-            CompareStatus.Differs => "Differs",
-            _ => "Missing",
+            CompareStatus.Identical => S("Str.SrcCompareCB.StatusIdentical"),
+            CompareStatus.Differs => S("Str.SrcCompareCB.StatusDiffers"),
+            _ => S("Str.SrcCompareCB.StatusMissing"),
         };
         public Brush StatusBrush => r.Status switch
         {

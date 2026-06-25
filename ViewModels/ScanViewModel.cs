@@ -12,6 +12,9 @@ public partial class ScanViewModel : ObservableObject
     private MainViewModel _main = null!;
     private readonly IStorageService _storage;
     private readonly IDialogService _dialog;
+    private readonly ILocalizationService _loc;
+    private readonly IUpdaterService _updater;
+    private readonly ISettingsService _settings;
     private AppEntry _entry = null!;
     private IReadOnlyList<FileRecord> _allFiles = [];
 
@@ -25,7 +28,7 @@ public partial class ScanViewModel : ObservableObject
         _detectedExeVersion is not null &&
         !string.Equals(VersionNumber.Trim(), _detectedExeVersion, StringComparison.OrdinalIgnoreCase);
 
-    public string VersionMismatchText => $"EXE file version is v{_detectedExeVersion}";
+    public string VersionMismatchText => _loc.Get("Str.DiffVm.VersionMismatch", _detectedExeVersion ?? string.Empty);
 
     public ObservableCollection<FileTreeNodeViewModel> FileTree { get; } = [];
 
@@ -55,10 +58,14 @@ public partial class ScanViewModel : ObservableObject
     public bool IsFilterNonDebug => DebugFilter == DebugFilter.NonDebug;
     public bool IsFilterDebugOnly => DebugFilter == DebugFilter.DebugOnly;
 
-    public ScanViewModel(IStorageService storage, IDialogService dialog)
+    public ScanViewModel(IStorageService storage, IDialogService dialog, ILocalizationService loc,
+        IUpdaterService updater, ISettingsService settings)
     {
         _storage = storage;
         _dialog = dialog;
+        _loc = loc;
+        _updater = updater;
+        _settings = settings;
     }
 
     public void Initialize(AppEntry entry, IReadOnlyList<FileRecord> files,
@@ -130,7 +137,7 @@ public partial class ScanViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(VersionNumber))
         {
-            _dialog.Alert("Missing Version", "Please enter a version number.");
+            _dialog.Alert(_loc.Get("Str.DiffVm.MissingVersionTitle"), _loc.Get("Str.DiffVm.MissingVersionMsg"));
             return;
         }
 
@@ -138,9 +145,9 @@ public partial class ScanViewModel : ObservableObject
 
         if (_entry.Versions.Any(v => v.VersionNumber == trimmed))
         {
-            if (!_dialog.Confirm("Duplicate Version",
-                    $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
-                    "Save Anyway")) return;
+            if (!_dialog.Confirm(_loc.Get("Str.DiffVm.DupTitle"),
+                    _loc.Get("Str.DiffVm.DupMsg", trimmed),
+                    _loc.Get("Str.Common.SaveAnyway"))) return;
         }
 
         if (_detectedExeVersion is not null &&
@@ -148,11 +155,9 @@ public partial class ScanViewModel : ObservableObject
             Version.TryParse(_detectedExeVersion, out var exeVer) &&
             typedVer > exeVer)
         {
-            if (!_dialog.Confirm("Update Loop Risk",
-                    $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
-                    $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
-                    $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
-                    "Save Anyway")) return;
+            if (!_dialog.Confirm(_loc.Get("Str.DiffVm.LoopTitle"),
+                    _loc.Get("Str.DiffVm.LoopMsg", trimmed, _detectedExeVersion),
+                    _loc.Get("Str.Common.SaveAnyway"))) return;
         }
 
         var version = new AppVersion
@@ -166,7 +171,30 @@ public partial class ScanViewModel : ObservableObject
 
         _entry.Versions.Add(version);
         _main.NavigateToDetail(_entry);
+        PromptGenerateUpdaterIfMissing(version);
         _main.PromptChangelogIfNeeded(_entry, trimmed);
+    }
+
+    // On the initial scan, offer to generate an updater when the app doesn't already ship one.
+    private void PromptGenerateUpdaterIfMissing(AppVersion version)
+    {
+        if (version.Files.Any(IsUpdaterFile)) return;
+
+        if (!_dialog.Confirm(_loc.Get("Str.ScanVm.NoUpdaterTitle"),
+                _loc.Get("Str.ScanVm.NoUpdaterMsg"),
+                _loc.Get("Str.GenUpdater.Generate"))) return;
+
+        new GenerateUpdaterWindow(_entry, _updater, _settings, _storage)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+    }
+
+    private static bool IsUpdaterFile(FileRecord f)
+    {
+        var name = System.IO.Path.GetFileName(f.Path);
+        return name.EndsWith("updater.exe", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("updater.json", StringComparison.OrdinalIgnoreCase);
     }
 
     [RelayCommand]

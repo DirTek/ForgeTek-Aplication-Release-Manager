@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -26,25 +27,25 @@ public partial class GitHubCompareWindow : Window
         _compare = compare;
         _repo = repo;
         _token = token;
-        SubtitleText.Text = $"{appName} — local project vs {repo}.";
+        SubtitleText.Text = S("Str.GhCompareCB.SubtitleFmt", appName, repo);
         LocalBox.Text = localDir ?? string.Empty;
         Loaded += async (_, _) => await LoadBranchesAsync();
     }
 
     private async Task LoadBranchesAsync()
     {
-        StatusText.Text = "Loading branches…";
+        StatusText.Text = S("Str.GhCompareCB.LoadingBranches");
         try
         {
             var branches = await _github.GetBranchesAsync(_repo, _token);
             BranchBox.ItemsSource = branches;
             BranchBox.SelectedItem = branches.FirstOrDefault(b => b is "main" or "master")
                                      ?? branches.FirstOrDefault();
-            StatusText.Text = branches.Count == 0 ? "No branches found." : "Pick a branch and Compare.";
+            StatusText.Text = branches.Count == 0 ? S("Str.GhCompareCB.NoBranches") : S("Str.GhCompareCB.PickBranchCompare");
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Could not load branches: {ex.Message}";
+            StatusText.Text = S("Str.GhCompareCB.LoadBranchesFailed", ex.Message);
         }
     }
 
@@ -53,15 +54,15 @@ public partial class GitHubCompareWindow : Window
         if (_busy) return;
         var branch = BranchBox.SelectedItem as string;
         var local = LocalBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(branch)) { StatusText.Text = "Pick a branch."; return; }
-        if (string.IsNullOrWhiteSpace(local)) { StatusText.Text = "Choose the local project folder."; return; }
+        if (string.IsNullOrWhiteSpace(branch)) { StatusText.Text = S("Str.GhCompareCB.PickBranch"); return; }
+        if (string.IsNullOrWhiteSpace(local)) { StatusText.Text = S("Str.GhCompareCB.ChooseLocal"); return; }
 
         _busy = true;
         CompareBtn.IsEnabled = false;
         ResultsList.ItemsSource = null;
         EmptyText.Visibility = Visibility.Collapsed;
         SummaryText.Visibility = Visibility.Collapsed;
-        StatusText.Text = "Fetching repo tree…";
+        StatusText.Text = S("Str.GhCompareCB.FetchingTree");
         _cts = new CancellationTokenSource();
 
         try
@@ -71,8 +72,8 @@ public partial class GitHubCompareWindow : Window
             _report = await _compare.CompareWithTreeAsync(local, tree, progress, _cts.Token);
             Render();
         }
-        catch (OperationCanceledException) { StatusText.Text = "Cancelled."; }
-        catch (Exception ex) { StatusText.Text = $"Compare failed: {ex.Message}"; }
+        catch (OperationCanceledException) { StatusText.Text = S("Str.GhCompareCB.CancelledDot"); }
+        catch (Exception ex) { StatusText.Text = S("Str.GhCompareCB.CompareFailed", ex.Message); }
         finally
         {
             _busy = false;
@@ -87,7 +88,7 @@ public partial class GitHubCompareWindow : Window
         if (_report is null) return;
         if (!_report.Ran)
         {
-            EmptyText.Text = _report.Error ?? "Could not compare.";
+            EmptyText.Text = _report.Error ?? S("Str.GhCompareCB.CouldNotCompare");
             EmptyText.Visibility = Visibility.Visible;
             return;
         }
@@ -100,19 +101,19 @@ public partial class GitHubCompareWindow : Window
             .ToList();
         ResultsList.ItemsSource = rows;
         EmptyText.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        EmptyText.Text = _report.Total == 0 ? "No tracked files found." : "No differences.";
+        EmptyText.Text = _report.Total == 0 ? S("Str.GhCompareCB.NoTrackedFiles") : S("Str.GhCompareCB.NoDifferences");
 
         var inSync = _report.Identical;
         var modified = _report.Differs;
         var missing = _report.Partial;
         SummaryText.Visibility = Visibility.Visible;
         if (_report.AllIdentical)
-            (SummaryText.Text, SummaryText.Foreground) = ("✓  Local project matches GitHub.", (Brush)FindResource("AddedBrush"));
+            (SummaryText.Text, SummaryText.Foreground) = (S("Str.GhCompareCB.MatchesGitHub"), (Brush)FindResource("AddedBrush"));
         else
             (SummaryText.Text, SummaryText.Foreground) =
-                ($"{modified} modified · {missing} missing locally · {inSync} in sync", Rgb(255, 209, 102));
+                (S("Str.GhCompareCB.SummaryFmt", modified, missing, inSync), Rgb(255, 209, 102));
 
-        StatusText.Text = $"Compared {_report.Total} tracked file(s).";
+        StatusText.Text = S("Str.GhCompareCB.ComparedN", _report.Total);
     }
 
     private static int RankOf(CompareStatus s) => s switch

@@ -23,6 +23,7 @@ public partial class PackageViewModel : ObservableObject
     private readonly ISettingsService _settings;
     private readonly IDialogService _dialog;
     private readonly IApprovalService _approval;
+    private readonly ILocalizationService _loc;
     private AppEntry _entry = null!;
     private AppVersion _version = null!;
     private readonly string? _signToolPath;
@@ -40,7 +41,8 @@ public partial class PackageViewModel : ObservableObject
 
     public PackageViewModel(IStorageService storage, ISigningService signing, IScannerService scanner,
         ISettingsService settings, ILogService log, IPackagingService packaging, IPublishService publish,
-        IManifestService manifest, IUpdateCatalogService catalog, IDialogService dialog, IApprovalService approval)
+        IManifestService manifest, IUpdateCatalogService catalog, IDialogService dialog, IApprovalService approval,
+        ILocalizationService loc)
     {
         _storage = storage;
         _signing = signing;
@@ -53,6 +55,7 @@ public partial class PackageViewModel : ObservableObject
         _catalog = catalog;
         _dialog = dialog;
         _approval = approval;
+        _loc = loc;
         _signToolPath = signing.FindSignTool();
     }
 
@@ -70,8 +73,8 @@ public partial class PackageViewModel : ObservableObject
 
     /// <summary>"1 of 2"-style hint for why publishing is blocked.</summary>
     public string ApprovalHint => IsApproved
-        ? "Approved for release."
-        : $"Needs Admin + QA Tester approval — {_approval.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+        ? _loc.Get("Str.PkgVm.ApprovalApproved")
+        : _loc.Get("Str.PkgVm.ApprovalNeeds", _approval.ApprovalsSatisfied(ApprovalTargetKey));
 
     /// <summary>Re-reads approval state (another operator may have voted) and refreshes the publish gate.</summary>
     public void RefreshApproval()
@@ -286,15 +289,15 @@ public partial class PackageViewModel : ObservableObject
 
     public string StepTitle => CurrentStep switch
     {
-        PackageStep.Sign     => "Step 1 of 5 — Sign Files",
-        PackageStep.Manifest => "Step 2 of 5 — Build Manifest",
-        PackageStep.Package  => "Step 3 of 5 — Package",
-        PackageStep.Json     => "Step 4 of 5 — Generate Update Catalog",
-        PackageStep.Ftp      => "Step 5 of 5 — Publish",
+        PackageStep.Sign     => _loc.Get("Str.PkgVm.StepSign"),
+        PackageStep.Manifest => _loc.Get("Str.PkgVm.StepManifest"),
+        PackageStep.Package  => _loc.Get("Str.PkgVm.StepPackage"),
+        PackageStep.Json     => _loc.Get("Str.PkgVm.StepJson"),
+        PackageStep.Ftp      => _loc.Get("Str.PkgVm.StepFtp"),
         _                    => string.Empty,
     };
 
-    public string AdvanceLabel => CurrentStep == PackageStep.Ftp ? "Finish ✔" : "Next →";
+    public string AdvanceLabel => CurrentStep == PackageStep.Ftp ? _loc.Get("Str.PkgVm.Finish") : _loc.Get("Str.PkgVm.Next");
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SignCommand))]
@@ -401,13 +404,13 @@ public partial class PackageViewModel : ObservableObject
                                           : string.Empty;
 
     public string AppName      => _entry.Name;
-    public string VersionLabel => $"v{_version.VersionNumber}  •  {_version.ScanDate:yyyy-MM-dd HH:mm}";
+    public string VersionLabel => _loc.Get("Str.PkgVm.VersionLabel", _version.VersionNumber, _version.ScanDate);
 
     public bool HasFtpSettings => _publish.IsConfigured(_appSettings);
 
     public string FtpSummary => HasFtpSettings
-        ? $"Publishing via {_publish.ProviderName(_appSettings)}"
-        : "No publish target configured — open App Settings to add one.";
+        ? _loc.Get("Str.PkgVm.PublishingVia", _publish.ProviderName(_appSettings))
+        : _loc.Get("Str.PkgVm.NoPublishTarget");
 
     public ObservableCollection<string> Log { get; } = [];
 

@@ -71,7 +71,11 @@ public class LocalizationService : ILocalizationService
         catch { /* unknown culture code — keep the current culture */ }
     }
 
-    public string Get(string key, params object[] args)
+    public string Get(string key, params object?[] args) => S(key, args);
+
+    /// <summary>Static string lookup for non-DI callers (dialog code-behind). Reads the active
+    /// Strings/&lt;culture&gt;.xaml from Application.Resources; returns the key if missing.</summary>
+    public static string S(string key, params object?[] args)
     {
         var value = Application.Current?.TryFindResource(key) as string ?? key;
         return args is { Length: > 0 } ? string.Format(value, args) : value;

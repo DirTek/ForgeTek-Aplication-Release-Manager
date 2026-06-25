@@ -16,6 +16,7 @@ public partial class SetupViewModel : ObservableObject
     private readonly ISetupService _setupService;
     private readonly IDialogService _dialog;
     private readonly ILogService _log;
+    private readonly ILocalizationService _loc;
     private readonly ISettingsService _settings;
     private readonly IWingetManifestService _winget;
     private readonly Services.Publishing.IPublishService _publish;
@@ -76,9 +77,9 @@ SOFTWARE LICENSE
         // Navigating categories leaves the wizard — confirm if mid-edit so edits aren't lost silently.
         if (IsEditing)
         {
-            if (!_dialog.Confirm("Discard Changes",
-                    "Leave the setup editor? Unsaved changes to this bundle will be lost.",
-                    "Discard"))
+            if (!_dialog.Confirm(_loc.Get("Str.SetupVm.DiscardTitle"),
+                    _loc.Get("Str.SetupVm.DiscardMsg"),
+                    _loc.Get("Str.SetupVm.DiscardBtn")))
             {
                 _suppressCategoryChange = true;
                 SelectedCategory = oldValue ?? "Setup Bundles";
@@ -102,9 +103,9 @@ SOFTWARE LICENSE
     [RelayCommand]
     private void ClearHistory()
     {
-        if (!_dialog.Confirm("Clear History",
-                "Remove all Past Bundles entries? Generated setup files on disk are not deleted.",
-                "Clear")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.SetupVm.ClearHistTitle"),
+                _loc.Get("Str.SetupVm.ClearHistMsg"),
+                _loc.Get("Str.Common.Clear"))) return;
         _setupStorage.ClearHistory();
         ReloadHistory();
     }
@@ -129,10 +130,10 @@ SOFTWARE LICENSE
                 if (dir is not null && System.IO.Directory.Exists(dir))
                     System.Diagnostics.Process.Start("explorer.exe", $"\"{dir}\"");
                 else
-                    _dialog.Alert("Not Found", $"The setup file no longer exists:\n{path}");
+                    _dialog.Alert(_loc.Get("Str.SetupVm.NotFoundTitle"), _loc.Get("Str.SetupVm.NotFoundMsg", path));
             }
         }
-        catch (Exception ex) { _dialog.Alert("Open Failed", ex.Message); }
+        catch (Exception ex) { _dialog.Alert(_loc.Get("Str.SetupVm.OpenFailedTitle"), ex.Message); }
     }
 
     // ── Generation pipeline stepper ───────────────────────────────────────
@@ -224,7 +225,19 @@ SOFTWARE LICENSE
     public bool IsLaunchStep     => EditStepIndex == 4;
     public bool IsActionsStep    => EditStepIndex == 5;
     public string EditStepTitle =>
-        $"Step {EditStepIndex + 1} of {EditStepLabels.Length} · {EditStepLabels[EditStepIndex]}";
+        _loc.Get("Str.SetupVm.StepTitle", EditStepIndex + 1, EditStepLabels.Length, LocalizedStepLabel(EditStepIndex));
+
+    // The wizard step's localized display name (EditStepLabels stays English for logic/indexing).
+    private string LocalizedStepLabel(int index) => index switch
+    {
+        0 => _loc.Get("Str.Setup.StepGeneral"),
+        1 => _loc.Get("Str.Setup.StepApps"),
+        2 => _loc.Get("Str.Setup.StepSigning"),
+        3 => _loc.Get("Str.Setup.StepAppearance"),
+        4 => _loc.Get("Str.Setup.StepLaunch"),
+        5 => _loc.Get("Str.Setup.StepActions"),
+        _ => string.Empty,
+    };
 
     private string EditStepState(int index) =>
         index < EditStepIndex ? "Done" : index == EditStepIndex ? "Current" : "Pending";
@@ -340,8 +353,10 @@ SOFTWARE LICENSE
     public SetupViewModel(ISetupStorageService setupStorage, IStorageService storage,
         ISetupService setupService, IDialogService dialog, ILogService log,
         ISettingsService settings, IWingetManifestService winget,
-        Services.Publishing.IPublishService publish, IApprovalService approval)
+        Services.Publishing.IPublishService publish, IApprovalService approval,
+        ILocalizationService loc)
     {
+        _loc = loc;
         _setupStorage = setupStorage;
         _storage = storage;
         _setupService = setupService;
@@ -849,12 +864,12 @@ SOFTWARE LICENSE
     {
         if (string.IsNullOrWhiteSpace(EditName))
         {
-            _dialog.Alert("Validation", "Setup name is required.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.ValidationTitle"), _loc.Get("Str.SetupVm.ValNameReq"));
             return;
         }
         if (string.IsNullOrWhiteSpace(EditOutputFolder))
         {
-            _dialog.Alert("Validation", "Output folder is required.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.ValidationTitle"), _loc.Get("Str.SetupVm.ValOutputReq"));
             return;
         }
 
@@ -894,7 +909,7 @@ SOFTWARE LICENSE
 
         if (selectedApps.Count == 0)
         {
-            _dialog.Alert("Validation", "Select at least one app.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.ValidationTitle"), _loc.Get("Str.SetupVm.ValSelectApp"));
             return;
         }
 
@@ -902,7 +917,7 @@ SOFTWARE LICENSE
         if (EditLaunchApp is not null && selectedApps.Any(a => a.AppId == EditLaunchApp.AppId)
             && string.IsNullOrWhiteSpace(EditLaunchExe))
         {
-            _dialog.Alert("Validation", $"Select the exe to launch for '{EditLaunchApp.AppName}', or set Launch on Finish to None.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.ValidationTitle"), _loc.Get("Str.SetupVm.ValSelectExe", EditLaunchApp.AppName));
             return;
         }
 
@@ -982,9 +997,9 @@ SOFTWARE LICENSE
     private void DeleteSetup(SetupBundle? bundle)
     {
         if (bundle is null) return;
-        if (!_dialog.Confirm("Delete Setup",
-                $"Delete setup bundle '{bundle.Name}'? This cannot be undone.",
-                "Delete")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.SetupVm.DeleteSetupTitle"),
+                _loc.Get("Str.SetupVm.DeleteSetupMsg", bundle.Name),
+                _loc.Get("Str.Common.Delete"))) return;
 
         _setupStorage.Delete(bundle.Id);
         _log.Write("Setups", $"Deleted setup bundle: {bundle.Name}");
@@ -1001,12 +1016,12 @@ SOFTWARE LICENSE
         // Guard older/partial bundles that predate Save-time validation.
         if (string.IsNullOrWhiteSpace(bundle.OutputFolder))
         {
-            _dialog.Alert("Cannot Generate", "This bundle has no output folder. Edit it and set one first.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.CannotGenTitle"), _loc.Get("Str.SetupVm.CannotGenNoFolder"));
             return;
         }
         if (bundle.Apps.Count == 0)
         {
-            _dialog.Alert("Cannot Generate", "This bundle has no apps. Edit it and add at least one.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.CannotGenTitle"), _loc.Get("Str.SetupVm.CannotGenNoApps"));
             return;
         }
 
@@ -1088,13 +1103,13 @@ SOFTWARE LICENSE
             ?? _setupStorage.GetHistory().FirstOrDefault();
         if (record is null)
         {
-            _dialog.Alert("No Setup", "Generate a setup first, then create its winget manifest.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.NoSetupTitle"), _loc.Get("Str.SetupVm.NoSetupWinget"));
             return;
         }
         if (!File.Exists(record.OutputPath) && string.IsNullOrWhiteSpace(record.Sha256))
         {
-            _dialog.Alert("Setup Not Found",
-                $"The setup file is missing and has no stored hash:\n{record.OutputPath}");
+            _dialog.Alert(_loc.Get("Str.SetupVm.SetupNotFoundTitle"),
+                _loc.Get("Str.SetupVm.SetupMissingHash", record.OutputPath));
             return;
         }
 
@@ -1116,12 +1131,12 @@ SOFTWARE LICENSE
             ?? _setupStorage.GetHistory().FirstOrDefault();
         if (record is null)
         {
-            _dialog.Alert("No Setup", "Generate a setup first, then publish it.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.NoSetupTitle"), _loc.Get("Str.SetupVm.NoSetupPublish"));
             return;
         }
         if (!File.Exists(record.OutputPath))
         {
-            _dialog.Alert("Setup Not Found", $"The setup file is missing:\n{record.OutputPath}");
+            _dialog.Alert(_loc.Get("Str.SetupVm.SetupNotFoundTitle"), _loc.Get("Str.SetupVm.SetupMissing", record.OutputPath));
             return;
         }
 
@@ -1147,7 +1162,7 @@ SOFTWARE LICENSE
         var bundle = vm?.Bundle;
         if (bundle is null)
         {
-            _dialog.Alert("No Bundle", "Select a setup bundle first.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.NoBundleTitle"), _loc.Get("Str.SetupVm.NoBundleMsg"));
             return;
         }
         var forBundle = _setupStorage.GetHistory()
@@ -1158,10 +1173,10 @@ SOFTWARE LICENSE
         var record = forBundle.FirstOrDefault(r => File.Exists(r.OutputPath));
         if (record is null)
         {
-            _dialog.Alert(forBundle.Count == 0 ? "No Setup Yet" : "Setup File Missing",
+            _dialog.Alert(_loc.Get(forBundle.Count == 0 ? "Str.SetupVm.NoSetupYetTitle" : "Str.SetupVm.SetupFileMissingTitle"),
                 forBundle.Count == 0
-                    ? $"\"{bundle.Name}\" hasn't been generated yet. Generate it first, then publish."
-                    : $"The generated setup file for \"{bundle.Name}\" is missing (moved or deleted). Re-generate it, then publish.");
+                    ? _loc.Get("Str.SetupVm.NotGenYetMsg", bundle.Name)
+                    : _loc.Get("Str.SetupVm.GenMissingMsg", bundle.Name));
             return;
         }
         PublishSetup(record);
@@ -1174,7 +1189,7 @@ SOFTWARE LICENSE
         var bundle = vm?.Bundle ?? _editingBundle;
         if (bundle is null)
         {
-            _dialog.Alert("No Bundle", "Select a setup bundle first.");
+            _dialog.Alert(_loc.Get("Str.SetupVm.NoBundleTitle"), _loc.Get("Str.SetupVm.NoBundleMsg"));
             return;
         }
         new SetupPublishSettingsWindow(_publish, _storage, _settings, _setupStorage, bundle)

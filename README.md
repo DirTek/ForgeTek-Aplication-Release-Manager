@@ -11,6 +11,7 @@ What FARM does for you:
 - **Maintains the update catalog** (a simple JSON file) with stable/beta channels and full version history.
 - **Publishes everywhere** — FTP, SFTP, S3, or GitHub Releases — and can roll a release back if something goes wrong.
 - **Self-healing client logic** — the format is designed so a client can always recover a complete, correct install no matter what version it started from.
+- **Generates a ready-made updater** — optionally builds a standalone, branded updater `.exe` per app that applies staged updates and relaunches your app, so you don't have to write any client-side apply code. Prefer to roll your own? The package and catalog formats are fully documented so your app (or your own updater) can do the work instead.
 
 **Installer setups**
 
@@ -45,6 +46,69 @@ ForgeTek Application Release Manager creates two core artifacts for each app rel
 2. **.ftu Update Package**: Binary container with your app files, integrity checks, and metadata
 
 Your application will poll the update catalog, download new packages, verify them, and apply updates.
+
+---
+
+## Two ways to apply updates
+
+You can let FARM **generate a ready-made updater** for your app, or **implement update handling yourself**. Both consume the exact same `.ftu` packages and catalog described in the rest of this guide — pick whichever fits your app.
+
+### Option A — Use the FARM-generated updater (no apply code to write)
+
+From an app's page in FARM, click **Updater** to build a standalone, self-contained `{YourApp}.Updater.exe` (branded with your app's icon). FARM saves it — together with an `updater.json` config — **into your app's folder** and tracks both as scanned files, so they ship with your app via the installer and future packages. When the initial scan finds no updater, FARM also offers to generate one.
+
+At runtime the generated updater does the **offline apply** half:
+
+1. Closes your app if it's running.
+2. Applies every package staged in the `Updates\` folder — verifying magic bytes + SHA-256, extracting over the install, deleting `removedFiles`, and self-healing against `expectedFiles`.
+3. Relaunches your app.
+
+Your app still owns the **online** half — checking the catalog, downloading, staging, and launching the updater:
+
+1. Poll the catalog and decide which package(s) to fetch (see **Choosing what to download** below).
+2. Download them into an `Updates\` folder next to your exe.
+3. Write `Updates\update-plan.json` (handoff, below).
+4. Launch `{YourApp}.Updater.exe` and exit so it can replace files in place.
+
+**`updater.json`** — written by FARM next to the updater; you normally don't edit it:
+```json
+{
+  "appKey": "MyApp",
+  "appExe": "MyApp.exe",
+  "updaterExe": "MyApp.Updater.exe",
+  "packageExtension": "ftu",
+  "updatesFolder": "Updates",
+  "planFile": "update-plan.json",
+  "accentColor": "#0A84FF",
+  "windowTitle": "MyApp Updater"
+}
+```
+
+**`update-plan.json`** — the handoff your app writes into `Updates\` before launching the updater:
+```json
+{
+  "schema": 1,
+  "appKey": "MyApp",
+  "currentVersion": "0.9",
+  "targetVersion": "1.2",
+  "packages": [
+    { "version": "1.0", "file": "MyApp-1.0.ftu", "type": "full",        "base": ""    },
+    { "version": "1.2", "file": "MyApp-1.2.ftu", "type": "incremental", "base": "1.0" }
+  ],
+  "latestFull": { "version": "1.0", "url": "https://example.com/releases/myapp/1.0/MyApp-1.0.ftu" },
+  "latest":     { "version": "1.2", "url": "https://example.com/releases/myapp/1.2/MyApp-1.2.ftu" }
+}
+```
+- `packages` — ordered list to apply; each `file` is a filename already staged in `Updates\`. The updater applies them in order.
+- `latestFull` / `latest` — optional, used only for self-heal: if an expected file is missing or mismatched after applying, the updater re-downloads the full baseline from `latestFull.url` (then `latest.url`) to repair the install.
+
+If no `update-plan.json` is present, the updater falls back to **single-package mode**: it applies the newest `*.ftu` it finds in `Updates\`.
+
+> **Updating the updater itself.** A running process can't overwrite its own `.exe`, so the updater never replaces itself directly. To ship a new updater build, include it in a package as `{YourApp}.Updater_new.exe`; your app promotes it (renames it over the old updater) on next startup.
+
+### Option B — Implement it yourself
+
+If you'd rather your own application (or your own custom updater) do the applying, everything you need is documented below: the **update catalog format**, the **`.ftu` package format**, and step-by-step **verify / extract / apply / self-heal** logic. This is the right path if you want full control over the update UX, or need to run on a platform the generated Windows updater doesn't cover.
 
 ---
 

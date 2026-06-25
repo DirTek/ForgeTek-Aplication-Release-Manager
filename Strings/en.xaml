@@ -52,6 +52,11 @@
     <sys:String x:Key="Str.Main.BackToApps">← Back to apps</sys:String>
     <sys:String x:Key="Str.Main.AddApplication">+ Add Application</sys:String>
     <sys:String x:Key="Str.Main.SignOut">Sign out</sys:String>
+    <sys:String x:Key="Str.MainVm.UpdateChangelogTitle">Update Changelog?</sys:String>
+    <sys:String x:Key="Str.MainVm.UpdateChangelogMsg">v{0} isn't in the changelog yet.
+
+Add its changes now?</sys:String>
+    <sys:String x:Key="Str.MainVm.AddChanges">Add Changes</sys:String>
     <sys:String x:Key="Str.Sidebar.NoVersions">No versions</sys:String>
 
     <!-- ══ Dashboard ═════════════════════════════════════════════ -->
@@ -67,6 +72,14 @@
     <sys:String x:Key="Str.Dashboard.RecheckTooltip">Clear cached statuses and test each app's publish target again</sys:String>
     <sys:String x:Key="Str.Dashboard.RecentActivity">RECENT ACTIVITY</sys:String>
 
+    <!-- ══ Enum display values (via EnumLocalizeConverter) ══════ -->
+    <sys:String x:Key="Str.Enum.VersionStatus.Review">Review</sys:String>
+    <sys:String x:Key="Str.Enum.VersionStatus.Signed">Signed</sys:String>
+    <sys:String x:Key="Str.Enum.VersionStatus.Packed">Packed</sys:String>
+    <sys:String x:Key="Str.Enum.VersionStatus.Published">Published</sys:String>
+    <sys:String x:Key="Str.Enum.VersionStatus.Retracted">Retracted</sys:String>
+    <sys:String x:Key="Str.Enum.VersionStatus.Scrapped">Scrapped</sys:String>
+
     <!-- ══ App status / next-action labels (computed in AppEntryViewModel) ══ -->
     <sys:String x:Key="Str.Status.NoVersions">No versions</sys:String>
     <sys:String x:Key="Str.Status.Retracted">Retracted</sys:String>
@@ -77,6 +90,10 @@
     <sys:String x:Key="Str.Action.Review">Review</sys:String>
     <sys:String x:Key="Str.Action.Package">Package</sys:String>
     <sys:String x:Key="Str.Action.Publish">Publish</sys:String>
+    <sys:String x:Key="Str.AppEntry.NoVersionsYet">No versions yet</sys:String>
+    <sys:String x:Key="Str.AppEntry.ConnChecking">{0}: checking…</sys:String>
+    <sys:String x:Key="Str.AppEntry.ConnOnline">{0}: online</sys:String>
+    <sys:String x:Key="Str.AppEntry.ConnOffline">{0}: offline</sys:String>
 
     <!-- ══ Add / Edit Application dialog ═════════════════════════ -->
     <sys:String x:Key="Str.AddApp.Title">Application</sys:String>
@@ -231,6 +248,51 @@
     <sys:String x:Key="Str.Setup.WingetManifest">Winget manifest…</sys:String>
     <sys:String x:Key="Str.Setup.Done">Done</sys:String>
     <sys:String x:Key="Str.Setup.GenFailed">Generation failed</sys:String>
+
+    <!-- ══ GlobalOptionsViewModel (status + dialogs) ════════════ -->
+    <sys:String x:Key="Str.OptVm.EnterConnStr">Enter a SQL Server connection string first.</sys:String>
+    <sys:String x:Key="Str.OptVm.Testing">Testing…</sys:String>
+    <sys:String x:Key="Str.OptVm.ConnOk">✓ Connected successfully.</sys:String>
+    <sys:String x:Key="Str.OptVm.ConnFail">✗ Could not connect (check the server and credentials).</sys:String>
+    <sys:String x:Key="Str.OptVm.ConnError">✗ {0}</sys:String>
+    <sys:String x:Key="Str.OptVm.StorageNetworked">SQL Server (networked)</sys:String>
+    <sys:String x:Key="Str.OptVm.StorageLocal">SQLite (local)</sys:String>
+    <sys:String x:Key="Str.OptVm.AdminReqTitle">Admin Required</sys:String>
+    <sys:String x:Key="Str.OptVm.AdminReqMsg">Create at least one Admin user before switching to a shared SQL Server, so the shared store has an owner.</sys:String>
+    <sys:String x:Key="Str.OptVm.RestartTitle">Restart Required</sys:String>
+    <sys:String x:Key="Str.OptVm.RestartMsg">Connection settings saved.
+
+The app must restart to switch to {0}. Restart now?</sys:String>
+    <sys:String x:Key="Str.OptVm.SaveCertTitle">Save Certificate As</sys:String>
+    <sys:String x:Key="Str.OptVm.DownloadFailedTitle">Download Failed</sys:String>
+    <sys:String x:Key="Str.OptVm.CertNoLongerDb">The certificate is no longer in the database.</sys:String>
+    <sys:String x:Key="Str.OptVm.CertSavedTitle">Certificate Saved</sys:String>
+    <sys:String x:Key="Str.OptVm.CertSavedMsg">Saved to:
+{0}
+
+Use the certificate password (shared separately) to install or sign with it.</sys:String>
+    <sys:String x:Key="Str.OptVm.RegisterCertTitle">Register Certificate</sys:String>
+    <sys:String x:Key="Str.OptVm.RegisterCertPrompt">Enter the password for '{0}' to import it into your personal certificate store.</sys:String>
+    <sys:String x:Key="Str.OptVm.RegisterFailedTitle">Register Failed</sys:String>
+    <sys:String x:Key="Str.OptVm.CertRegisteredTitle">Certificate Registered</sys:String>
+    <sys:String x:Key="Str.OptVm.CertRegisteredMsg">'{0}' is now in your personal store. Select it under "Use a certificate from the Windows store" to sign with it.</sys:String>
+    <sys:String x:Key="Str.OptVm.RegisterFailedMsg">Could not import the certificate. Check the password.
+
+{0}</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreSharedWarning">
+
+⚠ You are connected to a SHARED SQL Server — this restore affects every operator's data.</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreTitle">Restore From Backup</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreMsg">This overwrites current data (apps, settings, users, certificates) with the backup's contents, then restarts the app.{0}
+
+Continue?</sys:String>
+    <sys:String x:Key="Str.OptVm.ChooseBackup">Choose Backup…</sys:String>
+    <sys:String x:Key="Str.OptVm.SelectBackup">Select a Backup ZIP</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreCompleteTitle">Restore Complete</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreCompleteMsg">Restored {0} user(s) and all data.
+
+The app will now restart to load it.</sys:String>
+    <sys:String x:Key="Str.OptVm.RestoreFailedTitle">Restore Failed</sys:String>
 
     <!-- ══ Options ═══════════════════════════════════════════════ -->
     <sys:String x:Key="Str.Options.Language">Language:</sys:String>
@@ -564,6 +626,334 @@
     <sys:String x:Key="Str.GhCompare.EmptyText">Pick a branch and click Compare.</sys:String>
     <sys:String x:Key="Str.GhCompare.FooterNote">Compares only files tracked in the repo. Text files may show as modified if line-endings differ (git autocrlf).</sys:String>
 
+    <!-- ══ SetupViewModel (computed labels) ═════════════════════ -->
+    <sys:String x:Key="Str.SetupVm.StepTitle">Step {0} of {1} · {2}</sys:String>
+    <sys:String x:Key="Str.SetupVm.TargetServiceName">Service name</sys:String>
+    <sys:String x:Key="Str.SetupVm.TargetExecutable">Executable (bundled or absolute path)</sys:String>
+    <sys:String x:Key="Str.SetupVm.TargetScript">Script file (.ps1) — optional if using inline script</sys:String>
+    <sys:String x:Key="Str.SetupVm.TargetDelete">Paths to delete (semicolon-separated; [InstallDir] allowed)</sys:String>
+    <sys:String x:Key="Str.SetupVm.TargetDefault">Target</sys:String>
+    <sys:String x:Key="Str.SetupVm.DiscardTitle">Discard Changes</sys:String>
+    <sys:String x:Key="Str.SetupVm.DiscardMsg">Leave the setup editor? Unsaved changes to this bundle will be lost.</sys:String>
+    <sys:String x:Key="Str.SetupVm.DiscardBtn">Discard</sys:String>
+    <sys:String x:Key="Str.SetupVm.ClearHistTitle">Clear History</sys:String>
+    <sys:String x:Key="Str.SetupVm.ClearHistMsg">Remove all Past Bundles entries? Generated setup files on disk are not deleted.</sys:String>
+    <sys:String x:Key="Str.SetupVm.NotFoundTitle">Not Found</sys:String>
+    <sys:String x:Key="Str.SetupVm.NotFoundMsg">The setup file no longer exists:
+{0}</sys:String>
+    <sys:String x:Key="Str.SetupVm.OpenFailedTitle">Open Failed</sys:String>
+    <sys:String x:Key="Str.SetupVm.ValidationTitle">Validation</sys:String>
+    <sys:String x:Key="Str.SetupVm.ValNameReq">Setup name is required.</sys:String>
+    <sys:String x:Key="Str.SetupVm.ValOutputReq">Output folder is required.</sys:String>
+    <sys:String x:Key="Str.SetupVm.ValSelectApp">Select at least one app.</sys:String>
+    <sys:String x:Key="Str.SetupVm.ValSelectExe">Select the exe to launch for '{0}', or set Launch on Finish to None.</sys:String>
+    <sys:String x:Key="Str.SetupVm.DeleteSetupTitle">Delete Setup</sys:String>
+    <sys:String x:Key="Str.SetupVm.DeleteSetupMsg">Delete setup bundle '{0}'? This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.SetupVm.CannotGenTitle">Cannot Generate</sys:String>
+    <sys:String x:Key="Str.SetupVm.CannotGenNoFolder">This bundle has no output folder. Edit it and set one first.</sys:String>
+    <sys:String x:Key="Str.SetupVm.CannotGenNoApps">This bundle has no apps. Edit it and add at least one.</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoSetupTitle">No Setup</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoSetupWinget">Generate a setup first, then create its winget manifest.</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoSetupPublish">Generate a setup first, then publish it.</sys:String>
+    <sys:String x:Key="Str.SetupVm.SetupNotFoundTitle">Setup Not Found</sys:String>
+    <sys:String x:Key="Str.SetupVm.SetupMissingHash">The setup file is missing and has no stored hash:
+{0}</sys:String>
+    <sys:String x:Key="Str.SetupVm.SetupMissing">The setup file is missing:
+{0}</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoBundleTitle">No Bundle</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoBundleMsg">Select a setup bundle first.</sys:String>
+    <sys:String x:Key="Str.SetupVm.NoSetupYetTitle">No Setup Yet</sys:String>
+    <sys:String x:Key="Str.SetupVm.SetupFileMissingTitle">Setup File Missing</sys:String>
+    <sys:String x:Key="Str.SetupVm.NotGenYetMsg">"{0}" hasn't been generated yet. Generate it first, then publish.</sys:String>
+    <sys:String x:Key="Str.SetupVm.GenMissingMsg">The generated setup file for "{0}" is missing (moved or deleted). Re-generate it, then publish.</sys:String>
+
+    <!-- ══ AppDetailViewModel (workflow labels) ═════════════════ -->
+    <sys:String x:Key="Str.AppDetailVm.HintBaseline">Baseline registered. Scan the folder to detect changes and start the next version.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.HintPublished">v{0} is live. Scan to start the next update.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.HintReview">Changes detected for v{0}. Review them, then package.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.HintRetracted">v{0} was retracted. Re-package to publish it again.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.HintDefault">Run the packaging pipeline for v{0}.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScanForChanges">Scan for Changes</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScanForUpdate">Scan for Update</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ReviewChanges">Review Changes</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.Repackage">Re-package</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ContinuePacking">Continue Packing</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ApprovalApproved">Approved for release (Admin + QA Tester).</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ApprovalRejected">Rejected — needs changes and re-approval.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ApprovalPending">Pending — {0} of 2 approvals (Admin + QA Tester).</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.NoteReqTitle">Note Required</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.NoteReqMsg">Add a note explaining the rejection before rejecting.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhNotConfigTitle">GitHub Not Configured</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhRepoMsg">Set this app's GitHub repository in Settings → GitHub first.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.BuildNotConfigTitle">Build Not Configured</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.BuildNotConfigMsg">Set the local repo path and build command in Settings → GitHub first.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.SolutionNotFoundTitle">Solution Not Found</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.SolutionNotFoundMsg">No .sln or .csproj found at the app's source path:
+{0}</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.DeleteVerMsg">Delete v{0}? This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractMode1">This will delete the published files and mark v{0} as retracted. The previous version (v{1}) will become the current release.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractMode2">This will delete the published files and mark v{0} as retracted. You can repack it later.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractTitle">Retract Version</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractMsg">Retract published version v{0}?
+
+{1}
+
+This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScrapTitle">Scrap Version</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScrapMsg">Permanently scrap v{0}? This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScanErrorTitle">Scan Error</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ScanFolderNotFound">Folder not found:
+{0}</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ExeDupTitle">EXE Version Already Saved</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ExeDupMsg">The EXE reports v{0}, which matches an already-saved version for this app.
+
+Verify the version number before approving.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ChangelogNotFoundTitle">Changelog Not Found</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.ChangelogNotFoundMsg">No changelog.md found in:
+{0}</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.NotFoundTitle">Not Found</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.NoChangelogEntry">No changelog entry for v{0}.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.DeleteAppTitle">Delete Application</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.DeleteAppMsg">Delete '{0}' and all its version history? This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.DeleteAppBtn">Delete App</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhChecking">Checking GitHub…</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhNoReleases">No published releases on GitHub yet.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhLatestNothing">GitHub latest release: {0} — nothing scanned yet.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhNewer">GitHub has {0} — newer than your scanned v{1}.</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhUpToDate">Up to date with GitHub ({0}).</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.GhCheckFailed">GitHub check failed: {0}</sys:String>
+
+    <!-- ══ PackageViewModel (computed labels) ═══════════════════ -->
+    <sys:String x:Key="Str.PkgVm.StepSign">Step 1 of 5 — Sign Files</sys:String>
+    <sys:String x:Key="Str.PkgVm.StepManifest">Step 2 of 5 — Build Manifest</sys:String>
+    <sys:String x:Key="Str.PkgVm.StepPackage">Step 3 of 5 — Package</sys:String>
+    <sys:String x:Key="Str.PkgVm.StepJson">Step 4 of 5 — Generate Update Catalog</sys:String>
+    <sys:String x:Key="Str.PkgVm.StepFtp">Step 5 of 5 — Publish</sys:String>
+    <sys:String x:Key="Str.PkgVm.Finish">Finish ✔</sys:String>
+    <sys:String x:Key="Str.PkgVm.Next">Next →</sys:String>
+    <sys:String x:Key="Str.PkgVm.VersionLabel">v{0}  •  {1:yyyy-MM-dd HH:mm}</sys:String>
+    <sys:String x:Key="Str.PkgVm.PublishingVia">Publishing via {0}</sys:String>
+    <sys:String x:Key="Str.PkgVm.NoPublishTarget">No publish target configured — open App Settings to add one.</sys:String>
+    <sys:String x:Key="Str.PkgVm.ApprovalApproved">Approved for release.</sys:String>
+    <sys:String x:Key="Str.PkgVm.ApprovalNeeds">Needs Admin + QA Tester approval — {0} of 2.</sys:String>
+
+    <!-- ══ DiffViewModel (computed labels + dialogs) ════════════ -->
+    <sys:String x:Key="Str.DiffVm.VersionMismatch">EXE file version is v{0}</sys:String>
+    <sys:String x:Key="Str.DiffVm.ViewTitleReadOnly">v{0} Changes — {1}</sys:String>
+    <sys:String x:Key="Str.DiffVm.ViewTitleScan">Update Scan — {0}</sys:String>
+    <sys:String x:Key="Str.DiffVm.ComparingAgainst">Comparing against v{0}  ({1:yyyy-MM-dd})</sys:String>
+    <sys:String x:Key="Str.DiffVm.VsBase">v{0} vs v{1}  |  Scanned {2:yyyy-MM-dd HH:mm}</sys:String>
+    <sys:String x:Key="Str.DiffVm.InitialScanned">Initial version  |  Scanned {0:yyyy-MM-dd HH:mm}</sys:String>
+    <sys:String x:Key="Str.DiffVm.AddedHeader">Added ({0})</sys:String>
+    <sys:String x:Key="Str.DiffVm.ModifiedHeader">Modified ({0})</sys:String>
+    <sys:String x:Key="Str.DiffVm.RemovedHeader">Removed ({0})</sys:String>
+    <sys:String x:Key="Str.DiffVm.ExcludedHeader">Excluded ({0})</sys:String>
+    <sys:String x:Key="Str.DiffVm.UnchangedHeader">Unchanged ({0})</sys:String>
+    <sys:String x:Key="Str.DiffVm.Summary">+{0} added   ~{1} modified   -{2} removed   ={3} unchanged</sys:String>
+    <sys:String x:Key="Str.DiffVm.MissingVersionTitle">Missing Version</sys:String>
+    <sys:String x:Key="Str.DiffVm.MissingVersionMsg">Please enter a version number.</sys:String>
+    <sys:String x:Key="Str.DiffVm.DupTitle">Duplicate Version</sys:String>
+    <sys:String x:Key="Str.DiffVm.DupMsg">Version {0} has already been scanned for this app. Saving it again may cause update loops.
+
+Save anyway?</sys:String>
+    <sys:String x:Key="Str.DiffVm.LoopTitle">Update Loop Risk</sys:String>
+    <sys:String x:Key="Str.DiffVm.LoopMsg">You are packaging version {0}, but the EXE reports v{1}.
+
+Clients will see {0} in the catalog, check their installed EXE ({1}), download the update — and then loop forever because the EXE version never changes.
+
+Save anyway?</sys:String>
+    <sys:String x:Key="Str.Common.SaveAnyway">Save Anyway</sys:String>
+    <sys:String x:Key="Str.Common.Cancelled">Cancelled</sys:String>
+    <sys:String x:Key="Str.Common.ErrorX">✗ {0}</sys:String>
+    <sys:String x:Key="Str.Common.Scanning">Scanning…</sys:String>
+    <sys:String x:Key="Str.Common.Testing">Testing…</sys:String>
+    <sys:String x:Key="Str.Common.RunScanFirst">Run a scan first.</sys:String>
+    <sys:String x:Key="Str.Common.PolicySaved">Policy saved.</sys:String>
+    <sys:String x:Key="Str.Common.ScanFailedFmt">Scan failed: {0}</sys:String>
+    <sys:String x:Key="Str.Common.ChooseProject">Choose a project, solution, or repo folder first.</sys:String>
+    <sys:String x:Key="Str.Common.WingetNotFound">winget not found</sys:String>
+
+    <!-- ══ Dialog code-behind status/result text ════════════════ -->
+    <sys:String x:Key="Str.LoginCB.IncorrectCreds">Incorrect username or password.</sys:String>
+    <sys:String x:Key="Str.ResumeCB.MainFmt">v{0} was processed up to Step {1}.</sys:String>
+    <sys:String x:Key="Str.ResumeCB.Sub">Do you want to start over from the beginning, or continue from where you left off?</sys:String>
+    <sys:String x:Key="Str.SignCB.SelectAtLeastOne">Select at least one file to sign.</sys:String>
+    <sys:String x:Key="Str.SignCB.NoSigntool">✗ signtool.exe not found — install the Windows 10/11 SDK or add it to PATH.</sys:String>
+    <sys:String x:Key="Str.SignCB.NoCert">✗ No signing certificate configured — set one in Settings → Global Options.</sys:String>
+    <sys:String x:Key="Str.SignCB.SigningN">Signing {0} file(s)…</sys:String>
+    <sys:String x:Key="Str.SignCB.SignedN">✔ Signed {0} file(s) and updated checksums.</sys:String>
+    <sys:String x:Key="Str.GhConnectCB.WaitingAuth">Waiting for authorization…</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.SubtitleFmt">{0} — local project vs {1}.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.LoadingBranches">Loading branches…</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.LoadBranchesFailed">Could not load branches: {0}</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.PickBranch">Pick a branch.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.ChooseLocal">Choose the local project folder.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.FetchingTree">Fetching repo tree…</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.CancelledDot">Cancelled.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.CompareFailed">Compare failed: {0}</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.ComparedN">Compared {0} tracked file(s).</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.NoBranches">No branches found.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.PickBranchCompare">Pick a branch and Compare.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.CouldNotCompare">Could not compare.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.NoTrackedFiles">No tracked files found.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.NoDifferences">No differences.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.MatchesGitHub">✓  Local project matches GitHub.</sys:String>
+    <sys:String x:Key="Str.GhCompareCB.SummaryFmt">{0} modified · {1} missing locally · {2} in sync</sys:String>
+    <sys:String x:Key="Str.WingetCB.SubtitleFmt">{0} · v{1}</sys:String>
+    <sys:String x:Key="Str.WingetCB.GeneratedFmt">Generated · {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.Validating">Validating…</sys:String>
+    <sys:String x:Key="Str.WingetCB.Submitting">Submitting…</sys:String>
+    <sys:String x:Key="Str.WingetCB.WingetcreateNotFound">wingetcreate not found</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallingWingetcreate">Installing wingetcreate…</sys:String>
+    <sys:String x:Key="Str.WingetCB.SuggestedUrlFmt">Suggested URL from {0} — verify the installer is uploaded there.</sys:String>
+    <sys:String x:Key="Str.WingetCB.UploadingInstaller">Uploading installer…</sys:String>
+    <sys:String x:Key="Str.WingetCB.UploadedFmt">✓ Uploaded to {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallTitle">Install wingetcreate</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallMsg">wingetcreate isn't installed. Install it now with winget?</sys:String>
+    <sys:String x:Key="Str.WingetCB.IdentifierForm">Package identifier must be in "Publisher.Package" form.</sys:String>
+    <sys:String x:Key="Str.WingetCB.VersionRequired">Version is required.</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallerUrlRequired">Installer URL is required (paste one or click Suggest).</sys:String>
+    <sys:String x:Key="Str.WingetCB.ShaUnavailable">Installer SHA256 is unavailable — the setup file may have moved.</sys:String>
+    <sys:String x:Key="Str.WingetCB.WriteFailedFmt">Could not write the manifest: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.GenerateFirst">Generate the manifest first.</sys:String>
+    <sys:String x:Key="Str.WingetCB.ManifestValid">✓ Manifest valid</sys:String>
+    <sys:String x:Key="Str.WingetCB.ValidationIssues">Validation reported issues</sys:String>
+    <sys:String x:Key="Str.WingetCB.ValidationFailedFmt">Validation failed: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.Submitted">✓ Submitted</sys:String>
+    <sys:String x:Key="Str.WingetCB.SubmitIssues">Submit reported issues</sys:String>
+    <sys:String x:Key="Str.WingetCB.SubmitFailedFmt">Submit failed: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.WingetcreateInstalled">✓ wingetcreate installed — click Submit again.</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallIssues">Install reported issues — see log.</sys:String>
+    <sys:String x:Key="Str.WingetCB.InstallFailedFmt">Install failed: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.NoSetupTarget">No setup-publish target is configured for this bundle. Use "Publish settings…" (next to Generate), or paste the URL manually.</sys:String>
+    <sys:String x:Key="Str.WingetCB.ResolveUrlFailedFmt">Could not resolve a URL: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.SetupFileMissingFmt">The setup file is missing:
+{0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.UploadFailedFmt">Upload failed: {0}</sys:String>
+    <sys:String x:Key="Str.WingetCB.SelectOutputFolder">Select output folder for the manifest</sys:String>
+    <sys:String x:Key="Str.VulnCB.SubtitleFmt">{0} — checks NuGet dependencies for known vulnerabilities.</sys:String>
+    <sys:String x:Key="Str.VulnCB.NoVulns">No known vulnerabilities found.</sys:String>
+    <sys:String x:Key="Str.VulnCB.CriticalN">Critical: {0}</sys:String>
+    <sys:String x:Key="Str.VulnCB.HighN">High: {0}</sys:String>
+    <sys:String x:Key="Str.VulnCB.ModerateN">Moderate: {0}</sys:String>
+    <sys:String x:Key="Str.VulnCB.LowN">Low: {0}</sys:String>
+    <sys:String x:Key="Str.VulnCB.ScannedFmt">Scanned {0} — review the findings, then Apply policy or Close.</sys:String>
+    <sys:String x:Key="Str.VulnCB.ScanCouldNotRun">Scan could not run.</sys:String>
+    <sys:String x:Key="Str.VulnCB.VerdictBlockedFmt">✗  Release blocked — {0} vulnerability(ies) violate policy.</sys:String>
+    <sys:String x:Key="Str.VulnCB.VerdictWarnFmt">⚠  {0} vulnerability(ies) found — warnings only.</sys:String>
+    <sys:String x:Key="Str.VulnCB.VerdictNoVulns">✓  No known vulnerabilities.</sys:String>
+    <sys:String x:Key="Str.VulnCB.VerdictAllowed">✓  Vulnerabilities found but allowed by policy.</sys:String>
+    <sys:String x:Key="Str.VulnCB.SelectFolder">Select the project / repo folder</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.SubtitleFmt">{0} · v{1}</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.NotConfigured">(not configured)</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.NoTarget">No setup-publish target configured.</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.PublishedFmt">Published to {0}{1}</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.PublishedWhenFmt"> on {0:yyyy-MM-dd HH:mm}</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.SetupNotFound">Setup file not found.</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.NeedsApprovalFmt">Needs Admin + QA Tester approval — {0} of 2.</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.Publishing">Publishing…</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.Published">✓ Published</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.PublishFailed">Publish failed</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.Removing">Removing…</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.Unpublished">✓ Unpublished</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.UnpublishFailed">Unpublish failed</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.UrlCopied">URL copied</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.UnpublishTitle">Unpublish Setup</sys:String>
+    <sys:String x:Key="Str.PublishSetupCB.UnpublishMsg">Remove the published setup from the target?
+This deletes the uploaded installer file.</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.SubtitleFmt">{0} — installer published separately from your apps' updates.</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.PickAppCopy">Pick an app to copy from.</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.CopiedFmt">Copied publish settings from {0}.</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.FillProviderFields">Fill in the selected provider's fields first.</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.TestFailedFmt">Test failed: {0}</sys:String>
+    <sys:String x:Key="Str.SetupPublishCB.CouldNotSaveFmt">Could not save: {0}</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.SubtitleFmt">{0} — verify files, solution build, and GitHub build match.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.IdenticalN">Identical: {0}</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.DiffersN">Differs: {0}</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.MissingSomeN">Missing in some: {0}</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.FillTwoPaths">Fill in at least two source paths to compare.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.NoFilesInSources">No files found in the sources.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.AllMatch">✓  All sources match.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.DifferVerdictFmt">✗  {0} file(s) differ, {1} missing in a source.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.MissingVerdictFmt">⚠  {0} file(s) missing in a source.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.SrcFiles">files</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.SrcSolution">solution</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.SrcGitHub">GitHub</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.ComparedAcrossFmt">Compared {0} file(s) across: {1}.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.SelectFolder">Select folder</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.StatusIdentical">Identical</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.StatusDiffers">Differs</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.StatusMissing">Missing</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.CouldNotCompare">Could not compare.</sys:String>
+    <sys:String x:Key="Str.SrcCompareCB.NoDifferences">No differences.</sys:String>
+    <sys:String x:Key="Str.RNCB.LoadingRefs">Loading tags and branches…</sys:String>
+    <sys:String x:Key="Str.RNCB.LoadedFmt">{0} tags, {1} branches loaded.</sys:String>
+    <sys:String x:Key="Str.RNCB.LoadRefsFailedFmt">Could not load refs: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.LastCommitFmt">Last commit: {0}  —  {1}</sys:String>
+    <sys:String x:Key="Str.RNCB.PickToRef">Pick a 'to' tag or branch.</sys:String>
+    <sys:String x:Key="Str.RNCB.ReadingCommitsFmt">Reading the last {0} commits on {1}…</sys:String>
+    <sys:String x:Key="Str.RNCB.ComparingFmt">Comparing {0}…{1}…</sys:String>
+    <sys:String x:Key="Str.RNCB.GenFailedFmt">Generation failed: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.NothingCategorized">Nothing categorized yet — drag commits into the sections first.</sys:String>
+    <sys:String x:Key="Str.RNCB.DraftReady">Draft ready — review and edit, then copy, save, or publish.</sys:String>
+    <sys:String x:Key="Str.RNCB.CopiedClipboard">Copied to clipboard.</sys:String>
+    <sys:String x:Key="Str.RNCB.CopyFailedFmt">Copy failed: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.SavedToFmt">Saved to {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.SaveFailedFmt">Save failed: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.SetVersionFirst">Set a Version (used as the release tag) before publishing.</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishingReleaseFmt">Publishing release '{0}'…</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishedReleaseFmt">Published release '{0}' on GitHub.</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishFailedFmt">Publish failed: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.BuildDraftFirst">Build the draft first.</sys:String>
+    <sys:String x:Key="Str.RNCB.AddedToFmt">Added to {0} (newest entry on top).</sys:String>
+    <sys:String x:Key="Str.RNCB.ChangelogFailedFmt">Could not update changelog: {0}</sys:String>
+    <sys:String x:Key="Str.RNCB.NoTagsRecent">No tags — generating from recent commits on the selected branch.</sys:String>
+    <sys:String x:Key="Str.RNCB.NoTagsOrBranches">No tags or branches found — type a ref manually.</sys:String>
+    <sys:String x:Key="Str.RNCB.NoCommits">No commits found — try a different range or branch.</sys:String>
+    <sys:String x:Key="Str.RNCB.CommitsDragFmt">{0} commits. Drag each line into a section, then Build Draft.</sys:String>
+    <sys:String x:Key="Str.RNCB.SaveDestApp">App folder</sys:String>
+    <sys:String x:Key="Str.RNCB.SaveDestSolution">Solution folder</sys:String>
+    <sys:String x:Key="Str.RNCB.SaveTitle">Save release notes</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishConfirmTitle">Publish Release Notes</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishConfirmMsgFmt">Create or update the GitHub release for tag '{0}' with these notes?</sys:String>
+    <sys:String x:Key="Str.RNCB.PublishConfirmBtn">Publish</sys:String>
+    <sys:String x:Key="Str.LicenseCB.SubtitleFmt">{0} — third-party NuGet packages and their licenses.</sys:String>
+    <sys:String x:Key="Str.LicenseCB.NoNuget">No NuGet dependencies found.</sys:String>
+    <sys:String x:Key="Str.LicenseCB.ScannedFmt">Scanned {0} · {1} package(s) — review, then Apply policy or Close.</sys:String>
+    <sys:String x:Key="Str.LicenseCB.BlockedN">Blocked: {0}</sys:String>
+    <sys:String x:Key="Str.LicenseCB.WarnN">Warn: {0}</sys:String>
+    <sys:String x:Key="Str.LicenseCB.AllowedN">Allowed: {0}</sys:String>
+    <sys:String x:Key="Str.LicenseCB.SavedFmt">Saved {0}</sys:String>
+    <sys:String x:Key="Str.LicenseCB.ExportFailedFmt">Export failed: {0}</sys:String>
+    <sys:String x:Key="Str.LicenseCB.VerdictBlockedFmt">✗  Release blocked — {0} forbidden license(s).</sys:String>
+    <sys:String x:Key="Str.LicenseCB.VerdictWarnFmt">⚠  {0} license(s) need review.</sys:String>
+    <sys:String x:Key="Str.LicenseCB.VerdictAllowed">✓  All licenses allowed by policy.</sys:String>
+    <sys:String x:Key="Str.LicenseCB.StatusBlocked">Blocked</sys:String>
+    <sys:String x:Key="Str.LicenseCB.StatusWarn">Warn</sys:String>
+    <sys:String x:Key="Str.LicenseCB.StatusOK">OK</sys:String>
+
+    <!-- ══ Generate Updater window ═══════════════════════════════ -->
+    <sys:String x:Key="Str.GenUpdater.Title">Generate Updater</sys:String>
+    <sys:String x:Key="Str.GenUpdater.AppExe">Application exe</sys:String>
+    <sys:String x:Key="Str.GenUpdater.Extension">Package extension</sys:String>
+    <sys:String x:Key="Str.GenUpdater.Icon">Icon</sys:String>
+    <sys:String x:Key="Str.GenUpdater.OutputFolder">Output folder</sys:String>
+    <sys:String x:Key="Str.GenUpdater.Sign">Sign the updater with the global certificate</sys:String>
+    <sys:String x:Key="Str.GenUpdater.Generate">Generate</sys:String>
+    <sys:String x:Key="Str.GenUpdater.Reveal">Reveal</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.SubtitleFmt">{0} — a standalone EXE that applies staged updates and relaunches the app.</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.PickExe">Choose the application's executable.</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.PickExeFile">Select the application's executable</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.PickIcon">Select an icon (.ico) or an executable to extract it from</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.PickOutput">Select the output folder for the updater</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.Generating">Generating updater…</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.DoneBranded">✓ Updater generated (branded with the app icon).</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.DonePrebuilt">✓ Updater generated (prebuilt + sidecar config).</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.FailedFmt">Generation failed: {0}</sys:String>
+    <sys:String x:Key="Str.GenUpdaterCB.AddedToScanFmt">Added {0} file(s) to the app's scanned files.</sys:String>
+    <sys:String x:Key="Str.ScanVm.NoUpdaterTitle">No updater found</sys:String>
+    <sys:String x:Key="Str.ScanVm.NoUpdaterMsg">This app doesn't include an updater. Generate one now so the app can apply its own updates and relaunch?</sys:String>
+
     <!-- ══ Changelog window ══════════════════════════════════════ -->
     <sys:String x:Key="Str.Changelog.Title">Changelog</sys:String>
     <sys:String x:Key="Str.Changelog.HeaderPrefix">Changelog — v</sys:String>
@@ -666,6 +1056,8 @@
     <sys:String x:Key="Str.AppDetail.CompareTip">Compare the app's files vs. the solution build vs. the GitHub build</sys:String>
     <sys:String x:Key="Str.AppDetail.CompareGitHub">Compare w/ GitHub</sys:String>
     <sys:String x:Key="Str.AppDetail.CompareGitHubTip">Compare your local project source against the connected GitHub repo</sys:String>
+    <sys:String x:Key="Str.AppDetail.GenerateUpdater">Updater</sys:String>
+    <sys:String x:Key="Str.AppDetail.GenerateUpdaterTip">Generate a standalone updater EXE that applies this app's updates and relaunches it</sys:String>
     <sys:String x:Key="Str.AppDetail.Settings">Settings</sys:String>
     <sys:String x:Key="Str.AppDetail.Edit">Edit</sys:String>
     <sys:String x:Key="Str.AppDetail.Delete">Delete</sys:String>
@@ -673,6 +1065,7 @@
     <sys:String x:Key="Str.AppDetail.StepReview">Review</sys:String>
     <sys:String x:Key="Str.AppDetail.StepPackage">Package</sys:String>
     <sys:String x:Key="Str.AppDetail.StepPublish">Publish</sys:String>
+    <sys:String x:Key="Str.AppDetail.InitialVersion">Initial version</sys:String>
     <sys:String x:Key="Str.AppDetail.ScanningFolder">Scanning folder…</sys:String>
     <sys:String x:Key="Str.AppDetail.FilesSuffix"> files</sys:String>
     <sys:String x:Key="Str.AppDetail.ComputingChanges">Computing changes…</sys:String>

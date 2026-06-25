@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
 using ForgeTekApplicationReleaseManager.Services.Publishing;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -51,7 +52,7 @@ public partial class WingetManifestWindow : Window
         var g = _settings.Global;
         var publisher = string.IsNullOrWhiteSpace(g.CompanyName) ? _appName : g.CompanyName;
 
-        SubtitleText.Text = $"{Path.GetFileName(_record.OutputPath)} · v{_record.Version}";
+        SubtitleText.Text = S("Str.WingetCB.SubtitleFmt", Path.GetFileName(_record.OutputPath), _record.Version);
 
         IdentifierBox.Text = string.IsNullOrWhiteSpace(w.PackageIdentifier)
             ? _manifest.DeriveIdentifier(publisher, _appName)
@@ -112,12 +113,12 @@ public partial class WingetManifestWindow : Window
 
         if (string.IsNullOrWhiteSpace(id) || !id.Contains('.'))
         {
-            Warn("Package identifier must be in \"Publisher.Package\" form.");
+            Warn(S("Str.WingetCB.IdentifierForm"));
             return null;
         }
-        if (string.IsNullOrWhiteSpace(version)) { Warn("Version is required."); return null; }
-        if (string.IsNullOrWhiteSpace(installerUrl)) { Warn("Installer URL is required (paste one or click Suggest)."); return null; }
-        if (string.IsNullOrWhiteSpace(sha)) { Warn("Installer SHA256 is unavailable — the setup file may have moved."); return null; }
+        if (string.IsNullOrWhiteSpace(version)) { Warn(S("Str.WingetCB.VersionRequired")); return null; }
+        if (string.IsNullOrWhiteSpace(installerUrl)) { Warn(S("Str.WingetCB.InstallerUrlRequired")); return null; }
+        if (string.IsNullOrWhiteSpace(sha)) { Warn(S("Str.WingetCB.ShaUnavailable")); return null; }
 
         var tags = TagsBox.Text
             .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -184,13 +185,13 @@ public partial class WingetManifestWindow : Window
 
             _generatedFolder = _manifest.Write(input, root);
             PersistMetadata();
-            StatusText.Text = $"Generated · {_generatedFolder}";
+            StatusText.Text = S("Str.WingetCB.GeneratedFmt", _generatedFolder);
             Log($"Wrote 3 manifest files to:\n{_generatedFolder}");
             try { System.Diagnostics.Process.Start("explorer.exe", $"\"{_generatedFolder}\""); } catch { }
         }
         catch (Exception ex)
         {
-            Warn($"Could not write the manifest: {ex.Message}");
+            Warn(S("Str.WingetCB.WriteFailedFmt", ex.Message));
         }
     }
 
@@ -198,26 +199,26 @@ public partial class WingetManifestWindow : Window
     {
         if (_generatedFolder is null || !Directory.Exists(_generatedFolder))
         {
-            Warn("Generate the manifest first.");
+            Warn(S("Str.WingetCB.GenerateFirst"));
             return;
         }
-        StatusText.Text = "Validating…";
+        StatusText.Text = S("Str.WingetCB.Validating");
         Log("> winget validate --manifest " + _generatedFolder);
         try
         {
             var progress = new Progress<string>(line => Append(line));
             var result = await ProcessRunner.RunAsync("winget",
                 $"validate --manifest \"{_generatedFolder}\"", progress: progress);
-            StatusText.Text = result.Succeeded ? "✓ Manifest valid" : "Validation reported issues";
+            StatusText.Text = result.Succeeded ? S("Str.WingetCB.ManifestValid") : S("Str.WingetCB.ValidationIssues");
         }
         catch (ToolNotFoundException)
         {
-            StatusText.Text = "winget not found";
+            StatusText.Text = S("Str.Common.WingetNotFound");
             Log("winget is not installed. Install \"App Installer\" from the Microsoft Store to validate locally.");
         }
         catch (Exception ex)
         {
-            Warn($"Validation failed: {ex.Message}");
+            Warn(S("Str.WingetCB.ValidationFailedFmt", ex.Message));
         }
     }
 
@@ -225,24 +226,24 @@ public partial class WingetManifestWindow : Window
     {
         if (_generatedFolder is null || !Directory.Exists(_generatedFolder))
         {
-            Warn("Generate the manifest first.");
+            Warn(S("Str.WingetCB.GenerateFirst"));
             return;
         }
-        StatusText.Text = "Submitting…";
+        StatusText.Text = S("Str.WingetCB.Submitting");
         Log("> wingetcreate submit \"" + _generatedFolder + "\"");
         try
         {
             var progress = new Progress<string>(line => Append(line));
             var result = await ProcessRunner.RunAsync("wingetcreate",
                 $"submit \"{_generatedFolder}\"", progress: progress);
-            StatusText.Text = result.Succeeded ? "✓ Submitted" : "Submit reported issues";
+            StatusText.Text = result.Succeeded ? S("Str.WingetCB.Submitted") : S("Str.WingetCB.SubmitIssues");
         }
         catch (ToolNotFoundException)
         {
-            StatusText.Text = "wingetcreate not found";
+            StatusText.Text = S("Str.WingetCB.WingetcreateNotFound");
             var choice = MessageBox.Show(this,
-                "wingetcreate isn't installed. Install it now with winget?",
-                "Install wingetcreate", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                S("Str.WingetCB.InstallMsg"),
+                S("Str.WingetCB.InstallTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (choice == MessageBoxResult.Yes)
                 await InstallWingetCreateAsync();
             else
@@ -256,13 +257,13 @@ public partial class WingetManifestWindow : Window
         }
         catch (Exception ex)
         {
-            Warn($"Submit failed: {ex.Message}");
+            Warn(S("Str.WingetCB.SubmitFailedFmt", ex.Message));
         }
     }
 
     private async Task InstallWingetCreateAsync()
     {
-        StatusText.Text = "Installing wingetcreate…";
+        StatusText.Text = S("Str.WingetCB.InstallingWingetcreate");
         Log("> winget install --id Microsoft.WingetCreate -e --source winget");
         try
         {
@@ -271,18 +272,18 @@ public partial class WingetManifestWindow : Window
                 "install --id Microsoft.WingetCreate -e --source winget " +
                 "--accept-source-agreements --accept-package-agreements", progress: progress);
             StatusText.Text = result.Succeeded
-                ? "✓ wingetcreate installed — click Submit again."
-                : "Install reported issues — see log.";
+                ? S("Str.WingetCB.WingetcreateInstalled")
+                : S("Str.WingetCB.InstallIssues");
         }
         catch (ToolNotFoundException)
         {
-            StatusText.Text = "winget not found";
+            StatusText.Text = S("Str.Common.WingetNotFound");
             Log("winget (App Installer) isn't available, so wingetcreate can't be installed automatically. " +
                 "Install \"App Installer\" from the Microsoft Store first.");
         }
         catch (Exception ex)
         {
-            Warn($"Install failed: {ex.Message}");
+            Warn(S("Str.WingetCB.InstallFailedFmt", ex.Message));
         }
     }
 
@@ -290,7 +291,7 @@ public partial class WingetManifestWindow : Window
     {
         if (_setupPublish is null)
         {
-            Warn("No setup-publish target is configured for this bundle. Use \"Publish settings…\" (next to Generate), or paste the URL manually.");
+            Warn(S("Str.WingetCB.NoSetupTarget"));
             return;
         }
         try
@@ -298,11 +299,11 @@ public partial class WingetManifestWindow : Window
             var fileName = Path.GetFileName(_record.OutputPath);
             var url = _publish.ResolveDownloadUrl(_setupPublish, _appKey, VersionBox.Text.Trim(), fileName);
             InstallerUrlBox.Text = url;
-            StatusText.Text = $"Suggested URL from {_publish.ProviderName(_setupPublish)} — verify the installer is uploaded there.";
+            StatusText.Text = S("Str.WingetCB.SuggestedUrlFmt", _publish.ProviderName(_setupPublish));
         }
         catch (Exception ex)
         {
-            Warn($"Could not resolve a URL: {ex.Message}");
+            Warn(S("Str.WingetCB.ResolveUrlFailedFmt", ex.Message));
         }
     }
 
@@ -310,17 +311,17 @@ public partial class WingetManifestWindow : Window
     {
         if (_setupPublish is null)
         {
-            Warn("No setup-publish target is configured for this bundle. Use \"Publish settings…\" (next to Generate), or paste the URL manually.");
+            Warn(S("Str.WingetCB.NoSetupTarget"));
             return;
         }
         if (!File.Exists(_record.OutputPath))
         {
-            Warn($"The setup file is missing:\n{_record.OutputPath}");
+            Warn(S("Str.WingetCB.SetupFileMissingFmt", _record.OutputPath));
             return;
         }
 
         UploadUrlBtn.IsEnabled = false;
-        StatusText.Text = "Uploading installer…";
+        StatusText.Text = S("Str.WingetCB.UploadingInstaller");
         try
         {
             var fileName = Path.GetFileName(_record.OutputPath);
@@ -328,11 +329,11 @@ public partial class WingetManifestWindow : Window
             var url = await _publish.UploadArtifactAsync(_setupPublish, _appKey, VersionBox.Text.Trim(),
                 _record.OutputPath, fileName, progress);
             InstallerUrlBox.Text = url;
-            StatusText.Text = $"✓ Uploaded to {_publish.ProviderName(_setupPublish)}";
+            StatusText.Text = S("Str.WingetCB.UploadedFmt", _publish.ProviderName(_setupPublish));
         }
         catch (Exception ex)
         {
-            Warn($"Upload failed: {ex.Message}");
+            Warn(S("Str.WingetCB.UploadFailedFmt", ex.Message));
         }
         finally
         {
@@ -342,7 +343,7 @@ public partial class WingetManifestWindow : Window
 
     private void BrowseOutput_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select output folder for the manifest" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = S("Str.WingetCB.SelectOutputFolder") };
         if (dlg.ShowDialog() == true)
             OutputFolderBox.Text = dlg.FolderName;
     }

@@ -128,18 +128,18 @@ public partial class GlobalOptionsViewModel : ObservableObject
     /// <summary>The provider in effect for the current session (changes take effect after restart).</summary>
     public string CurrentStorageMode =>
         _connection.IsNetworked && !string.IsNullOrWhiteSpace(_connection.SqlServerConnectionString)
-            ? "SQL Server (networked)" : "SQLite (local)";
+            ? _loc.Get("Str.OptVm.StorageNetworked") : _loc.Get("Str.OptVm.StorageLocal");
 
     [RelayCommand]
     private async Task TestConnection()
     {
         if (string.IsNullOrWhiteSpace(SqlServerConnectionString))
         {
-            ConnectionStatus = "Enter a SQL Server connection string first.";
+            ConnectionStatus = _loc.Get("Str.OptVm.EnterConnStr");
             return;
         }
         IsTestingConnection = true;
-        ConnectionStatus = "Testing…";
+        ConnectionStatus = _loc.Get("Str.OptVm.Testing");
         try
         {
             var ok = await Task.Run(() =>
@@ -149,9 +149,9 @@ public partial class GlobalOptionsViewModel : ObservableObject
                 using var ctx = new ForgeTekDbContext(opts);
                 return ctx.Database.CanConnect();
             });
-            ConnectionStatus = ok ? "✓ Connected successfully." : "✗ Could not connect (check the server and credentials).";
+            ConnectionStatus = ok ? _loc.Get("Str.OptVm.ConnOk") : _loc.Get("Str.OptVm.ConnFail");
         }
-        catch (Exception ex) { ConnectionStatus = $"✗ {ex.Message}"; }
+        catch (Exception ex) { ConnectionStatus = _loc.Get("Str.OptVm.ConnError", ex.Message); }
         finally { IsTestingConnection = false; }
     }
 
@@ -161,8 +161,8 @@ public partial class GlobalOptionsViewModel : ObservableObject
         if (UseNetworkedDatabase && !CanUseNetworked)
         {
             MessageBox.Show(
-                "Create at least one Admin user before switching to a shared SQL Server, so the shared store has an owner.",
-                "Admin Required", MessageBoxButton.OK, MessageBoxImage.Warning);
+                _loc.Get("Str.OptVm.AdminReqMsg"),
+                _loc.Get("Str.OptVm.AdminReqTitle"), MessageBoxButton.OK, MessageBoxImage.Warning);
             UseNetworkedDatabase = false;
             return;
         }
@@ -173,10 +173,10 @@ public partial class GlobalOptionsViewModel : ObservableObject
         _connection.Save();
         OnPropertyChanged(nameof(CurrentStorageMode));
 
-        var target = _connection.IsNetworked ? "SQL Server (networked)" : "SQLite (local)";
+        var target = _connection.IsNetworked ? _loc.Get("Str.OptVm.StorageNetworked") : _loc.Get("Str.OptVm.StorageLocal");
         var restart = MessageBox.Show(
-            $"Connection settings saved.\n\nThe app must restart to switch to {target}. Restart now?",
-            "Restart Required", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            _loc.Get("Str.OptVm.RestartMsg", target),
+            _loc.Get("Str.OptVm.RestartTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (restart == MessageBoxResult.Yes)
         {
             var exe = Environment.ProcessPath;
@@ -302,18 +302,18 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private async Task DownloadCert(SharedCertificate? cert)
     {
         if (cert is null) return;
-        var path = _dialog.SaveFile("Save Certificate As", "Certificate (*.pfx)|*.pfx",
+        var path = _dialog.SaveFile(_loc.Get("Str.OptVm.SaveCertTitle"), "Certificate (*.pfx)|*.pfx",
             $"{Sanitize(cert.Subject)}.pfx");
         if (path is null) return;
         try
         {
             var pfx = await _certStore.GetPfxAsync(cert.Id);
-            if (pfx is null) { _dialog.Alert("Download Failed", "The certificate is no longer in the database."); return; }
+            if (pfx is null) { _dialog.Alert(_loc.Get("Str.OptVm.DownloadFailedTitle"), _loc.Get("Str.OptVm.CertNoLongerDb")); return; }
             await File.WriteAllBytesAsync(path, pfx);
-            _dialog.Alert("Certificate Saved",
-                $"Saved to:\n{path}\n\nUse the certificate password (shared separately) to install or sign with it.");
+            _dialog.Alert(_loc.Get("Str.OptVm.CertSavedTitle"),
+                _loc.Get("Str.OptVm.CertSavedMsg", path));
         }
-        catch (Exception ex) { _dialog.Alert("Download Failed", ex.Message); }
+        catch (Exception ex) { _dialog.Alert(_loc.Get("Str.OptVm.DownloadFailedTitle"), ex.Message); }
     }
 
     /// <summary>Imports the .pfx into this machine's personal store (prompting for the password) so signing
@@ -322,24 +322,24 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private async Task RegisterCert(SharedCertificate? cert)
     {
         if (cert is null) return;
-        var pwd = _dialog.PromptPassword("Register Certificate",
-            $"Enter the password for '{cert.Subject}' to import it into your personal certificate store.");
+        var pwd = _dialog.PromptPassword(_loc.Get("Str.OptVm.RegisterCertTitle"),
+            _loc.Get("Str.OptVm.RegisterCertPrompt", cert.Subject));
         if (pwd is null) return;   // cancelled
         try
         {
             var pfx = await _certStore.GetPfxAsync(cert.Id);
-            if (pfx is null) { _dialog.Alert("Register Failed", "The certificate is no longer in the database."); return; }
+            if (pfx is null) { _dialog.Alert(_loc.Get("Str.OptVm.RegisterFailedTitle"), _loc.Get("Str.OptVm.CertNoLongerDb")); return; }
             await Task.Run(() => _certService.ImportToUserStore(pfx, pwd));
             RefreshStoreCerts();
             SelectedStoreThumbprint = cert.Thumbprint;
             UseStoreCert = true;
-            _dialog.Alert("Certificate Registered",
-                $"'{cert.Subject}' is now in your personal store. Select it under \"Use a certificate from the Windows store\" to sign with it.");
+            _dialog.Alert(_loc.Get("Str.OptVm.CertRegisteredTitle"),
+                _loc.Get("Str.OptVm.CertRegisteredMsg", cert.Subject));
         }
         catch (Exception ex)
         {
-            _dialog.Alert("Register Failed",
-                $"Could not import the certificate. Check the password.\n\n{ex.Message}");
+            _dialog.Alert(_loc.Get("Str.OptVm.RegisterFailedTitle"),
+                _loc.Get("Str.OptVm.RegisterFailedMsg", ex.Message));
         }
     }
 
@@ -629,15 +629,14 @@ public partial class GlobalOptionsViewModel : ObservableObject
     private async Task RestoreBackup()
     {
         var sharedWarning = _connection.IsNetworked && !string.IsNullOrWhiteSpace(_connection.SqlServerConnectionString)
-            ? "\n\n⚠ You are connected to a SHARED SQL Server — this restore affects every operator's data."
+            ? _loc.Get("Str.OptVm.RestoreSharedWarning")
             : string.Empty;
-        if (!_dialog.Confirm("Restore From Backup",
-                "This overwrites current data (apps, settings, users, certificates) with the backup's contents, " +
-                "then restarts the app." + sharedWarning + "\n\nContinue?",
-                "Choose Backup…"))
+        if (!_dialog.Confirm(_loc.Get("Str.OptVm.RestoreTitle"),
+                _loc.Get("Str.OptVm.RestoreMsg", sharedWarning),
+                _loc.Get("Str.OptVm.ChooseBackup")))
             return;
 
-        var path = _dialog.OpenFile("Select a Backup ZIP", "Backup ZIP (*.zip)|*.zip|All files (*.*)|*.*");
+        var path = _dialog.OpenFile(_loc.Get("Str.OptVm.SelectBackup"), "Backup ZIP (*.zip)|*.zip|All files (*.*)|*.*");
         if (path is null) return;
 
         IsRestoring = true;
@@ -647,13 +646,13 @@ public partial class GlobalOptionsViewModel : ObservableObject
             var progress = new Progress<string>(msg => _log.Write("Restore", msg));
             var users = await _backupService.RestoreAsync(path, progress, CancellationToken.None);
             _log.Write("Restore", $"Restore complete from {path} ({users} user(s)).");
-            _dialog.Alert("Restore Complete",
-                $"Restored {users} user(s) and all data.\n\nThe app will now restart to load it.");
+            _dialog.Alert(_loc.Get("Str.OptVm.RestoreCompleteTitle"),
+                _loc.Get("Str.OptVm.RestoreCompleteMsg", users));
             RestartApp();
         }
         catch (Exception ex)
         {
-            _dialog.Alert("Restore Failed", ex.Message);
+            _dialog.Alert(_loc.Get("Str.OptVm.RestoreFailedTitle"), ex.Message);
         }
         finally { IsRestoring = false; }
     }

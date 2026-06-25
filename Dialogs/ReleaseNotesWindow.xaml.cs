@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -56,8 +57,8 @@ public partial class ReleaseNotesWindow : Window
         if (!string.IsNullOrWhiteSpace(appFolder)) ChangelogBtn.Visibility = Visibility.Visible;
 
         // Offer the app folder and/or the solution folder as quick save destinations.
-        if (!string.IsNullOrWhiteSpace(appFolder)) _saveDestinations["App folder"] = appFolder!;
-        if (!string.IsNullOrWhiteSpace(solutionFolder)) _saveDestinations["Solution folder"] = solutionFolder!;
+        if (!string.IsNullOrWhiteSpace(appFolder)) _saveDestinations[S("Str.RNCB.SaveDestApp")] = appFolder!;
+        if (!string.IsNullOrWhiteSpace(solutionFolder)) _saveDestinations[S("Str.RNCB.SaveDestSolution")] = solutionFolder!;
         if (_saveDestinations.Count > 0)
         {
             SaveDestBox.ItemsSource = _saveDestinations.Keys.ToList();
@@ -93,7 +94,7 @@ public partial class ReleaseNotesWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         Spinner.Visibility = Visibility.Visible;
-        StatusText.Text = "Loading tags and branches…";
+        StatusText.Text = S("Str.RNCB.LoadingRefs");
         GenerateBtn.IsEnabled = false;
         try
         {
@@ -110,20 +111,20 @@ public partial class ReleaseNotesWindow : Window
             {
                 ToCombo.SelectedItem = tags[0];
                 if (tags.Count > 1) FromCombo.SelectedItem = tags[1];
-                StatusText.Text = $"{tags.Count} tags, {branches.Count} branches loaded.";
+                StatusText.Text = S("Str.RNCB.LoadedFmt", tags.Count, branches.Count);
             }
             else
             {
                 var main = branches.FirstOrDefault(b => b is "main" or "master") ?? branches.FirstOrDefault();
                 if (main is not null) ToCombo.SelectedItem = main;
                 StatusText.Text = branches.Count > 0
-                    ? "No tags — generating from recent commits on the selected branch."
-                    : "No tags or branches found — type a ref manually.";
+                    ? S("Str.RNCB.NoTagsRecent")
+                    : S("Str.RNCB.NoTagsOrBranches");
             }
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Could not load refs: {ex.Message}";
+            StatusText.Text = S("Str.RNCB.LoadRefsFailedFmt", ex.Message);
         }
         finally
         {
@@ -137,7 +138,7 @@ public partial class ReleaseNotesWindow : Window
             var last = await _github.GetLastCommitAsync(_repo, _token);
             if (last is not null && !string.IsNullOrWhiteSpace(last.Message))
             {
-                LastCommitText.Text = $"Last commit: {last.Message}  —  {last.Meta}";
+                LastCommitText.Text = S("Str.RNCB.LastCommitFmt", last.Message, last.Meta);
                 LastCommitBox.Visibility = Visibility.Visible;
             }
         }
@@ -150,7 +151,7 @@ public partial class ReleaseNotesWindow : Window
         var to = (ToCombo.Text ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(to))
         {
-            StatusText.Text = "Pick a 'to' tag or branch.";
+            StatusText.Text = S("Str.RNCB.PickToRef");
             return;
         }
 
@@ -164,12 +165,12 @@ public partial class ReleaseNotesWindow : Window
             if (useRecent)
             {
                 if (!int.TryParse(CountBox.Text, out var count) || count < 1) count = 20;
-                StatusText.Text = $"Reading the last {count} commits on {to}…";
+                StatusText.Text = S("Str.RNCB.ReadingCommitsFmt", count, to);
                 changes = await _github.GetRecentChangesAsync(_repo, _token, to, count);
             }
             else
             {
-                StatusText.Text = $"Comparing {from}…{to}…";
+                StatusText.Text = S("Str.RNCB.ComparingFmt", from, to);
                 changes = await _github.GetCompareChangesAsync(_repo, _token, from, to);
             }
 
@@ -189,12 +190,12 @@ public partial class ReleaseNotesWindow : Window
             }
 
             StatusText.Text = changes.Count == 0
-                ? "No commits found — try a different range or branch."
-                : $"{changes.Count} commits. Drag each line into a section, then Build Draft.";
+                ? S("Str.RNCB.NoCommits")
+                : S("Str.RNCB.CommitsDragFmt", changes.Count);
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Generation failed: {ex.Message}";
+            StatusText.Text = S("Str.RNCB.GenFailedFmt", ex.Message);
         }
         finally
         {
@@ -267,7 +268,7 @@ public partial class ReleaseNotesWindow : Window
 
         if (_added.Count + _changed.Count + _improved.Count + _removed.Count + _fixed.Count == 0)
         {
-            StatusText.Text = "Nothing categorized yet — drag commits into the sections first.";
+            StatusText.Text = S("Str.RNCB.NothingCategorized");
             return;
         }
 
@@ -277,7 +278,7 @@ public partial class ReleaseNotesWindow : Window
         PublishBtn.IsEnabled = true;
         ChangelogBtn.IsEnabled = true;
         Tabs.SelectedIndex = 1;   // jump to the Draft tab
-        StatusText.Text = "Draft ready — review and edit, then copy, save, or publish.";
+        StatusText.Text = S("Str.RNCB.DraftReady");
     }
 
     private static void Section(StringBuilder sb, string header, ObservableCollection<string> items)
@@ -291,8 +292,8 @@ public partial class ReleaseNotesWindow : Window
     // ── Output actions ─────────────────────────────────────────────────────────
     private void Copy_Click(object sender, RoutedEventArgs e)
     {
-        try { Clipboard.SetText(NotesBox.Text); StatusText.Text = "Copied to clipboard."; }
-        catch (Exception ex) { StatusText.Text = $"Copy failed: {ex.Message}"; }
+        try { Clipboard.SetText(NotesBox.Text); StatusText.Text = S("Str.RNCB.CopiedClipboard"); }
+        catch (Exception ex) { StatusText.Text = S("Str.RNCB.CopyFailedFmt", ex.Message); }
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -300,7 +301,7 @@ public partial class ReleaseNotesWindow : Window
         var version = VersionBox.Text.Trim();
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Title = "Save release notes",
+            Title = S("Str.RNCB.SaveTitle"),
             Filter = "Markdown (*.md)|*.md|Text (*.txt)|*.txt|All files (*.*)|*.*",
             FileName = $"release-notes-{(string.IsNullOrWhiteSpace(version) ? "draft" : version)}.md",
         };
@@ -310,8 +311,8 @@ public partial class ReleaseNotesWindow : Window
             dlg.InitialDirectory = folder;
 
         if (dlg.ShowDialog() != true) return;
-        try { File.WriteAllText(dlg.FileName, NotesBox.Text); StatusText.Text = $"Saved to {dlg.FileName}"; }
-        catch (Exception ex) { StatusText.Text = $"Save failed: {ex.Message}"; }
+        try { File.WriteAllText(dlg.FileName, NotesBox.Text); StatusText.Text = S("Str.RNCB.SavedToFmt", dlg.FileName); }
+        catch (Exception ex) { StatusText.Text = S("Str.RNCB.SaveFailedFmt", ex.Message); }
     }
 
     private async void Publish_Click(object sender, RoutedEventArgs e)
@@ -321,26 +322,26 @@ public partial class ReleaseNotesWindow : Window
         if (string.IsNullOrWhiteSpace(tag)) tag = (ToCombo.Text ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(tag))
         {
-            StatusText.Text = "Set a Version (used as the release tag) before publishing.";
+            StatusText.Text = S("Str.RNCB.SetVersionFirst");
             return;
         }
 
-        var confirm = new ConfirmDialog("Publish Release Notes",
-            $"Create or update the GitHub release for tag '{tag}' with these notes?",
-            "Publish", isDanger: false) { Owner = this };
+        var confirm = new ConfirmDialog(S("Str.RNCB.PublishConfirmTitle"),
+            S("Str.RNCB.PublishConfirmMsgFmt", tag),
+            S("Str.RNCB.PublishConfirmBtn"), isDanger: false) { Owner = this };
         if (confirm.ShowDialog() != true) return;
 
         Spinner.Visibility = Visibility.Visible;
-        StatusText.Text = $"Publishing release '{tag}'…";
+        StatusText.Text = S("Str.RNCB.PublishingReleaseFmt", tag);
         PublishBtn.IsEnabled = false;
         try
         {
             await _github.PublishReleaseNotesAsync(_repo, _token, tag, NotesBox.Text);
-            StatusText.Text = $"Published release '{tag}' on GitHub.";
+            StatusText.Text = S("Str.RNCB.PublishedReleaseFmt", tag);
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Publish failed: {ex.Message}";
+            StatusText.Text = S("Str.RNCB.PublishFailedFmt", ex.Message);
         }
         finally
         {
@@ -353,7 +354,7 @@ public partial class ReleaseNotesWindow : Window
     {
         if (string.IsNullOrWhiteSpace(_appFolder)) return;
         var section = NotesBox.Text.Trim();
-        if (section.Length == 0) { StatusText.Text = "Build the draft first."; return; }
+        if (section.Length == 0) { StatusText.Text = S("Str.RNCB.BuildDraftFirst"); return; }
 
         try
         {
@@ -361,11 +362,11 @@ public partial class ReleaseNotesWindow : Window
                        ?? Path.Combine(_appFolder, "CHANGELOG.md");
             var existing = File.Exists(path) ? File.ReadAllText(path) : null;
             File.WriteAllText(path, _changelog.BuildChangelog(existing, section, _appName ?? string.Empty));
-            StatusText.Text = $"Added to {Path.GetFileName(path)} (newest entry on top).";
+            StatusText.Text = S("Str.RNCB.AddedToFmt", Path.GetFileName(path));
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Could not update changelog: {ex.Message}";
+            StatusText.Text = S("Str.RNCB.ChangelogFailedFmt", ex.Message);
         }
     }
 

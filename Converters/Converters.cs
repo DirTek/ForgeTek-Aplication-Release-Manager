@@ -4,6 +4,23 @@ using System.Windows.Data;
 
 namespace ForgeTekApplicationReleaseManager.Converters;
 
+/// <summary>Localizes an enum value for display by looking up the resource key
+/// <c>Str.Enum.&lt;EnumTypeName&gt;.&lt;Value&gt;</c> (e.g. Str.Enum.VersionStatus.Signed). Falls back to the
+/// raw value name when the key is missing. Note: a value-binding converter re-runs when the bound value
+/// changes, not on a live language switch — the display updates the next time the item refreshes.</summary>
+public class EnumLocalizeConverter : IValueConverter
+{
+    public static readonly EnumLocalizeConverter Instance = new();
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is null) return string.Empty;
+        var key = $"Str.Enum.{value.GetType().Name}.{value}";
+        return Application.Current?.TryFindResource(key) as string ?? value.ToString() ?? string.Empty;
+    }
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>Converts an int count of 0 to Visible, anything else to Collapsed (for "empty" labels).</summary>
 public class ZeroToVisibleConverter : IValueConverter
 {

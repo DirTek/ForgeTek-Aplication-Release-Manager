@@ -5,6 +5,7 @@ using System.Windows;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
 using ForgeTekApplicationReleaseManager.ViewModels;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -70,14 +71,14 @@ public partial class SignAppFilesDialog : Window
         var selected = _files.Where(f => f.IsSelected).Select(f => f.FullPath).ToList();
         if (selected.Count == 0)
         {
-            StatusText.Text = "Select at least one file to sign.";
+            StatusText.Text = S("Str.SignCB.SelectAtLeastOne");
             return;
         }
 
         var signTool = _signing.FindSignTool();
         if (signTool is null)
         {
-            StatusText.Text = "✗ signtool.exe not found — install the Windows 10/11 SDK or add it to PATH.";
+            StatusText.Text = S("Str.SignCB.NoSigntool");
             return;
         }
 
@@ -87,12 +88,12 @@ public partial class SignAppFilesDialog : Window
             : !string.IsNullOrWhiteSpace(g.GlobalCertPath);
         if (!haveCert)
         {
-            StatusText.Text = "✗ No signing certificate configured — set one in Settings → Global Options.";
+            StatusText.Text = S("Str.SignCB.NoCert");
             return;
         }
 
         SignBtn.IsEnabled = false;
-        StatusText.Text = $"Signing {selected.Count} file(s)…";
+        StatusText.Text = S("Str.SignCB.SigningN", selected.Count);
         var progress = new Progress<string>(m => StatusText.Text = m);
 
         try
@@ -115,11 +116,11 @@ public partial class SignAppFilesDialog : Window
             }
             _storage.Update(_app);
 
-            StatusText.Text = $"✔ Signed {selected.Count} file(s) and updated checksums.";
+            StatusText.Text = S("Str.SignCB.SignedN", selected.Count);
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"✗ {ex.Message}";
+            StatusText.Text = S("Str.Common.ErrorX", ex.Message);
         }
         finally
         {

@@ -11,6 +11,7 @@ public partial class DiffViewModel : ObservableObject
     private MainViewModel _main = null!;
     private readonly IStorageService _storage;
     private readonly IDialogService _dialog;
+    private readonly ILocalizationService _loc;
     private AppEntry _entry = null!;
     private IReadOnlyList<FileRecord> _scannedFiles = [];
     private AppVersion? _viewingVersion;
@@ -26,11 +27,11 @@ public partial class DiffViewModel : ObservableObject
         _detectedExeVersion is not null &&
         !string.Equals(VersionNumber.Trim(), _detectedExeVersion, StringComparison.OrdinalIgnoreCase);
 
-    public string VersionMismatchText => $"EXE file version is v{_detectedExeVersion}";
+    public string VersionMismatchText => _loc.Get("Str.DiffVm.VersionMismatch", _detectedExeVersion ?? string.Empty);
 
     public string ViewTitle => IsReadOnly && _viewingVersion is not null
-        ? $"v{_viewingVersion.VersionNumber} Changes — {_entry.Name}"
-        : $"Update Scan — {_entry.Name}";
+        ? _loc.Get("Str.DiffVm.ViewTitleReadOnly", _viewingVersion.VersionNumber, _entry.Name)
+        : _loc.Get("Str.DiffVm.ViewTitleScan", _entry.Name);
 
     public string BaseVersionLabel
     {
@@ -38,15 +39,15 @@ public partial class DiffViewModel : ObservableObject
         {
             if (!IsReadOnly)
                 return _entry.LatestVersion is { } v
-                    ? $"Comparing against v{v.VersionNumber}  ({v.ScanDate:yyyy-MM-dd})"
+                    ? _loc.Get("Str.DiffVm.ComparingAgainst", v.VersionNumber, v.ScanDate)
                     : string.Empty;
 
             if (_viewingVersion is null) return string.Empty;
             var idx = _entry.Versions.IndexOf(_viewingVersion);
             var baseVer = idx > 0 ? _entry.Versions[idx - 1] : null;
             return baseVer is not null
-                ? $"v{_viewingVersion.VersionNumber} vs v{baseVer.VersionNumber}  |  Scanned {_viewingVersion.ScanDate:yyyy-MM-dd HH:mm}"
-                : $"Initial version  |  Scanned {_viewingVersion.ScanDate:yyyy-MM-dd HH:mm}";
+                ? _loc.Get("Str.DiffVm.VsBase", _viewingVersion.VersionNumber, baseVer.VersionNumber, _viewingVersion.ScanDate)
+                : _loc.Get("Str.DiffVm.InitialScanned", _viewingVersion.ScanDate);
         }
     }
 
@@ -56,15 +57,15 @@ public partial class DiffViewModel : ObservableObject
     public ObservableCollection<FileRecord> Excluded { get; } = [];
     public ObservableCollection<FileRecord> Unchanged { get; } = [];
 
-    public string AddedHeader    => $"Added ({Added.Count})";
-    public string ModifiedHeader => $"Modified ({Modified.Count})";
-    public string RemovedHeader  => $"Removed ({Removed.Count})";
-    public string ExcludedHeader => $"Excluded ({Excluded.Count})";
+    public string AddedHeader    => _loc.Get("Str.DiffVm.AddedHeader", Added.Count);
+    public string ModifiedHeader => _loc.Get("Str.DiffVm.ModifiedHeader", Modified.Count);
+    public string RemovedHeader  => _loc.Get("Str.DiffVm.RemovedHeader", Removed.Count);
+    public string ExcludedHeader => _loc.Get("Str.DiffVm.ExcludedHeader", Excluded.Count);
     public bool   HasExcluded    => Excluded.Count > 0;
-    public string UnchangedHeader=> $"Unchanged ({Unchanged.Count})";
+    public string UnchangedHeader=> _loc.Get("Str.DiffVm.UnchangedHeader", Unchanged.Count);
 
     public string SummaryText =>
-        $"+{Added.Count} added   ~{Modified.Count} modified   -{Removed.Count} removed   ={Unchanged.Count} unchanged";
+        _loc.Get("Str.DiffVm.Summary", Added.Count, Modified.Count, Removed.Count, Unchanged.Count);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasVersionMismatch))]
@@ -73,10 +74,11 @@ public partial class DiffViewModel : ObservableObject
     /// <summary>When checked, this version is published to the Beta channel (pre-release).</summary>
     [ObservableProperty] private bool _isBeta;
 
-    public DiffViewModel(IStorageService storage, IDialogService dialog)
+    public DiffViewModel(IStorageService storage, IDialogService dialog, ILocalizationService loc)
     {
         _storage = storage;
         _dialog = dialog;
+        _loc = loc;
     }
 
     public void Initialize(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff,
@@ -102,7 +104,7 @@ public partial class DiffViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(VersionNumber))
         {
-            _dialog.Alert("Missing Version", "Please enter a version number.");
+            _dialog.Alert(_loc.Get("Str.DiffVm.MissingVersionTitle"), _loc.Get("Str.DiffVm.MissingVersionMsg"));
             return;
         }
 
@@ -110,9 +112,9 @@ public partial class DiffViewModel : ObservableObject
 
         if (_entry.Versions.Any(v => v.VersionNumber == trimmed))
         {
-            if (!_dialog.Confirm("Duplicate Version",
-                    $"Version {trimmed} has already been scanned for this app. Saving it again may cause update loops.\n\nSave anyway?",
-                    "Save Anyway")) return;
+            if (!_dialog.Confirm(_loc.Get("Str.DiffVm.DupTitle"),
+                    _loc.Get("Str.DiffVm.DupMsg", trimmed),
+                    _loc.Get("Str.Common.SaveAnyway"))) return;
         }
 
         if (_detectedExeVersion is not null &&
@@ -120,11 +122,9 @@ public partial class DiffViewModel : ObservableObject
             Version.TryParse(_detectedExeVersion, out var exeVer) &&
             typedVer > exeVer)
         {
-            if (!_dialog.Confirm("Update Loop Risk",
-                    $"You are packaging version {trimmed}, but the EXE reports v{_detectedExeVersion}.\n\n" +
-                    $"Clients will see {trimmed} in the catalog, check their installed EXE ({_detectedExeVersion}), " +
-                    $"download the update — and then loop forever because the EXE version never changes.\n\nSave anyway?",
-                    "Save Anyway")) return;
+            if (!_dialog.Confirm(_loc.Get("Str.DiffVm.LoopTitle"),
+                    _loc.Get("Str.DiffVm.LoopMsg", trimmed, _detectedExeVersion),
+                    _loc.Get("Str.Common.SaveAnyway"))) return;
         }
 
         var prevDebugPaths = _entry.LatestVersion?.Files

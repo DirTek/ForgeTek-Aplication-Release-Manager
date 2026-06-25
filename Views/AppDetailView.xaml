@@ -109,6 +109,16 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Style="{StaticResource SecondaryButton}"
                             Padding="14,8" Margin="0,0,8,0"
+                            Command="{Binding GenerateUpdaterCommand}"
+                            ToolTip="{DynamicResource Str.AppDetail.GenerateUpdaterTip}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE896;" FontFamily="Segoe Fluent Icons" FontSize="13"
+                                       VerticalAlignment="Center" Margin="0,0,7,0"/>
+                            <TextBlock Text="{DynamicResource Str.AppDetail.GenerateUpdater}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Padding="14,8" Margin="0,0,8,0"
                             Command="{Binding OpenAppSettingsCommand}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons" FontSize="13"
@@ -438,11 +448,12 @@
                 <DataGridTemplateColumn Header="{DynamicResource Str.AppDetail.ColChannel}" Width="95">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
+                            <!-- Stable = accent (blue), Beta = modified (orange) — matches the channel filter chips. -->
                             <Border x:Name="chanChip" CornerRadius="4" Padding="6,2" Margin="8,0"
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
-                                    Background="{DynamicResource SurfaceBrush}">
+                                    Background="{DynamicResource AccentBrush}">
                                 <TextBlock x:Name="chanText" Text="{DynamicResource Str.AppDetail.ChannelStable}" FontSize="10" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                           Foreground="{DynamicResource TextBrush}"/>
                             </Border>
                             <DataTemplate.Triggers>
                                 <DataTrigger Binding="{Binding Channel}" Value="Beta">
@@ -466,7 +477,7 @@
                             <Border x:Name="badge" CornerRadius="4" Padding="8,3"
                                     Margin="8,0" HorizontalAlignment="Left" VerticalAlignment="Center"
                                     Background="{DynamicResource SurfaceBrush}">
-                                <TextBlock x:Name="badgeText" Text="{Binding Status}"
+                                <TextBlock x:Name="badgeText" Text="{Binding Status, Converter={StaticResource EnumLocalize}}"
                                            FontSize="11" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextSecondaryBrush}"/>
                             </Border>

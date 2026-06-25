@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
 using ForgeTekApplicationReleaseManager.Services.Publishing;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -27,7 +28,7 @@ public partial class SetupPublishSettingsWindow : Window
         _setupStorage = setupStorage;
         _bundle = bundle;
 
-        SubtitleText.Text = $"{bundle.Name} — installer published separately from your apps' updates.";
+        SubtitleText.Text = S("Str.SetupPublishCB.SubtitleFmt", bundle.Name);
         CopyFromAppBox.ItemsSource = _storage.GetAll().OrderBy(a => a.Name).ToList();
 
         Load(bundle.PublishProfile ?? new PublishProfile());
@@ -91,12 +92,12 @@ public partial class SetupPublishSettingsWindow : Window
     {
         if (CopyFromAppBox.SelectedItem is not AppEntry app)
         {
-            StatusText.Text = "Pick an app to copy from.";
+            StatusText.Text = S("Str.SetupPublishCB.PickAppCopy");
             return;
         }
         var s = _settings.LoadAppSettings(app.Name);
         Load(PublishProfile.FromAppSettings(s));
-        StatusText.Text = $"Copied publish settings from {app.Name}.";
+        StatusText.Text = S("Str.SetupPublishCB.CopiedFmt", app.Name);
     }
 
     private async void Test_Click(object sender, RoutedEventArgs e)
@@ -104,11 +105,11 @@ public partial class SetupPublishSettingsWindow : Window
         var profile = ReadProfile();
         if (!profile.IsConfigured())
         {
-            StatusText.Text = "Fill in the selected provider's fields first.";
+            StatusText.Text = S("Str.SetupPublishCB.FillProviderFields");
             return;
         }
         TestBtn.IsEnabled = false;
-        StatusText.Text = "Testing…";
+        StatusText.Text = S("Str.Common.Testing");
         try
         {
             var msg = await _publish.TestAsync(profile.ToAppSettings());
@@ -116,7 +117,7 @@ public partial class SetupPublishSettingsWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Test failed: {ex.Message}";
+            StatusText.Text = S("Str.SetupPublishCB.TestFailedFmt", ex.Message);
         }
         finally
         {
@@ -135,7 +136,7 @@ public partial class SetupPublishSettingsWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Could not save: {ex.Message}";
+            StatusText.Text = S("Str.SetupPublishCB.CouldNotSaveFmt", ex.Message);
         }
     }
 

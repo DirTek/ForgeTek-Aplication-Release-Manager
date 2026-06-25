@@ -41,7 +41,21 @@ new `Strings/<culture>.xaml` is resolvable via `/Strings/<culture>.xaml` with no
 
 ## Status
 
-Infrastructure + pilot screens are done: `MainWindow`, `DashboardView`,
-`AddEditAppDialog`, and `AppEntryViewModel`. Remaining Views/Dialogs/ViewModels are
-migrated incrementally using the pattern above. The `SetupBootstrapper` installer is a
-separate app and is not yet localized.
+**All XAML is localized** — every one of the 10 Views and all 18 Dialogs, plus the
+`EnumLocalizeConverter` for the version-status badge (`Str.Enum.VersionStatus.*`).
+`en.xaml` holds ~720 keys; a referenced-vs-defined cross-check passes with zero missing.
+
+**C# user-facing text is localized:** the visible bound computed labels AND every
+validation / confirm / alert / MessageBox popup across the core view-models
+(`MainViewModel`, `AppEntryViewModel`, `DiffViewModel`, `ScanViewModel`, `PackageViewModel`,
+`AppDetailViewModel`, `GlobalOptionsViewModel`, `SetupViewModel`) plus the GitHub status
+banner — all route through `_loc.Get("key", args)` with `{0}`-style format keys.
+`en.xaml` holds ~810 keys; a referenced-vs-defined cross-check passes with zero missing.
+
+**Genuinely remaining (low-visibility):** service **progress/log lines** that print to the
+OUTPUT log (`FtpService`, `PackagingService`, `PackageViewModel.*.cs` `Log.Add(...)` etc.) and a
+few **dialog code-behind status strings** (`SignAppFilesDialog`, the scan-result windows set
+`StatusText`/`VerdictText` in code-behind). These are diagnostic/transient; convert with
+`_loc.Get(...)` where the dialog has a service, or `TryFindResource("key")` in non-DI code-behind.
+
+The `SetupBootstrapper` installer is a separate app and is not yet localized.

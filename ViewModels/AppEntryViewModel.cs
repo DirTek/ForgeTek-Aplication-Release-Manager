@@ -115,7 +115,7 @@ public class AppEntryViewModel : ObservableObject
     /// <summary>One-line version summary for a card (e.g. "v0.1.37" or "v0.1.31 → v0.1.37").</summary>
     public string VersionLine => DisplayMode switch
     {
-        VersionDisplayMode.None       => "No versions yet",
+        VersionDisplayMode.None       => _loc.Get("Str.AppEntry.NoVersionsYet"),
         VersionDisplayMode.InProgress => HasCurrentVersion ? $"{CurrentVersionText} → {NextVersionText}" : NextVersionText ?? string.Empty,
         VersionDisplayMode.Retracted  => HasPreviousVersion ? $"{RetractedVersionText} → {PreviousVersionText}" : RetractedVersionText ?? string.Empty,
         _                             => CurrentVersionText ?? string.Empty,
@@ -261,9 +261,9 @@ public class AppEntryViewModel : ObservableObject
 
     public string ConnectionText => ConnectionState switch
     {
-        "Checking" => $"{ConnectionProvider}: checking…",
-        "Online"   => $"{ConnectionProvider}: online",
-        "Offline"  => $"{ConnectionProvider}: offline",
+        "Checking" => _loc.Get("Str.AppEntry.ConnChecking", ConnectionProvider),
+        "Online"   => _loc.Get("Str.AppEntry.ConnOnline", ConnectionProvider),
+        "Offline"  => _loc.Get("Str.AppEntry.ConnOffline", ConnectionProvider),
         _          => string.Empty,
     };
 

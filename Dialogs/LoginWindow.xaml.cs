@@ -1,6 +1,7 @@
 using System.Windows;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -22,7 +23,7 @@ public partial class LoginWindow : Window
         var user = _users.Authenticate(UsernameBox.Text.Trim(), PasswordBox.Password);
         if (user is null)
         {
-            ErrorText.Text = "Incorrect username or password.";
+            ErrorText.Text = S("Str.LoginCB.IncorrectCreds");
             ErrorText.Visibility = Visibility.Visible;
             PasswordBox.Clear();
             PasswordBox.Focus();

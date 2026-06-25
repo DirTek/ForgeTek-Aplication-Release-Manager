@@ -23,6 +23,7 @@
         <conv:HexToBrushConverter          x:Key="HexToBrush"/>
         <conv:HexToColorConverter          x:Key="HexToColor"/>
         <conv:StringMatchToVisibilityConverter x:Key="StringMatchToVisibility"/>
+        <conv:EnumLocalizeConverter            x:Key="EnumLocalize"/>
         <conv:FileExistsConverter          x:Key="FileExists"/>
         <conv:CategoryGlyphConverter       x:Key="CategoryGlyph"/>
 

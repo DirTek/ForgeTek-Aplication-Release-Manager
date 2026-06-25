@@ -131,8 +131,8 @@ public partial class MainViewModel : ObservableObject
         if (path is not null && changelog.HasChangelogEntry(path, versionNumber))
             return;   // already documented
 
-        if (!_dialog.Confirm("Update Changelog?",
-                $"v{versionNumber} isn't in the changelog yet.\n\nAdd its changes now?", "Add Changes"))
+        if (!_dialog.Confirm(_loc.Get("Str.MainVm.UpdateChangelogTitle"),
+                _loc.Get("Str.MainVm.UpdateChangelogMsg", versionNumber), _loc.Get("Str.MainVm.AddChanges")))
             return;
 
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? settings.Global.GitHubToken : s.GitHubToken;

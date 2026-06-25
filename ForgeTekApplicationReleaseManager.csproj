@@ -34,16 +34,26 @@
     <Compile Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <Compile Remove="SetupBootstrapper\**" />
     <Compile Remove="SetupUninstaller\**" />
+    <Compile Remove="AppUpdater\**" />
+    <Compile Remove="STLVerseUpdater*\**" />
     <EmbeddedResource Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <EmbeddedResource Remove="SetupBootstrapper\**" />
     <EmbeddedResource Remove="SetupUninstaller\**" />
+    <EmbeddedResource Remove="AppUpdater\**" />
+    <EmbeddedResource Remove="STLVerseUpdater*\**" />
     <None Remove="ForgeTekApplicationReleaseManager.Tests\**" />
     <None Remove="SetupBootstrapper\**" />
     <None Remove="SetupUninstaller\**" />
+    <None Remove="AppUpdater\**" />
+    <None Remove="STLVerseUpdater*\**" />
     <Page Remove="SetupBootstrapper\**" />
     <Page Remove="SetupUninstaller\**" />
+    <Page Remove="AppUpdater\**" />
+    <Page Remove="STLVerseUpdater*\**" />
     <ApplicationDefinition Remove="SetupBootstrapper\**" />
     <ApplicationDefinition Remove="SetupUninstaller\**" />
+    <ApplicationDefinition Remove="AppUpdater\**" />
+    <ApplicationDefinition Remove="STLVerseUpdater*\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -51,8 +61,18 @@
     <Resource Include="forgetek-logo.png" />
   </ItemGroup>
 
+  <!-- Publishes the single-file bootstrapper INTO the main app's output folder (as SetupBootstrapper.exe)
+       so it ships alongside FARM.exe. PublishDir is made absolute via $(MSBuildProjectDirectory); a bare
+       $(OutputPath) would be resolved relative to the child project and land in its own bin instead. -->
   <Target Name="PublishSetupBootstrapper" AfterTargets="Build" Condition="'$(Configuration)' != ''">
-    <MSBuild Projects="SetupBootstrapper\SetupBootstrapper.csproj" Targets="Publish" Properties="Configuration=$(Configuration);&#xD;&#xA;                         RuntimeIdentifier=win-x64;&#xD;&#xA;                         SelfContained=true;&#xD;&#xA;                         PublishSingleFile=true;&#xD;&#xA;                         IncludeNativeLibrariesForSelfExtract=true;&#xD;&#xA;                         PublishDir=$(OutputPath)SetupBootstrapper\" />
+    <MSBuild Projects="SetupBootstrapper\SetupBootstrapper.csproj" Targets="Publish" Properties="Configuration=$(Configuration);&#xD;&#xA;                         RuntimeIdentifier=win-x64;&#xD;&#xA;                         SelfContained=true;&#xD;&#xA;                         PublishSingleFile=true;&#xD;&#xA;                         IncludeNativeLibrariesForSelfExtract=true;&#xD;&#xA;                         PublishDir=$(MSBuildProjectDirectory)\$(OutputPath)" />
+  </Target>
+
+  <!-- Prebuilt generic per-app updater, published into the main app's output (as AppUpdater\AppUpdater.exe)
+       so it ships with FARM. Generation prefers compiling a branded copy on demand (UpdaterService), but
+       always falls back to this prebuilt EXE + an updater.json sidecar when the .NET SDK isn't available. -->
+  <Target Name="PublishAppUpdater" AfterTargets="Build" Condition="'$(Configuration)' != ''">
+    <MSBuild Projects="AppUpdater\AppUpdater.csproj" Targets="Publish" Properties="Configuration=$(Configuration);&#xD;&#xA;                         RuntimeIdentifier=win-x64;&#xD;&#xA;                         SelfContained=true;&#xD;&#xA;                         PublishSingleFile=true;&#xD;&#xA;                         IncludeNativeLibrariesForSelfExtract=true;&#xD;&#xA;                         PublishDir=$(MSBuildProjectDirectory)\$(OutputPath)AppUpdater\" />
   </Target>
 
   <!-- Publishes the small native (AOT) per-app uninstaller via a SEPARATE process so a failure

@@ -22,5 +22,5 @@ public interface ILocalizationService
 
     /// <summary>Resolves a string resource by key, formatting with <paramref name="args"/> when given.
     /// Returns the key itself if the resource is missing (so gaps are visible, never a crash).</summary>
-    string Get(string key, params object[] args);
+    string Get(string key, params object?[] args);
 }

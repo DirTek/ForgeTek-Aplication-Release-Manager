@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -26,7 +27,7 @@ public partial class LicenseScanWindow : Window
         _settings = settings;
         _appName = appName;
 
-        SubtitleText.Text = $"{appName} — third-party NuGet packages and their licenses.";
+        SubtitleText.Text = S("Str.LicenseCB.SubtitleFmt", appName);
         PathBox.Text = defaultPath ?? string.Empty;
 
         UnknownPolicy.ItemsSource = Enum.GetNames<PolicyAction>();
@@ -60,13 +61,13 @@ public partial class LicenseScanWindow : Window
         var path = PathBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(path))
         {
-            StatusText.Text = "Choose a project, solution, or repo folder first.";
+            StatusText.Text = S("Str.Common.ChooseProject");
             return;
         }
 
         _busy = true;
         ScanBtn.IsEnabled = false;
-        StatusText.Text = "Scanning…";
+        StatusText.Text = S("Str.Common.Scanning");
         ResultsList.ItemsSource = null;
         EmptyText.Visibility = Visibility.Collapsed;
         VerdictPanel.Visibility = Visibility.Collapsed;
@@ -78,8 +79,8 @@ public partial class LicenseScanWindow : Window
             _report = await _scan.ScanAsync(path, progress, _cts.Token);
             Render();
         }
-        catch (OperationCanceledException) { StatusText.Text = "Cancelled"; }
-        catch (Exception ex) { StatusText.Text = $"Scan failed: {ex.Message}"; }
+        catch (OperationCanceledException) { StatusText.Text = S("Str.Common.Cancelled"); }
+        catch (Exception ex) { StatusText.Text = S("Str.Common.ScanFailedFmt", ex.Message); }
         finally
         {
             _busy = false;
@@ -97,8 +98,8 @@ public partial class LicenseScanWindow : Window
 
         if (!_report.Ran)
         {
-            StatusText.Text = _report.Error ?? "Scan could not run.";
-            EmptyText.Text = _report.Error ?? "Scan could not run.";
+            StatusText.Text = _report.Error ?? S("Str.VulnCB.ScanCouldNotRun");
+            EmptyText.Text = _report.Error ?? S("Str.VulnCB.ScanCouldNotRun");
             EmptyText.Visibility = Visibility.Visible;
             return;
         }
@@ -110,8 +111,8 @@ public partial class LicenseScanWindow : Window
             .ToList();
         ResultsList.ItemsSource = rows;
         EmptyText.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        EmptyText.Text = "No NuGet dependencies found.";
-        StatusText.Text = $"Scanned {_report.ScannedPath} · {_report.Total} package(s) — review, then Apply policy or Close.";
+        EmptyText.Text = S("Str.LicenseCB.NoNuget");
+        StatusText.Text = S("Str.LicenseCB.ScannedFmt", _report.ScannedPath, _report.Total);
     }
 
     // The block/warn verdict is never automatic: the user reviews licenses and chooses to apply it.
@@ -119,7 +120,7 @@ public partial class LicenseScanWindow : Window
     {
         if (_report is null || !_report.Ran)
         {
-            StatusText.Text = "Run a scan first.";
+            StatusText.Text = S("Str.Common.RunScanFirst");
             return;
         }
 
@@ -133,17 +134,17 @@ public partial class LicenseScanWindow : Window
         var blocked = rows.Count(r => r.Action == PolicyAction.Block);
         var warned = rows.Count(r => r.Action == PolicyAction.Warn);
         var allowed = rows.Count(r => r.Action == PolicyAction.Allow);
-        BlockedText.Text = $"Blocked: {blocked}";
-        WarnText.Text = $"Warn: {warned}";
-        AllowedText.Text = $"Allowed: {allowed}";
+        BlockedText.Text = S("Str.LicenseCB.BlockedN", blocked);
+        WarnText.Text = S("Str.LicenseCB.WarnN", warned);
+        AllowedText.Text = S("Str.LicenseCB.AllowedN", allowed);
 
         var verdict = policy.Evaluate(_report);
         VerdictPanel.Visibility = Visibility.Visible;
         (VerdictText.Text, VerdictText.Foreground) = verdict switch
         {
-            PolicyAction.Block => ($"✗  Release blocked — {blocked} forbidden license(s).", Brush(255, 107, 107)),
-            PolicyAction.Warn => ($"⚠  {warned} license(s) need review.", Brush(255, 209, 102)),
-            _ => ("✓  All licenses allowed by policy.", (Brush)FindResource("AddedBrush")),
+            PolicyAction.Block => (S("Str.LicenseCB.VerdictBlockedFmt", blocked), Brush(255, 107, 107)),
+            PolicyAction.Warn => (S("Str.LicenseCB.VerdictWarnFmt", warned), Brush(255, 209, 102)),
+            _ => (S("Str.LicenseCB.VerdictAllowed"), (Brush)FindResource("AddedBrush")),
         };
     }
 
@@ -153,7 +154,7 @@ public partial class LicenseScanWindow : Window
     {
         _settings.Global.License = CurrentPolicy();
         _settings.SaveGlobal();
-        StatusText.Text = "Policy saved.";
+        StatusText.Text = S("Str.Common.PolicySaved");
         if (VerdictPanel.Visibility == Visibility.Visible) ApplyPolicy_Click(sender, e);
     }
 
@@ -167,7 +168,7 @@ public partial class LicenseScanWindow : Window
     {
         if (_report is null || !_report.Ran)
         {
-            StatusText.Text = "Run a scan first.";
+            StatusText.Text = S("Str.Common.RunScanFirst");
             return;
         }
         var dlg = new Microsoft.Win32.SaveFileDialog { Filter = filter, FileName = defaultName };
@@ -175,15 +176,15 @@ public partial class LicenseScanWindow : Window
         try
         {
             File.WriteAllText(dlg.FileName, build());
-            StatusText.Text = $"Saved {dlg.FileName}";
+            StatusText.Text = S("Str.LicenseCB.SavedFmt", dlg.FileName);
             try { System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{dlg.FileName}\""); } catch { }
         }
-        catch (Exception ex) { StatusText.Text = $"Export failed: {ex.Message}"; }
+        catch (Exception ex) { StatusText.Text = S("Str.LicenseCB.ExportFailedFmt", ex.Message); }
     }
 
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select the project / repo folder" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = S("Str.VulnCB.SelectFolder") };
         if (!string.IsNullOrWhiteSpace(PathBox.Text)) dlg.InitialDirectory = PathBox.Text;
         if (dlg.ShowDialog() == true) PathBox.Text = dlg.FolderName;
     }
@@ -205,9 +206,9 @@ public partial class LicenseScanWindow : Window
         public PolicyAction? Action { get; } = action;
         public string Status => Action switch
         {
-            PolicyAction.Block => "Blocked",
-            PolicyAction.Warn => "Warn",
-            PolicyAction.Allow => "OK",
+            PolicyAction.Block => S("Str.LicenseCB.StatusBlocked"),
+            PolicyAction.Warn => S("Str.LicenseCB.StatusWarn"),
+            PolicyAction.Allow => S("Str.LicenseCB.StatusOK"),
             _ => "—",
         };
         public Brush StatusBrush => Action switch

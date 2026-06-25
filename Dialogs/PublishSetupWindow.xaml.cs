@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using ForgeTekApplicationReleaseManager.Models;
 using ForgeTekApplicationReleaseManager.Services;
 using ForgeTekApplicationReleaseManager.Services.Publishing;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -40,13 +41,13 @@ public partial class PublishSetupWindow : Window
         _target = profile?.ToAppSettings();
 
         var fileName = Path.GetFileName(record.OutputPath);
-        SubtitleText.Text = $"{fileName} · v{record.Version}";
+        SubtitleText.Text = S("Str.PublishSetupCB.SubtitleFmt", fileName, record.Version);
 
         if (profile is null || !profile.IsConfigured() || _target is null)
         {
-            ProviderText.Text = "(not configured)";
+            ProviderText.Text = S("Str.PublishSetupCB.NotConfigured");
             TargetText.Text = "—";
-            StatusText.Text = "No setup-publish target configured.";
+            StatusText.Text = S("Str.PublishSetupCB.NoTarget");
             Log("Set this bundle's publish target with \"Publish settings…\" (next to Generate), then publish.");
             PublishBtn.IsEnabled = false;
             return;
@@ -69,14 +70,14 @@ public partial class PublishSetupWindow : Window
         if (!string.IsNullOrWhiteSpace(record.PublishedUrl))
         {
             ShowPublished(record.PublishedUrl!);
-            var when = record.PublishedDate is { } d ? $" on {d:yyyy-MM-dd HH:mm}" : "";
-            StatusText.Text = $"Published to {record.PublishedProvider ?? _publish.ProviderName(_target)}{when}";
+            var when = record.PublishedDate is { } d ? S("Str.PublishSetupCB.PublishedWhenFmt", d) : "";
+            StatusText.Text = S("Str.PublishSetupCB.PublishedFmt", record.PublishedProvider ?? _publish.ProviderName(_target), when);
         }
 
         if (!File.Exists(record.OutputPath))
         {
             if (string.IsNullOrWhiteSpace(record.PublishedUrl))
-                StatusText.Text = "Setup file not found.";
+                StatusText.Text = S("Str.PublishSetupCB.SetupNotFound");
             Log($"The setup file is missing:\n{record.OutputPath}");
             PublishBtn.IsEnabled = false;
         }
@@ -86,7 +87,7 @@ public partial class PublishSetupWindow : Window
         if (!IsApproved)
         {
             PublishBtn.IsEnabled = false;
-            StatusText.Text = $"Needs Admin + QA Tester approval — {_approval!.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+            StatusText.Text = S("Str.PublishSetupCB.NeedsApprovalFmt", _approval!.ApprovalsSatisfied(ApprovalTargetKey));
             Log("This setup must be approved by an Admin and a QA Tester before it can be published.");
         }
     }
@@ -120,14 +121,14 @@ public partial class PublishSetupWindow : Window
         if (_busy || _target is null) return;
         if (!IsApproved)
         {
-            StatusText.Text = $"Needs Admin + QA Tester approval — {_approval!.ApprovalsSatisfied(ApprovalTargetKey)} of 2.";
+            StatusText.Text = S("Str.PublishSetupCB.NeedsApprovalFmt", _approval!.ApprovalsSatisfied(ApprovalTargetKey));
             return;
         }
         if (_isGitHub) _target.GitHubReleaseTag = NormalizedTag();
 
         _busy = true;
         PublishBtn.IsEnabled = false;
-        StatusText.Text = "Publishing…";
+        StatusText.Text = S("Str.PublishSetupCB.Publishing");
         _cts = new CancellationTokenSource();
 
         var fileName = Path.GetFileName(_record.OutputPath);
@@ -160,16 +161,16 @@ public partial class PublishSetupWindow : Window
             try { _storage.UpdateHistory(_record); } catch { }
 
             ShowPublished(url);
-            StatusText.Text = "✓ Published";
+            StatusText.Text = S("Str.PublishSetupCB.Published");
             Append($"Done. Public URL:\n{url}");
         }
         catch (OperationCanceledException)
         {
-            StatusText.Text = "Cancelled";
+            StatusText.Text = S("Str.Common.Cancelled");
         }
         catch (Exception ex)
         {
-            StatusText.Text = "Publish failed";
+            StatusText.Text = S("Str.PublishSetupCB.PublishFailed");
             Append($"Error: {ex.Message}");
             PublishBtn.IsEnabled = true;
         }
@@ -186,14 +187,14 @@ public partial class PublishSetupWindow : Window
         if (_busy || _target is null) return;
 
         var confirm = MessageBox.Show(this,
-            "Remove the published setup from the target?\nThis deletes the uploaded installer file.",
-            "Unpublish Setup", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            S("Str.PublishSetupCB.UnpublishMsg"),
+            S("Str.PublishSetupCB.UnpublishTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (confirm != MessageBoxResult.Yes) return;
 
         _busy = true;
         UnpublishBtn.IsEnabled = false;
         PublishBtn.IsEnabled = false;
-        StatusText.Text = "Removing…";
+        StatusText.Text = S("Str.PublishSetupCB.Removing");
         _cts = new CancellationTokenSource();
 
         var fileName = Path.GetFileName(_record.OutputPath);
@@ -210,19 +211,19 @@ public partial class PublishSetupWindow : Window
 
             ResultPanel.Visibility = Visibility.Collapsed;
             UnpublishBtn.Visibility = Visibility.Collapsed;
-            StatusText.Text = "✓ Unpublished";
+            StatusText.Text = S("Str.PublishSetupCB.Unpublished");
             Append("Removed from the publish target.");
             PublishBtn.IsEnabled = true;
         }
         catch (OperationCanceledException)
         {
-            StatusText.Text = "Cancelled";
+            StatusText.Text = S("Str.Common.Cancelled");
             PublishBtn.IsEnabled = true;
             UnpublishBtn.IsEnabled = true;
         }
         catch (Exception ex)
         {
-            StatusText.Text = "Unpublish failed";
+            StatusText.Text = S("Str.PublishSetupCB.UnpublishFailed");
             Append($"Error: {ex.Message}");
             PublishBtn.IsEnabled = true;
             UnpublishBtn.IsEnabled = true;
@@ -247,7 +248,7 @@ public partial class PublishSetupWindow : Window
     {
         if (!string.IsNullOrWhiteSpace(UrlBox.Text))
         {
-            try { Clipboard.SetText(UrlBox.Text); StatusText.Text = "URL copied"; } catch { }
+            try { Clipboard.SetText(UrlBox.Text); StatusText.Text = S("Str.PublishSetupCB.UrlCopied"); } catch { }
         }
     }
 

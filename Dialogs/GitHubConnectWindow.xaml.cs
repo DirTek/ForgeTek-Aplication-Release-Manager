@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using ForgeTekApplicationReleaseManager.Services;
+using static ForgeTekApplicationReleaseManager.Services.LocalizationService;
 
 namespace ForgeTekApplicationReleaseManager.Dialogs;
 
@@ -30,7 +31,7 @@ public partial class GitHubConnectWindow : Window
             _info = await _auth.RequestDeviceCodeAsync(_clientId, "repo", _cts.Token);
             CodeText.Text = _info.UserCode;
             OpenButton.IsEnabled = true;
-            StatusText.Text = "Waiting for authorization…";
+            StatusText.Text = S("Str.GhConnectCB.WaitingAuth");
 
             // Open the browser + copy the code automatically to get the user moving.
             OpenVerification();

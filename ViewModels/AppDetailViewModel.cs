@@ -29,6 +29,7 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly ISetupStorageService _setupStorage;
     private readonly IApprovalService _approval;
     private readonly Services.Storage.IFileBlobStore _blobs;
+    private readonly IUpdaterService _updater;
     private AppEntry _entry = null!;
 
     public ISessionService Session => _session;
@@ -114,6 +115,7 @@ public partial class AppDetailViewModel : ObservableObject
     private bool _buildSucceeded;
 
     private CancellationTokenSource? _scanCts;
+    private readonly ILocalizationService _loc;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RetractVersionCommand))]
@@ -134,8 +136,10 @@ public partial class AppDetailViewModel : ObservableObject
         ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github,
         IVulnerabilityScanService vulnScan, ILicenseScanService licenseScan,
         ISourceCompareService sourceCompare, ISetupStorageService setupStorage, IApprovalService approval,
-        Services.Storage.IFileBlobStore blobs)
+        Services.Storage.IFileBlobStore blobs, ILocalizationService loc, IUpdaterService updater)
     {
+        _loc = loc;
+        _updater = updater;
         _storage = storage;
         _scanner = scanner;
         _log = log;
@@ -200,9 +204,9 @@ public partial class AppDetailViewModel : ObservableObject
         var satisfied = ApprovalService.CountSatisfied(votes);
         ApprovalSummary = state switch
         {
-            ApprovalState.Approved => "Approved for release (Admin + QA Tester).",
-            ApprovalState.Rejected => "Rejected — needs changes and re-approval.",
-            _                      => $"Pending — {satisfied} of 2 approvals (Admin + QA Tester).",
+            ApprovalState.Approved => _loc.Get("Str.AppDetailVm.ApprovalApproved"),
+            ApprovalState.Rejected => _loc.Get("Str.AppDetailVm.ApprovalRejected"),
+            _                      => _loc.Get("Str.AppDetailVm.ApprovalPending", satisfied),
         };
     }
 
@@ -216,7 +220,7 @@ public partial class AppDetailViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(ReviewNoteDraft))
         {
-            _dialog.Alert("Note Required", "Add a note explaining the rejection before rejecting.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.NoteReqTitle"), _loc.Get("Str.AppDetailVm.NoteReqMsg"));
             return;
         }
         CastVote(ApprovalDecision.Reject);
@@ -293,8 +297,8 @@ public partial class AppDetailViewModel : ObservableObject
         var s = _settings.LoadAppSettings(_entry.Name);
         if (string.IsNullOrWhiteSpace(s.GitHubRepo))
         {
-            _dialog.Alert("GitHub Not Configured",
-                "Set this app's GitHub repository in Settings → GitHub first.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.GhNotConfigTitle"),
+                _loc.Get("Str.AppDetailVm.GhRepoMsg"));
             return;
         }
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
@@ -341,6 +345,14 @@ public partial class AppDetailViewModel : ObservableObject
             Owner = System.Windows.Application.Current.MainWindow,
         }.ShowDialog();
 
+    /// <summary>Generates a standalone, branded updater EXE for this app (applies staged updates).</summary>
+    [RelayCommand]
+    private void GenerateUpdater()
+        => new GenerateUpdaterWindow(_entry, _updater, _settings, _storage)
+        {
+            Owner = System.Windows.Application.Current.MainWindow,
+        }.ShowDialog();
+
     public void Initialize(AppEntry entry, MainViewModel main)
     {
         _entry = entry;
@@ -380,7 +392,7 @@ public partial class AppDetailViewModel : ObservableObject
 
         GitHubChecking = true;
         GitHubNewer = false;
-        GitHubStatus = "Checking GitHub…";
+        GitHubStatus = _loc.Get("Str.AppDetailVm.GhChecking");
         try
         {
             // Per-app token overrides the account-wide connection; otherwise use the global token.
@@ -388,29 +400,29 @@ public partial class AppDetailViewModel : ObservableObject
             var release = await _github.GetLatestReleaseAsync(s.GitHubRepo!, token);
             if (release is null)
             {
-                GitHubStatus = "No published releases on GitHub yet.";
+                GitHubStatus = _loc.Get("Str.AppDetailVm.GhNoReleases");
                 return;
             }
             GitHubReleaseUrl = release.HtmlUrl;
             var local = _entry.LatestVersion?.VersionNumber;
             if (string.IsNullOrEmpty(local))
             {
-                GitHubStatus = $"GitHub latest release: {release.TagName} — nothing scanned yet.";
+                GitHubStatus = _loc.Get("Str.AppDetailVm.GhLatestNothing", release.TagName);
                 GitHubNewer = true;
             }
             else if (GitHubService.IsNewer(release.TagName, local))
             {
-                GitHubStatus = $"GitHub has {release.TagName} — newer than your scanned v{local}.";
+                GitHubStatus = _loc.Get("Str.AppDetailVm.GhNewer", release.TagName, local);
                 GitHubNewer = true;
             }
             else
             {
-                GitHubStatus = $"Up to date with GitHub ({release.TagName}).";
+                GitHubStatus = _loc.Get("Str.AppDetailVm.GhUpToDate", release.TagName);
             }
         }
         catch (Exception ex)
         {
-            GitHubStatus = $"GitHub check failed: {ex.Message}";
+            GitHubStatus = _loc.Get("Str.AppDetailVm.GhCheckFailed", ex.Message);
         }
         finally { GitHubChecking = false; }
     }
@@ -441,8 +453,8 @@ public partial class AppDetailViewModel : ObservableObject
         var s = _settings.LoadAppSettings(_entry.Name);
         if (string.IsNullOrWhiteSpace(s.GitHubRepo))
         {
-            _dialog.Alert("GitHub Not Configured",
-                "Set this app's GitHub repository in Settings → GitHub first.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.GhNotConfigTitle"),
+                _loc.Get("Str.AppDetailVm.GhRepoMsg"));
             return;
         }
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
@@ -464,8 +476,8 @@ public partial class AppDetailViewModel : ObservableObject
         var s = _settings.LoadAppSettings(_entry.Name);
         if (string.IsNullOrWhiteSpace(s.GitHubLocalPath) || string.IsNullOrWhiteSpace(s.GitHubBuildCommand))
         {
-            _dialog.Alert("Build Not Configured",
-                "Set the local repo path and build command in Settings → GitHub first.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.BuildNotConfigTitle"),
+                _loc.Get("Str.AppDetailVm.BuildNotConfigMsg"));
             return;
         }
 
@@ -506,8 +518,8 @@ public partial class AppDetailViewModel : ObservableObject
         var target = ProjectLocator.Resolve(_entry.SolutionPath);
         if (target is null)
         {
-            _dialog.Alert("Solution Not Found",
-                $"No .sln or .csproj found at the app's source path:\n{_entry.SolutionPath}");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.SolutionNotFoundTitle"),
+                _loc.Get("Str.AppDetailVm.SolutionNotFoundMsg", _entry.SolutionPath));
             return;
         }
 
@@ -602,6 +614,9 @@ public partial class AppDetailViewModel : ObservableObject
 
     private string StageState(int index)
     {
+        // A registered baseline isn't "in" any pipeline stage yet — the Scan→Publish flow only begins
+        // with the next version, so don't highlight Scan as current. Leave every step unselected.
+        if (ActiveVersion is { IsInitial: true }) return "Pending";
         if (ActiveIsPublished) return "Done";
         var current = CurrentStageIndex();
         return index < current ? "Done" : index == current ? "Current" : "Pending";
@@ -613,22 +628,29 @@ public partial class AppDetailViewModel : ObservableObject
     public string PublishState  => StageState(3);
 
     public string WorkflowStageTitle =>
-        ActiveIsPublished ? "Published"
-        : CurrentStageIndex() switch { 1 => "Review", 2 => "Package", 3 => "Publish", _ => "Scan" };
+        ActiveVersion is { IsInitial: true } ? _loc.Get("Str.AppDetail.InitialVersion")
+        : ActiveIsPublished ? _loc.Get("Str.Dashboard.Published")
+        : CurrentStageIndex() switch
+        {
+            1 => _loc.Get("Str.AppDetail.StepReview"),
+            2 => _loc.Get("Str.AppDetail.StepPackage"),
+            3 => _loc.Get("Str.AppDetail.StepPublish"),
+            _ => _loc.Get("Str.AppDetail.StepScan"),
+        };
 
     public string WorkflowHint
     {
         get
         {
             var a = ActiveVersion;
-            if (a is null) return "Scan the app folder to register the initial version.";
-            if (a.IsInitial) return "Baseline registered. Scan the folder to detect changes and start the next version.";
+            if (a is null) return _loc.Get("Str.AppDetail.NoVersionsHint");
+            if (a.IsInitial) return _loc.Get("Str.AppDetailVm.HintBaseline");
             return a.Status switch
             {
-                VersionStatus.Published => $"v{a.VersionNumber} is live. Scan to start the next update.",
-                VersionStatus.Review    => $"Changes detected for v{a.VersionNumber}. Review them, then package.",
-                VersionStatus.Retracted => $"v{a.VersionNumber} was retracted. Re-package to publish it again.",
-                _                       => $"Run the packaging pipeline for v{a.VersionNumber}.",
+                VersionStatus.Published => _loc.Get("Str.AppDetailVm.HintPublished", a.VersionNumber),
+                VersionStatus.Review    => _loc.Get("Str.AppDetailVm.HintReview", a.VersionNumber),
+                VersionStatus.Retracted => _loc.Get("Str.AppDetailVm.HintRetracted", a.VersionNumber),
+                _                       => _loc.Get("Str.AppDetailVm.HintDefault", a.VersionNumber),
             };
         }
     }
@@ -638,14 +660,14 @@ public partial class AppDetailViewModel : ObservableObject
         get
         {
             var a = ActiveVersion;
-            if (a is null) return "Scan Now";
-            if (a.IsInitial) return "Scan for Changes";
+            if (a is null) return _loc.Get("Str.AppDetail.ScanNow");
+            if (a.IsInitial) return _loc.Get("Str.AppDetailVm.ScanForChanges");
             return a.Status switch
             {
-                VersionStatus.Published => "Scan for Update",
-                VersionStatus.Review    => "Review Changes",
-                VersionStatus.Retracted => "Re-package",
-                _                       => a.PipelineStep is not null ? "Continue Packing" : "Start Packing",
+                VersionStatus.Published => _loc.Get("Str.AppDetailVm.ScanForUpdate"),
+                VersionStatus.Review    => _loc.Get("Str.AppDetailVm.ReviewChanges"),
+                VersionStatus.Retracted => _loc.Get("Str.AppDetailVm.Repackage"),
+                _                       => a.PipelineStep is not null ? _loc.Get("Str.AppDetailVm.ContinuePacking") : _loc.Get("Str.AppDetail.StartPacking"),
             };
         }
     }
@@ -728,9 +750,9 @@ public partial class AppDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDeleteVersion))]
     private void DeleteVersion()
     {
-        if (!_dialog.Confirm("Delete Version",
-                $"Delete v{SelectedVersion!.VersionNumber}? This cannot be undone.",
-                "Delete Version")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.AppDetail.DeleteVersion"),
+                _loc.Get("Str.AppDetailVm.DeleteVerMsg", SelectedVersion!.VersionNumber),
+                _loc.Get("Str.AppDetail.DeleteVersion"))) return;
 
         _entry.Versions.Remove(SelectedVersion!);
         Versions.Remove(SelectedVersion!);
@@ -812,12 +834,12 @@ public partial class AppDetailViewModel : ObservableObject
         var hasPrevUpdate = prevVersion is not null && !prevVersion.IsInitial;
 
         var modeText = hasPrevUpdate
-            ? $"This will delete the published files and mark v{v.VersionNumber} as retracted. The previous version (v{prevVersion!.VersionNumber}) will become the current release."
-            : $"This will delete the published files and mark v{v.VersionNumber} as retracted. You can repack it later.";
+            ? _loc.Get("Str.AppDetailVm.RetractMode1", v.VersionNumber, prevVersion!.VersionNumber)
+            : _loc.Get("Str.AppDetailVm.RetractMode2", v.VersionNumber);
 
-        if (!_dialog.Confirm("Retract Version",
-                $"Retract published version v{v.VersionNumber}?\n\n{modeText}\n\nThis cannot be undone.",
-                "Retract")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.AppDetailVm.RetractTitle"),
+                _loc.Get("Str.AppDetailVm.RetractMsg", v.VersionNumber, modeText),
+                _loc.Get("Str.AppDetail.Retract"))) return;
 
         _log.Write("Retract", $"Retraction started — {_entry.Name} v{v.VersionNumber}");
 
@@ -914,9 +936,9 @@ public partial class AppDetailViewModel : ObservableObject
     private void ScrapVersion()
     {
         var v = SelectedVersion!;
-        if (!_dialog.Confirm("Scrap Version",
-                $"Permanently scrap v{v.VersionNumber}? This cannot be undone.",
-                "Scrap")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.AppDetailVm.ScrapTitle"),
+                _loc.Get("Str.AppDetailVm.ScrapMsg", v.VersionNumber),
+                _loc.Get("Str.AppDetail.Scrap"))) return;
 
         v.Status = VersionStatus.Scrapped;
         _storage.Update(_entry);
@@ -957,7 +979,7 @@ public partial class AppDetailViewModel : ObservableObject
     {
         if (!System.IO.Directory.Exists(folderPath))
         {
-            _dialog.Alert("Scan Error", $"Folder not found:\n{folderPath}");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.ScanErrorTitle"), _loc.Get("Str.AppDetailVm.ScanFolderNotFound", folderPath));
             return;
         }
 
@@ -979,7 +1001,7 @@ public partial class AppDetailViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            _dialog.Alert("Scan Error", ex.Message);
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.ScanErrorTitle"), ex.Message);
             return;
         }
         finally
@@ -1052,8 +1074,8 @@ public partial class AppDetailViewModel : ObservableObject
         if (detectedVersion is not null &&
             _entry.Versions.Any(v => string.Equals(v.VersionNumber, detectedVersion, StringComparison.OrdinalIgnoreCase)))
         {
-            _dialog.Alert("EXE Version Already Saved",
-                $"The EXE reports v{detectedVersion}, which matches an already-saved version for this app.\n\nVerify the version number before approving.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.ExeDupTitle"),
+                _loc.Get("Str.AppDetailVm.ExeDupMsg", detectedVersion));
         }
     }
 
@@ -1098,13 +1120,13 @@ public partial class AppDetailViewModel : ObservableObject
         var changelogPath = _changelog.FindChangelogFile(_entry.FolderPath);
         if (changelogPath is null)
         {
-            _dialog.Alert("Changelog Not Found", $"No changelog.md found in:\n{_entry.FolderPath}");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.ChangelogNotFoundTitle"), _loc.Get("Str.AppDetailVm.ChangelogNotFoundMsg", _entry.FolderPath));
             return;
         }
         var content = _changelog.ExtractVersionContent(changelogPath, version.VersionNumber);
         if (content is null)
         {
-            _dialog.Alert("Not Found", $"No changelog entry for v{version.VersionNumber}.");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.NotFoundTitle"), _loc.Get("Str.AppDetailVm.NoChangelogEntry", version.VersionNumber));
             return;
         }
         _dialog.ShowChangelogWindow(version.VersionNumber, content);
@@ -1115,9 +1137,9 @@ public partial class AppDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanDeleteApp))]
     private void DeleteApp()
     {
-        if (!_dialog.Confirm("Delete Application",
-                $"Delete '{_entry.Name}' and all its version history? This cannot be undone.",
-                "Delete App")) return;
+        if (!_dialog.Confirm(_loc.Get("Str.AppDetailVm.DeleteAppTitle"),
+                _loc.Get("Str.AppDetailVm.DeleteAppMsg", _entry.Name),
+                _loc.Get("Str.AppDetailVm.DeleteAppBtn"))) return;
         _storage.Delete(_entry.Id);
         CollectBlobGarbage();   // the deleted app's source blobs are now unreferenced
         _main.NavigateToWelcome();

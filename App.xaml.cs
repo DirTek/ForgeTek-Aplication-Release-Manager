@@ -108,6 +108,7 @@ public partial class App : Application
         services.AddSingleton<ILicenseScanService, LicenseScanService>();
         services.AddSingleton<ISourceCompareService, SourceCompareService>();
         services.AddTransient<ISetupService, SetupService>();
+        services.AddTransient<IUpdaterService, UpdaterService>();
 
         // ViewModels
         services.AddTransient<MainViewModel>();
