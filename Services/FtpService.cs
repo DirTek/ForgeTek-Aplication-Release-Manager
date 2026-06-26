@@ -13,6 +13,11 @@ public class FtpService : IFtpService
         client.Config.ReadTimeout                  = 15_000;
         client.Config.DataConnectionConnectTimeout = 10_000;
         client.Config.DataConnectionReadTimeout    = 15_000;
+        // Close by dropping the socket instead of sending QUIT and waiting for the server's 221 ACK.
+        // Many shared-hosting servers never ACK after a data transfer, so a polite QUIT hangs and the
+        // session lingers server-side — blocking the next operation (e.g. the catalog check) behind a
+        // per-user connection limit. Dropping the socket releases the slot immediately.
+        client.Config.DisconnectWithQuit = false;
         return client;
     }
 
@@ -20,7 +25,7 @@ public class FtpService : IFtpService
     {
         try
         {
-            using var client = CreateClient(host, port, username, password);
+            await using var client = CreateClient(host, port, username, password);
             await client.AutoConnect(ct);
             var pwd = await client.GetWorkingDirectory(ct);
             return $"✔  Connected to {host}:{port} (working directory: {pwd})";
@@ -133,7 +138,7 @@ public class FtpService : IFtpService
             }
             finally
             {
-                client.Dispose();
+                await client.DisposeAsync();
             }
         }
 
@@ -175,7 +180,7 @@ public class FtpService : IFtpService
             using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             discCts.CancelAfter(TimeSpan.FromSeconds(5));
             try { await client.Disconnect(discCts.Token); } catch { }
-            client.Dispose();
+            await client.DisposeAsync();
         }
     }
 
@@ -188,7 +193,7 @@ public class FtpService : IFtpService
         string host, int port, string username, string password,
         IProgress<string> progress, CancellationToken ct = default)
     {
-        using var client = CreateClient(host, port, username, password);
+        await using var client = CreateClient(host, port, username, password);
         await client.AutoConnect(ct);
 
         foreach (var remotePath in remotePaths)
@@ -230,7 +235,7 @@ public class FtpService : IFtpService
             using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             discCts.CancelAfter(TimeSpan.FromSeconds(5));
             try { await client.Disconnect(discCts.Token); } catch { }
-            client.Dispose();
+            await client.DisposeAsync();
         }
     }
 
@@ -252,7 +257,7 @@ public class FtpService : IFtpService
             using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             discCts.CancelAfter(TimeSpan.FromSeconds(5));
             try { await client.Disconnect(discCts.Token); } catch { }
-            client.Dispose();
+            await client.DisposeAsync();
         }
     }
 
@@ -283,7 +288,7 @@ public class FtpService : IFtpService
             using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             discCts.CancelAfter(TimeSpan.FromSeconds(5));
             try { await client.Disconnect(discCts.Token); } catch { }
-            client.Dispose();
+            await client.DisposeAsync();
         }
     }
 }
