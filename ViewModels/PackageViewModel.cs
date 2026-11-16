@@ -236,11 +236,18 @@ public partial class PackageViewModel : ObservableObject
         if (idx <= 0) return null;   // the first version is itself the baseline (Full)
         for (var i = idx - 1; i >= 0; i--)
         {
-            if (versions[i].IsInitial || versions[i].PackageType == PackageType.Full)
+            if (IsUsableBaseline(versions[i]))
                 return versions[i];
         }
-        return versions[0];
+        return null;   // nothing clients can have as a baseline — this version must ship as a Full
     }
+
+    /// <summary>A baseline must be something clients actually have: the initial version (delivered by the
+    /// setup installer, never through the catalog) or a Full that is published. A retracted, scrapped or
+    /// never-published Full isn't on the server, so an incremental built on it could never be completed.</summary>
+    private static bool IsUsableBaseline(AppVersion v)
+        => v.Status is not (VersionStatus.Retracted or VersionStatus.Scrapped)
+           && (v.IsInitial || (v.PackageType == PackageType.Full && v.Status == VersionStatus.Published));
 
     /// <summary>Files present in the baseline full but genuinely GONE from this version (baseline-relative),
     /// so the client deletes everything dropped since the baseline — not just since the prior patch.

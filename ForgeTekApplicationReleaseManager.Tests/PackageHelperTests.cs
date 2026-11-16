@@ -81,13 +81,39 @@ public class PackageHelperTests
         var v1 = new AppVersion { VersionNumber = "1.0", IsInitial = true, PackageType = PackageType.Full };
         var v2 = new AppVersion { VersionNumber = "2.0", PackageType = PackageType.Incremental };
         var v3 = new AppVersion { VersionNumber = "3.0", PackageType = PackageType.Incremental };
-        var v4 = new AppVersion { VersionNumber = "4.0", PackageType = PackageType.Full };   // new baseline
+        var v4 = new AppVersion { VersionNumber = "4.0", PackageType = PackageType.Full,
+            Status = VersionStatus.Published };   // new baseline
         var v5 = new AppVersion { VersionNumber = "5.0", PackageType = PackageType.Incremental };
         var versions = new List<AppVersion> { v1, v2, v3, v4, v5 };
 
         Assert.Null(InvokeSelectBaselineFull(versions, 0));            // initial has no baseline
         Assert.Equal("1.0", InvokeSelectBaselineFull(versions, 2)!.VersionNumber); // v3 → v1
         Assert.Equal("4.0", InvokeSelectBaselineFull(versions, 4)!.VersionNumber); // v5 → v4
+    }
+
+    [Theory]
+    [InlineData(VersionStatus.Retracted)]   // pulled from the server
+    [InlineData(VersionStatus.Scrapped)]
+    [InlineData(VersionStatus.Packed)]      // packaged but never published
+    [InlineData(VersionStatus.Review)]
+    public void SelectBaselineFull_SkipsFullsClientsCannotHave(VersionStatus status)
+    {
+        // An incremental's "base" must be on the server (or be the installer-delivered initial version),
+        // otherwise clients installed before it can never complete the update.
+        var v1 = new AppVersion { VersionNumber = "1.0", IsInitial = true };
+        var v2 = new AppVersion { VersionNumber = "2.0", PackageType = PackageType.Full, Status = VersionStatus.Published };
+        var v3 = new AppVersion { VersionNumber = "3.0", PackageType = PackageType.Full, Status = status };
+        var v4 = new AppVersion { VersionNumber = "4.0" };
+        Assert.Equal("2.0", InvokeSelectBaselineFull([v1, v2, v3, v4], 3)!.VersionNumber);
+    }
+
+    [Fact]
+    public void SelectBaselineFull_NoUsableBaseline_ForcesFull()
+    {
+        // No initial version and no published Full: there is no baseline clients could have.
+        var v1 = new AppVersion { VersionNumber = "1.0", PackageType = PackageType.Full, Status = VersionStatus.Retracted };
+        var v2 = new AppVersion { VersionNumber = "2.0" };
+        Assert.Null(InvokeSelectBaselineFull([v1, v2], 1));
     }
 
     [Fact]
