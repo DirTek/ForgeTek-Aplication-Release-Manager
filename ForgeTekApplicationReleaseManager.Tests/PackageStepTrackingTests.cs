@@ -23,14 +23,16 @@ public class PackageStepTrackingTests
         var setupStorageMock = Substitute.For<ISetupStorageService>();
         storageMock.GetAll().Returns(new List<AppEntry>());
 
+        var loc = new EnglishStrings();
         var sp = Substitute.For<IServiceProvider>();
+        sp.GetService(typeof(ILocalizationService)).Returns(loc);
         sp.GetService(typeof(IStorageService)).Returns(storageMock);
         sp.GetService(typeof(IDialogService)).Returns(dialogMock);
         sp.GetService(typeof(ISessionService)).Returns(sessionMock);
         // MainViewModel's ctor navigates to the dashboard, which is resolved from the provider.
         sp.GetService(typeof(DashboardViewModel)).Returns(
             new DashboardViewModel(storageMock, setupStorageMock, sessionMock, settingsMock,
-                Substitute.For<IPublishService>(), Substitute.For<IConnectionStatusCache>()));
+                Substitute.For<IPublishService>(), Substitute.For<IConnectionStatusCache>(), loc));
 
         var vm = new PackageViewModel(
             storageMock,
@@ -43,7 +45,8 @@ public class PackageStepTrackingTests
             Substitute.For<IManifestService>(),
             Substitute.For<IUpdateCatalogService>(),
             dialogMock,
-            Substitute.For<IApprovalService>());
+            Substitute.For<IApprovalService>(),
+            loc);
         var entry = new AppEntry { Name = "TestApp", FolderPath = @"C:\apps\test" };
         var version = new AppVersion { VersionNumber = "1.0", ScanDate = DateTime.Now };
         entry.Versions.Add(version);
