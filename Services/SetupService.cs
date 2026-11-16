@@ -179,6 +179,11 @@ public class SetupService : ISetupService
                 var sourcePath = Path.Combine(appEntry.FolderPath, file.Path);
                 var targetPath = Path.Combine(appStagingDir, file.Path);
 
+                if (!File.Exists(sourcePath))
+                    throw new FileNotFoundException(
+                        $"{appEntry.Name}: {file.Path} is in its latest scanned version but missing from " +
+                        $"{appEntry.FolderPath}. Rebuild or rescan {appEntry.Name}, then generate again.", sourcePath);
+
                 Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
 
                 await using var src = File.OpenRead(sourcePath);
@@ -764,7 +769,7 @@ public class SetupService : ISetupService
         return File.Exists(exe) ? exe : null;
     }
 
-    private static List<FileRecord> CollectAppFiles(AppEntry entry, VersionMode mode)
+    internal static List<FileRecord> CollectAppFiles(AppEntry entry, VersionMode mode)
     {
         var versions = entry.Versions
             .Where(v => v.Status != VersionStatus.Retracted && v.Status != VersionStatus.Scrapped)
@@ -773,25 +778,27 @@ public class SetupService : ISetupService
         if (versions.Count == 0) return [];
 
         IEnumerable<FileRecord> Filter(IEnumerable<FileRecord> files)
-            => files.Where(f => !f.IsDebug && !DebugExtensions.Contains(Path.GetExtension(f.Path)));
+            => files.Where(f => !f.IsDebug && !f.IsRemoved && !DebugExtensions.Contains(Path.GetExtension(f.Path)));
 
+        var latest = versions.Last();
         if (mode == VersionMode.LatestOnly)
-        {
-            var latest = versions.Last();
             return Filter(latest.Files).ToList();
-        }
 
-        // Cumulative: merge all versions, latest file wins
+        // Cumulative: every file any version shipped — so a file that is now only EXCLUDED from update packages
+        // (e.g. the live self-updater, kept on disk) still goes into a fresh install. Files are copied from the
+        // app folder as it is now, and each version's list is a full scan of it, so the latest scan decides
+        // what still exists: a path it doesn't contain was deleted from the build (copying it would fail), and
+        // one it marks for removal must not be installed. Those are dropped; the latest record is used.
+        var current = latest.Files
+            .Where(f => !f.IsRemoved)
+            .GroupBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+
         var fileMap = new Dictionary<string, FileRecord>(StringComparer.OrdinalIgnoreCase);
-
         foreach (var version in versions)
-        {
             foreach (var file in Filter(version.Files))
-            {
-                // Last version's file wins for any given path
-                fileMap[file.Path] = file;
-            }
-        }
+                if (current.TryGetValue(file.Path, out var now))
+                    fileMap[file.Path] = now;
 
         return fileMap.Values.ToList();
     }
