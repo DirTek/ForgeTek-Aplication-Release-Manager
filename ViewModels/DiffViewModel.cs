@@ -12,6 +12,7 @@ public partial class DiffViewModel : ObservableObject
     private readonly IStorageService _storage;
     private readonly IDialogService _dialog;
     private readonly ILocalizationService _loc;
+    private readonly IScannerService _scanner;
     private AppEntry _entry = null!;
     private IReadOnlyList<FileRecord> _scannedFiles = [];
     private AppVersion? _viewingVersion;
@@ -74,11 +75,12 @@ public partial class DiffViewModel : ObservableObject
     /// <summary>When checked, this version is published to the Beta channel (pre-release).</summary>
     [ObservableProperty] private bool _isBeta;
 
-    public DiffViewModel(IStorageService storage, IDialogService dialog, ILocalizationService loc)
+    public DiffViewModel(IStorageService storage, IDialogService dialog, ILocalizationService loc, IScannerService scanner)
     {
         _storage = storage;
         _dialog = dialog;
         _loc = loc;
+        _scanner = scanner;
     }
 
     public void Initialize(AppEntry entry, IReadOnlyList<FileRecord> files, DiffResult diff,
@@ -136,6 +138,20 @@ public partial class DiffViewModel : ObservableObject
             return f;
         }).ToList();
 
+        // Document the changes before saving, so a changelog written now is part of this version.
+        // If that changed the changelog on disk, re-diff so the counts include it.
+        int addedCount = Added.Count, modifiedCount = Modified.Count, removedCount = Removed.Count;
+        var removedFiles = Removed.Select(f => f.Path).ToList();
+        if (_main.DocumentChangesBeforeSave(_entry, trimmed, allFiles) is not null &&
+            _entry.LatestVersion is { } baseVersion)
+        {
+            var diff = _scanner.DiffVersions(baseVersion, allFiles);
+            addedCount = diff.Added.Count;
+            modifiedCount = diff.Modified.Count;
+            removedCount = diff.Removed.Count;
+            removedFiles = diff.Removed.Select(f => f.Path).ToList();
+        }
+
         var version = new AppVersion
         {
             VersionNumber = trimmed,
@@ -143,14 +159,13 @@ public partial class DiffViewModel : ObservableObject
             Channel = IsBeta ? UpdateChannel.Beta : UpdateChannel.Stable,
             Files = allFiles,
             HasDiff = true,
-            AddedCount = Added.Count,
-            ModifiedCount = Modified.Count,
-            RemovedCount = Removed.Count,
-            RemovedFiles = Removed.Select(f => f.Path).ToList(),
+            AddedCount = addedCount,
+            ModifiedCount = modifiedCount,
+            RemovedCount = removedCount,
+            RemovedFiles = removedFiles,
         };
         _entry.Versions.Add(version);
         _main.NavigateToDetail(_entry);
-        _main.PromptChangelogIfNeeded(_entry, trimmed);
     }
 
     [RelayCommand]

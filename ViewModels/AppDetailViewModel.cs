@@ -457,15 +457,26 @@ public partial class AppDetailViewModel : ObservableObject
                 _loc.Get("Str.AppDetailVm.GhRepoMsg"));
             return;
         }
-        var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? _settings.Global.GitHubToken : s.GitHubToken;
-        var slnFolder = !string.IsNullOrWhiteSpace(_entry.SolutionPath)
-            && ProjectLocator.Resolve(_entry.SolutionPath) is { } t
-            ? System.IO.Path.GetDirectoryName(t) : null;
-        new ReleaseNotesWindow(_github, _changelog, s.GitHubRepo!, token,
-            _entry.FolderPath, _entry.Name, _entry.LatestVersion?.VersionNumber, solutionFolder: slnFolder)
+        var latest = _entry.LatestVersion;
+        var written = _main.OpenReleaseNotes(_entry, latest?.VersionNumber,
+            MainViewModel.VersionBefore(_entry, latest?.VersionNumber));
+        if (!written) return;
+
+        // The changelog was written after this version was scanned. Until it is packaged, update its record so
+        // the package ships the new changelog (and an incremental one includes it as modified).
+        if (latest is not null && !latest.HasPackage && latest.Status == VersionStatus.Review &&
+            _main.RefreshChangelogRecord(_entry, latest.Files) is not null)
         {
-            Owner = System.Windows.Application.Current.MainWindow,
-        }.ShowDialog();
+            if (latest.HasDiff && MainViewModel.VersionBefore(_entry, latest.VersionNumber) is { } baseVersion)
+            {
+                var diff = _scanner.DiffVersions(baseVersion, latest.Files);
+                latest.AddedCount = diff.Added.Count;
+                latest.ModifiedCount = diff.Modified.Count;
+                latest.RemovedCount = diff.Removed.Count;
+                latest.RemovedFiles = diff.Removed.Select(f => f.Path).ToList();
+            }
+            _main.NavigateToDetail(_entry);   // saves the entry and refreshes the page
+        }
     }
 
     private bool CanBuildFromGitHub() => _session.CanScan && GitHubConfigured && !IsBuilding;
