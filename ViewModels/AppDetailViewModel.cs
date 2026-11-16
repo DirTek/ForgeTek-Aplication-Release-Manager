@@ -851,6 +851,19 @@ public partial class AppDetailViewModel : ObservableObject
             ? _loc.Get("Str.AppDetailVm.RetractMode1", v.VersionNumber, prevVersion!.VersionNumber)
             : _loc.Get("Str.AppDetailVm.RetractMode2", v.VersionNumber);
 
+        // A published incremental built on this version needs it: clients installed before it rebuild
+        // their install from this baseline. Retracting it would leave that incremental incomplete for them.
+        var dependents = _entry.Versions
+            .Where(o => !ReferenceEquals(o, v) && o.Status == VersionStatus.Published
+                        && o.PackageType == PackageType.Incremental
+                        && string.Equals(o.BaseVersion, v.VersionNumber, StringComparison.OrdinalIgnoreCase))
+            .Select(o => o.VersionNumber)
+            .ToList();
+        if (dependents.Count > 0 &&
+            !_dialog.Confirm(_loc.Get("Str.AppDetailVm.RetractBaselineTitle"),
+                _loc.Get("Str.AppDetailVm.RetractBaselineMsg", v.VersionNumber, string.Join(", ", dependents.Select(d => "v" + d))),
+                _loc.Get("Str.AppDetailVm.RetractAnyway"))) return;
+
         if (!_dialog.Confirm(_loc.Get("Str.AppDetailVm.RetractTitle"),
                 _loc.Get("Str.AppDetailVm.RetractMsg", v.VersionNumber, modeText),
                 _loc.Get("Str.AppDetail.Retract"))) return;
@@ -858,14 +871,24 @@ public partial class AppDetailViewModel : ObservableObject
         _log.Write("Retract", $"Retraction started — {_entry.Name} v{v.VersionNumber}");
         _snapshots.TrySnapshot($"retract {_entry.Name} {v.VersionNumber}");
 
+        string? error;
         IsRetracting = true;
         try
         {
-            await RetractRemoteAsync(v, hasPrevUpdate ? prevVersion!.VersionNumber : null);
+            error = await RetractRemoteAsync(v, hasPrevUpdate ? prevVersion!.VersionNumber : null);
         }
         finally
         {
             IsRetracting = false;
+        }
+
+        if (error is not null)
+        {
+            // The catalog wasn't rolled back, so clients still get this version: don't pretend otherwise.
+            _log.Write("Retract", $"Retraction aborted — {_entry.Name} v{v.VersionNumber}: {error}");
+            _dialog.Alert(_loc.Get("Str.AppDetailVm.RetractFailedTitle"),
+                _loc.Get("Str.AppDetailVm.RetractFailedMsg", v.VersionNumber, error));
+            return;
         }
 
         if (!string.IsNullOrWhiteSpace(v.PackagePath))
@@ -912,13 +935,15 @@ public partial class AppDetailViewModel : ObservableObject
         catch (Exception ex) { _log.Write("Blobs", $"Source-file garbage collection failed: {ex.Message}"); }
     });
 
-    private async Task RetractRemoteAsync(AppVersion v, string? rollbackToVersion)
+    /// <summary>Retracts <paramref name="v"/> on the publish target. Returns null on success, or the reason the
+    /// server's catalog could not be rolled back (in which case nothing was deleted and clients are unchanged).</summary>
+    private async Task<string?> RetractRemoteAsync(AppVersion v, string? rollbackToVersion)
     {
         var s = _settings.LoadAppSettings(_entry.Name);
         if (!_publish.IsConfigured(s))
         {
             _log.Write("Retract", "No publish target configured — skipping remote operations");
-            return;
+            return null;
         }
 
         var appKey          = _entry.Name.ToLowerInvariant().Replace(" ", "");
@@ -928,12 +953,32 @@ public partial class AppDetailViewModel : ObservableObject
             : Path.GetFileName(v.FtpPackageRemotePath ?? string.Empty);
         var progress = new Progress<string>(msg => _log.Write("Retract", msg));
 
+        string? catalog;
         try
         {
             // Off the UI thread (like the dashboard's check) so the transport can't deadlock the dispatcher.
-            await Task.Run(() => _publish.RetractAsync(s, v, appKey, packageFileName, catalogFileName, rollbackToVersion, progress));
+            catalog = await Task.Run(() => _publish.RetractAsync(s, v, appKey, packageFileName, catalogFileName, rollbackToVersion, progress));
         }
-        catch (Exception ex) { _log.Write("Retract", $"Remote retract failed: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            _log.Write("Retract", $"Remote retract failed: {ex.Message}");
+            return ex.Message;
+        }
+
+        // Keep the local catalog copy identical to the server's, so it never carries the retracted version.
+        try
+        {
+            var releaseDir = Path.GetDirectoryName(_settings.GetVersionOutputPath(_entry.Name, v.VersionNumber, s));
+            if (releaseDir is not null)
+            {
+                var localCatalog = Path.Combine(releaseDir, catalogFileName);
+                if (catalog is not null) { Directory.CreateDirectory(releaseDir); File.WriteAllText(localCatalog, catalog); }
+                else if (File.Exists(localCatalog)) File.Delete(localCatalog);
+            }
+        }
+        catch (Exception ex) { _log.Write("Retract", $"Local catalog copy not updated: {ex.Message}"); }
+
+        return null;
     }
 
     [RelayCommand(CanExecute = nameof(CanReviseVersion))]

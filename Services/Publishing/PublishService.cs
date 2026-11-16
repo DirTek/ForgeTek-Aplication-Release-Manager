@@ -1,3 +1,4 @@
+using System.IO;
 using ForgeTekApplicationReleaseManager.Models;
 
 namespace ForgeTekApplicationReleaseManager.Services.Publishing;
@@ -93,34 +94,53 @@ public class PublishService : IPublishService
         progress.Report($"Removed {remote}");
     }
 
-    public async Task RetractAsync(AppSettings s, AppVersion v, string appKey,
+    public async Task<string?> RetractAsync(AppSettings s, AppVersion v, string appKey,
         string packageFileName, string catalogFileName, string? rollbackToVersion,
         IProgress<string> progress, CancellationToken ct = default)
     {
         var t = CreateTransport(s, v.PublishProvider);
         var catalogRemote = t.RemotePath(appKey, null, catalogFileName);
 
-        // Roll the catalog back (or delete it when no versions remain).
+        // 1. Roll the catalog back first — it is what clients read. Any failure here (catalog unreadable,
+        //    upload refused) throws BEFORE the package is touched, so clients are never left with a catalog
+        //    that points at a deleted package.
+        string? current = null;
         var existing = await t.TryDownloadTextAsync(catalogRemote, ct);
-        if (existing is not null)
+        if (existing is null)
         {
-            var updated = _catalog.RemoveVersion(appKey, v.VersionNumber, existing, rollbackToVersion);
-            if (updated is not null)
+            progress.Report($"No catalog on the server ({catalogRemote}) — nothing to roll back.");
+        }
+        else
+        {
+            current = _catalog.RemoveVersion(appKey, v.VersionNumber, existing, rollbackToVersion);
+            if (current is not null)
             {
-                await t.UploadTextAsync(updated, catalogRemote, ct);
+                await t.UploadTextAsync(current, catalogRemote, ct);
                 progress.Report($"Catalog rolled back: {catalogRemote}");
             }
             else
             {
                 await t.DeleteFileAsync(catalogRemote, ct);
+                // Some transports only report per-file delete errors; confirm it's really gone before the
+                // package goes, or clients would keep a catalog that points at a deleted package.
+                if (await t.TryDownloadTextAsync(catalogRemote, ct) is not null)
+                    throw new IOException($"The catalog {catalogRemote} could not be deleted; nothing else was changed.");
                 progress.Report($"Catalog deleted (no versions remain): {catalogRemote}");
             }
         }
 
-        // Delete the package, then its version "folder".
+        // 2. The package and its version "folder" — best-effort: clients no longer see this version, so a
+        //    leftover file is only clutter on the server.
         var packageRemote = t.RemotePath(appKey, v.VersionNumber, packageFileName);
-        await t.DeleteFileAsync(packageRemote, ct);
-        progress.Report($"Package deleted: {packageRemote}");
+        try
+        {
+            await t.DeleteFileAsync(packageRemote, ct);
+            progress.Report($"Package deleted: {packageRemote}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            progress.Report($"⚠  Package not deleted ({ex.Message}) — remove {packageRemote} manually.");
+        }
 
         var lastSlash = packageRemote.LastIndexOf('/');
         if (lastSlash > 0)
@@ -133,5 +153,7 @@ public class PublishService : IPublishService
             }
             catch (Exception ex) { progress.Report($"Folder cleanup skipped: {ex.Message}"); }
         }
+
+        return current;
     }
 }

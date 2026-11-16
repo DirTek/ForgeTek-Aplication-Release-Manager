@@ -44,8 +44,10 @@ public interface IPublishService
     Task DeleteArtifactAsync(AppSettings s, string appKey, string version,
         string fileName, IProgress<string> progress, CancellationToken ct = default);
 
-    /// <summary>Removes a published version from the provider and rolls back / deletes the catalog.</summary>
-    Task RetractAsync(AppSettings s, AppVersion v, string appKey,
+    /// <summary>Removes a published version from the provider: first rolls the catalog back (or deletes it when
+    /// no versions remain) — throwing, with nothing deleted, if the catalog can't be read or written — then
+    /// deletes the package best-effort. Returns the catalog now on the server, or null when there is none.</summary>
+    Task<string?> RetractAsync(AppSettings s, AppVersion v, string appKey,
         string packageFileName, string catalogFileName, string? rollbackToVersion,
         IProgress<string> progress, CancellationToken ct = default);
 }

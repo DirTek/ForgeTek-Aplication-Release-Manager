@@ -698,6 +698,17 @@ The app will now restart to load it.</sys:String>
     <sys:String x:Key="Str.AppDetailVm.RetractMode1">This will delete the published files and mark v{0} as retracted. The previous version (v{1}) will become the current release.</sys:String>
     <sys:String x:Key="Str.AppDetailVm.RetractMode2">This will delete the published files and mark v{0} as retracted. You can repack it later.</sys:String>
     <sys:String x:Key="Str.AppDetailVm.RetractTitle">Retract Version</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractBaselineTitle">Version Is a Baseline</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractBaselineMsg">v{0} is the baseline of {1}, which is still published. Clients installed before v{0} need it to complete that update; once it is retracted they can't.
+
+Publish a new Full first (or retract {1} as well). Retract v{0} anyway?</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractAnyway">Retract anyway</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractFailedTitle">Retraction Failed</sys:String>
+    <sys:String x:Key="Str.AppDetailVm.RetractFailedMsg">v{0} was not retracted — the update catalog on the server couldn't be rolled back:
+
+{1}
+
+Nothing was deleted, so clients are unaffected and v{0} is still published. Try again once the server is reachable.</sys:String>
     <sys:String x:Key="Str.AppDetailVm.RetractMsg">Retract published version v{0}?
 
 {1}
