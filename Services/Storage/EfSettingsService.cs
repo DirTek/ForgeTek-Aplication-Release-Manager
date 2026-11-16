@@ -48,8 +48,21 @@ public sealed class EfSettingsService : ISettingsService
         if (row is null) return new GlobalSettings();
         var obj = JsonNode.Parse(row.Payload)!.AsObject();
         foreach (var key in GlobalSecretKeys) EfJson.Decrypt(obj, key, _protector);
-        return EfJson.Deserialize<GlobalSettings>(obj.ToJsonString(EfJson.Options));
+        var global = EfJson.Deserialize<GlobalSettings>(obj.ToJsonString(EfJson.Options));
+        if (!_networked) global.RootFolder = ResolveLocalRoot(global.RootFolder);
+        return global;
     }
+
+    /// <summary>
+    /// A standalone workspace sits next to the EXE, so a stored root that no longer exists means it was
+    /// moved (new drive letter, restored backup). Fall back to the current EXE folder instead of leaving
+    /// every derived path — Certificates, releases, logs, setups — pointing at storage that's gone.
+    /// Networked roots belong to another operator's machine and are never second-guessed.
+    /// </summary>
+    private static string ResolveLocalRoot(string stored)
+        => !string.IsNullOrWhiteSpace(stored) && Directory.Exists(stored)
+            ? stored
+            : AppContext.BaseDirectory;
 
     public void SaveGlobal()
     {

@@ -486,31 +486,49 @@ public partial class GlobalOptionsViewModel : ObservableObject
     [RelayCommand]
     private void BrowseAndCopyCert()
     {
+        var certFolder = CertificateFolderPath;
+
         var dlg = new Microsoft.Win32.OpenFileDialog
         {
-            Title           = "Select PFX Certificate",
-            Filter          = "PFX Certificate (*.pfx)|*.pfx|All files (*.*)|*.*",
-            CheckFileExists = true,
+            Title            = "Select PFX Certificate",
+            Filter           = "PFX Certificate (*.pfx)|*.pfx|All files (*.*)|*.*",
+            CheckFileExists  = true,
+            InitialDirectory = Directory.Exists(certFolder) ? certFolder : string.Empty,
         };
         if (dlg.ShowDialog() != true) return;
 
         var sourcePath = dlg.FileName;
         var fileName   = Path.GetFileName(sourcePath);
-        var destPath   = Path.Combine(CertificateFolderPath, fileName);
+        var destPath   = Path.Combine(certFolder, fileName);
 
         try
         {
-            Directory.CreateDirectory(CertificateFolderPath);
-            File.Copy(sourcePath, destPath, overwrite: true);
+            Directory.CreateDirectory(certFolder);
+
+            // Picking a .pfx that already lives in the Certificates folder is a select, not a copy —
+            // File.Copy onto itself throws, so adopt the file that's already there instead.
+            if (!IsSameFile(sourcePath, destPath))
+                File.Copy(sourcePath, destPath, overwrite: true);
+
             LoadAvailableCerts();
             SelectedCertFileName = fileName;
         }
         catch (Exception ex)
         {
-            new AlertDialog("Copy Failed", $"Could not copy certificate:\n{ex.Message}")
+            // The Certificates folder hangs off RootFolder, so a workspace that moved (new drive letter,
+            // restored backup) surfaces here first. Name the destination — a bare IO message doesn't say
+            // that the root itself is the thing that's wrong.
+            _log.Write("Certificates", $"Copying '{sourcePath}' to '{destPath}' failed: {ex}");
+            new AlertDialog("Copy Failed",
+                $"Could not copy the certificate into:\n{certFolder}\n\n{ex.Message}\n\n" +
+                "Check that the Root Folder in Options points somewhere that exists and is writable.")
                 { Owner = Application.Current.MainWindow }.ShowDialog();
         }
     }
+
+    /// <summary>True when both paths point at the same file on disk.</summary>
+    private static bool IsSameFile(string a, string b)
+        => string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
 
     [RelayCommand(CanExecute = nameof(CanClearGlobalCert))]
     private void ClearGlobalCert()
