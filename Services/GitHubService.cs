@@ -192,17 +192,46 @@ public class GitHubService : IGitHubService
         using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
         var arr = doc.RootElement;
         if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
+        return ParseCommit(arr[0]);
+    }
 
-        var c = arr[0];
+    public async Task<IReadOnlyList<RepoCommit>> GetCommitsAsync(
+        string repo, string? token, string? branch, int count, CancellationToken ct = default)
+    {
+        var (owner, name) = SplitRepo(repo);
+        var perPage = Math.Clamp(count, 1, 100);
+        var shaParam = string.IsNullOrWhiteSpace(branch) ? "" : $"sha={Uri.EscapeDataString(branch)}&";
+        using var req = Authed(HttpMethod.Get, $"repos/{owner}/{name}/commits?{shaParam}per_page={perPage}", token);
+        using var resp = await Http.SendAsync(req, ct);
+
+        if (resp.StatusCode == HttpStatusCode.NotFound)
+            throw new InvalidOperationException($"Could not list commits on '{branch}' — check the branch name.");
+        if (resp.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new InvalidOperationException("GitHub rejected the request — check the token and its 'repo' scope.");
+        resp.EnsureSuccessStatusCode();
+
+        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
+        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
+        return doc.RootElement.EnumerateArray().Select(ParseCommit).ToList();
+    }
+
+    // One element of the commits endpoint → subject line, author, author date, full SHA.
+    private static RepoCommit ParseCommit(JsonElement c)
+    {
+        var sha = c.TryGetProperty("sha", out var s) ? s.GetString() ?? "" : "";
         var commit = c.TryGetProperty("commit", out var cm) ? cm : default;
-        var message = commit.TryGetProperty("message", out var msg) ? msg.GetString() ?? "" : "";
+        var message = commit.ValueKind == JsonValueKind.Object && commit.TryGetProperty("message", out var msg)
+            ? msg.GetString() ?? "" : "";
         var firstLine = message.Split('\n')[0].Trim();
-        var author = commit.TryGetProperty("author", out var au) && au.TryGetProperty("name", out var an)
+        var hasAuthor = commit.ValueKind == JsonValueKind.Object && commit.TryGetProperty("author", out var au)
+                        && au.ValueKind == JsonValueKind.Object;
+        var author = hasAuthor && commit.GetProperty("author").TryGetProperty("name", out var an)
             ? an.GetString() ?? "" : "";
-        DateTime? date = commit.TryGetProperty("author", out var ad) && ad.TryGetProperty("date", out var dt)
+        DateTime? date = hasAuthor && commit.GetProperty("author").TryGetProperty("date", out var dt)
             && dt.TryGetDateTime(out var parsed) ? parsed.ToLocalTime() : null;
 
-        return new RepoCommit(firstLine, author, date);
+        return new RepoCommit(firstLine, author, date, sha);
     }
 
     // Summarizes each commit in an array (compare or commits endpoint). Each non-empty line of the

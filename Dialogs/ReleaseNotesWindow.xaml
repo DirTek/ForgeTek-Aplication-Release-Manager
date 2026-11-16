@@ -87,6 +87,39 @@
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
         </Style>
 
+        <!-- Section row: the note plus a ✕ that sends it back to Suggestions -->
+        <DataTemplate x:Key="BucketItemTemplate">
+            <Grid Background="Transparent" Margin="2,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextBrush}"/>
+                <Button Grid.Column="1" Click="RemoveNote_Click" Cursor="Hand" Focusable="False"
+                        Margin="6,0,0,0" VerticalAlignment="Top"
+                        ToolTip="{DynamicResource Str.ReleaseNotes.ReturnTip}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bg" Background="Transparent" CornerRadius="4" Padding="5,1">
+                                <TextBlock Text="✕" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bg" Property="Background" Value="{DynamicResource BorderBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <Style x:Key="BucketList" TargetType="ListBox" BasedOn="{StaticResource NoteList}">
+            <Setter Property="ItemTemplate" Value="{StaticResource BucketItemTemplate}"/>
+            <Setter Property="ToolTip"      Value="{DynamicResource Str.ReleaseNotes.BucketTip}"/>
+        </Style>
+
         <Style x:Key="BucketHeader" TargetType="TextBlock">
             <Setter Property="FontSize"   Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -161,6 +194,11 @@
                                      Padding="8,4" VerticalContentAlignment="Center" TextAlignment="Center"/>
                             <TextBlock Text="{DynamicResource Str.ReleaseNotes.LastNPost}" FontSize="11" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
+                            <CheckBox x:Name="HideDocumentedBox" IsChecked="True" Margin="18,0,0,0"
+                                      VerticalAlignment="Center" FontSize="11"
+                                      Foreground="{DynamicResource TextSecondaryBrush}"
+                                      Content="{DynamicResource Str.ReleaseNotes.HideDocumented}"
+                                      ToolTip="{DynamicResource Str.ReleaseNotes.HideDocumentedTip}"/>
                         </StackPanel>
                     </Grid>
 
@@ -179,18 +217,19 @@
                         </DockPanel>
 
                         <!-- Buckets -->
-                        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer Grid.Column="1" x:Name="BucketsScroll" VerticalScrollBarVisibility="Auto"
+                                      AllowDrop="True" PreviewDragOver="Buckets_PreviewDragOver">
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource Str.ReleaseNotes.BucketAdded}" Style="{StaticResource BucketHeader}" Margin="2,0,0,4"/>
-                                <ListBox x:Name="AddedList" Style="{StaticResource NoteList}" MinHeight="74"/>
+                                <ListBox x:Name="AddedList" Style="{StaticResource BucketList}" MinHeight="74"/>
                                 <TextBlock Text="{DynamicResource Str.ReleaseNotes.BucketChanged}" Style="{StaticResource BucketHeader}"/>
-                                <ListBox x:Name="ChangedList" Style="{StaticResource NoteList}" MinHeight="74"/>
+                                <ListBox x:Name="ChangedList" Style="{StaticResource BucketList}" MinHeight="74"/>
                                 <TextBlock Text="{DynamicResource Str.ReleaseNotes.BucketImproved}" Style="{StaticResource BucketHeader}"/>
-                                <ListBox x:Name="ImprovedList" Style="{StaticResource NoteList}" MinHeight="74"/>
+                                <ListBox x:Name="ImprovedList" Style="{StaticResource BucketList}" MinHeight="74"/>
                                 <TextBlock Text="{DynamicResource Str.ReleaseNotes.BucketRemoved}" Style="{StaticResource BucketHeader}"/>
-                                <ListBox x:Name="RemovedList" Style="{StaticResource NoteList}" MinHeight="74"/>
+                                <ListBox x:Name="RemovedList" Style="{StaticResource BucketList}" MinHeight="74"/>
                                 <TextBlock Text="{DynamicResource Str.ReleaseNotes.BucketFixed}" Style="{StaticResource BucketHeader}"/>
-                                <ListBox x:Name="FixedList" Style="{StaticResource NoteList}" MinHeight="74"/>
+                                <ListBox x:Name="FixedList" Style="{StaticResource BucketList}" MinHeight="74"/>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
