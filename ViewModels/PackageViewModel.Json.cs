@@ -82,6 +82,17 @@ public partial class PackageViewModel
                 Log.Add("No existing catalog — creating new.");
             }
 
+            // Re-using a version number that already went out: clients that installed the earlier upload compare
+            // version numbers, see no change, and never receive this one. Make that an explicit decision.
+            if (PreviouslyPublished(existingJson) is { } when &&
+                !_dialog.Confirm(_loc.Get("Str.PkgVm.RepublishTitle"),
+                    _loc.Get("Str.PkgVm.RepublishMsg", _version.VersionNumber, when),
+                    _loc.Get("Str.PkgVm.RepublishBtn")))
+            {
+                Log.Add($"Stopped — v{_version.VersionNumber} was already published. Bump the version number and rescan.");
+                return;
+            }
+
             var catalogJson = _catalog.BuildOrMerge(_appKey, _version, PackageDownloadUrl, existingJson);
 
             Directory.CreateDirectory(Path.GetDirectoryName(_catalogOutputPath) ?? ".");
@@ -98,6 +109,29 @@ public partial class PackageViewModel
         catch (OperationCanceledException) { Log.Add("Catalog generation stopped."); }
         catch (Exception ex)              { Log.Add($"✗  {ex.Message}"); }
         finally { _cts.Dispose(); _cts = null; IsGeneratingJson = false; }
+    }
+
+    /// <summary>When this version number already went out — per FARM's records (an earlier, since-retracted
+    /// upload keeps its published date) or because the live catalog already lists it — a short description of
+    /// when; otherwise null.</summary>
+    private string? PreviouslyPublished(string? catalogJson)
+    {
+        var earlier = _entry.Versions
+            .Where(v => v.PublishedDate is not null &&
+                        string.Equals(v.VersionNumber, _version.VersionNumber, StringComparison.OrdinalIgnoreCase))
+            .Select(v => v.PublishedDate!.Value)
+            .OrderByDescending(d => d)
+            .FirstOrDefault();
+        if (earlier != default) return earlier.ToString("yyyy-MM-dd HH:mm");
+
+        try
+        {
+            if (catalogJson is not null &&
+                System.Text.Json.Nodes.JsonNode.Parse(catalogJson)?["versions"]?[_version.VersionNumber] is { } entry)
+                return entry["date"]?.GetValue<string>() ?? _loc.Get("Str.PkgVm.RepublishOnServer");
+        }
+        catch { /* unreadable catalogs are rejected by the merge itself */ }
+        return null;
     }
 
     private bool CanGenerateJson() => !IsGeneratingJson && _version.HasPackage;

@@ -745,6 +745,14 @@ Verify the version number before approving.</sys:String>
     <sys:String x:Key="Str.PkgVm.StepJson">Step 4 of 5 — Generate Update Catalog</sys:String>
     <sys:String x:Key="Str.PkgVm.StepFtp">Step 5 of 5 — Publish</sys:String>
     <sys:String x:Key="Str.PkgVm.Finish">Finish ✔</sys:String>
+    <sys:String x:Key="Str.PkgVm.RepublishTitle">Version Already Published</sys:String>
+    <sys:String x:Key="Str.PkgVm.RepublishMsg">v{0} was already published ({1}).
+
+Clients that installed it compare version numbers, see no change, and will never receive this upload. Give the new build a higher version number instead.
+
+Publish it as v{0} anyway?</sys:String>
+    <sys:String x:Key="Str.PkgVm.RepublishBtn">Publish anyway</sys:String>
+    <sys:String x:Key="Str.PkgVm.RepublishOnServer">it is already in the catalog on the server</sys:String>
     <sys:String x:Key="Str.PkgVm.Next">Next →</sys:String>
     <sys:String x:Key="Str.PkgVm.VersionLabel">v{0}  •  {1:yyyy-MM-dd HH:mm}</sys:String>
     <sys:String x:Key="Str.PkgVm.PublishingVia">Publishing via {0}</sys:String>
