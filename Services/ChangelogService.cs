@@ -86,4 +86,100 @@ public class ChangelogService : IChangelogService
         var after  = string.Join("\n", lines.Skip(idx)).TrimEnd();
         return before + "\n\n" + versionSection + "\n\n" + after + "\n";
     }
+
+    public string UpsertChangelog(string? existing, string versionSection, string versionNumber, string appName)
+    {
+        if (string.IsNullOrWhiteSpace(existing) || string.IsNullOrWhiteSpace(versionNumber))
+            return BuildChangelog(existing, versionSection, appName);
+
+        var lines = existing.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        var startPattern = HeadingPattern(versionNumber.Trim());
+        var start = Array.FindIndex(lines, l => Regex.IsMatch(l, startPattern, RegexOptions.IgnoreCase));
+        if (start < 0)
+            return BuildChangelog(existing, versionSection, appName);
+
+        // The section runs until the next heading of the same or higher level (sub-headings are part of it).
+        const string anyHeading = @"^\s{0,3}(#{1,6})\s+";
+        var level = Regex.Match(lines[start], anyHeading).Groups[1].Value.Length;
+        var end = start + 1;
+        while (end < lines.Length)
+        {
+            var h = Regex.Match(lines[end], anyHeading);
+            if (h.Success && h.Groups[1].Value.Length <= level) break;
+            end++;
+        }
+
+        var before = string.Join("\n", lines.Take(start)).TrimEnd();
+        var after  = string.Join("\n", lines.Skip(end)).TrimEnd();
+        var result = (before.Length > 0 ? before + "\n\n" : "") + versionSection.Trim();
+        if (after.Length > 0) result += "\n\n" + after;
+        return result + "\n";
+    }
+
+    public IReadOnlyList<string> WriteSection(string? appFolder, string? sourceFolder,
+        string versionSection, string versionNumber, string appName)
+    {
+        var written = new List<string>();
+        var sourcePath = string.IsNullOrWhiteSpace(sourceFolder) ? null : FindChangelogFile(sourceFolder);
+        var outputPath = string.IsNullOrWhiteSpace(appFolder) ? null : FindChangelogFile(appFolder);
+
+        if (sourcePath is not null)
+        {
+            // The source changelog is the one the build bundles — update it, then mirror it into the build
+            // output (when the app ships one there) so the version being scanned carries the same file a
+            // rebuild would produce.
+            Upsert(sourcePath);
+            written.Add(sourcePath);
+            if (outputPath is not null && !SamePath(outputPath, sourcePath))
+            {
+                File.Copy(sourcePath, outputPath, overwrite: true);
+                written.Add(outputPath);
+            }
+            return written;
+        }
+
+        if (string.IsNullOrWhiteSpace(appFolder))
+            throw new InvalidOperationException("No app folder or source folder to write the changelog to.");
+
+        var path = outputPath ?? Path.Combine(appFolder, "CHANGELOG.md");
+        Upsert(path);
+        written.Add(path);
+        return written;
+
+        void Upsert(string p)
+        {
+            var existing = File.Exists(p) ? File.ReadAllText(p) : null;
+            File.WriteAllText(p, UpsertChangelog(existing, versionSection, versionNumber, appName));
+        }
+    }
+
+    public IReadOnlySet<string> GetDocumentedEntries(params string?[] folders)
+    {
+        var entries = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var folder in folders)
+        {
+            if (string.IsNullOrWhiteSpace(folder)) continue;
+            var path = FindChangelogFile(folder);
+            if (path is null) continue;
+            foreach (var line in File.ReadAllLines(path))
+            {
+                var m = Regex.Match(line, @"^\s*[-*+]\s+(?<text>.+)$");
+                if (!m.Success) continue;
+                var key = NormalizeEntry(m.Groups["text"].Value);
+                if (key.Length > 0) entries.Add(key);
+            }
+        }
+        return entries;
+    }
+
+    /// <summary>Comparison key for a changelog line: lower-case letters and digits only, so wording that
+    /// differs just by punctuation, casing or spacing is treated as the same entry.</summary>
+    public static string NormalizeEntry(string text)
+    {
+        var chars = text.Where(char.IsLetterOrDigit).Select(char.ToLowerInvariant).ToArray();
+        return new string(chars);
+    }
+
+    private static bool SamePath(string a, string b) =>
+        string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
 }

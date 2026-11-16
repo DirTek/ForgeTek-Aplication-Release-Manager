@@ -7,10 +7,11 @@ public record GitHubRelease(string TagName, string Name, string HtmlUrl, DateTim
 /// a best-guess bucket ("Added"/"Fixed") from a conventional-commit prefix, or "" when unknown.</summary>
 public record CommitChange(string Suggested, string Text);
 
-/// <summary>A recent repo commit for display (message first line + author + date).</summary>
-public record RepoCommit(string Message, string Author, DateTime? Date)
+/// <summary>A recent repo commit for display (message first line + author + date + full SHA).</summary>
+public record RepoCommit(string Message, string Author, DateTime? Date, string Sha = "")
 {
     public string Meta => Date is { } d ? $"{Author} · {d:yyyy-MM-dd}" : Author;
+    public string ShortSha => Sha.Length > 7 ? Sha[..7] : Sha;
 }
 
 /// <summary>One tracked file in a GitHub repo tree. <paramref name="Sha"/> is the git blob SHA-1.</summary>
@@ -45,6 +46,11 @@ public interface IGitHubService
     /// <summary>The most recent commit on the repo's default branch (message + author + date), or null
     /// when the repo has no commits. Throws on auth/network errors.</summary>
     Task<RepoCommit?> GetLastCommitAsync(string repo, string? token, CancellationToken ct = default);
+
+    /// <summary>The latest <paramref name="count"/> commits (newest first, up to 100) on
+    /// <paramref name="branch"/>, or on the default branch when it is null/empty — for picking a
+    /// commit range. Throws on auth/network errors.</summary>
+    Task<IReadOnlyList<RepoCommit>> GetCommitsAsync(string repo, string? token, string? branch, int count, CancellationToken ct = default);
 
     /// <summary>All tracked files (blobs) in the repo at <paramref name="branch"/>, with their git blob
     /// SHA-1, for comparing a local working copy against the remote. Throws on auth/network errors.</summary>
