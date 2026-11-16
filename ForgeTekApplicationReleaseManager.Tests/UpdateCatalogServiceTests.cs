@@ -75,4 +75,31 @@ public class UpdateCatalogServiceTests
         var json = Svc.BuildOrMerge("app", Ver("1.0", PackageType.Full), "https://cdn/app/1.0/app.ftu", null);
         Assert.Null(Svc.RemoveVersion("app", "1.0", json));
     }
+
+    [Fact]
+    public void Pointers_FollowVersionNumber_NotPublishOrder()
+    {
+        // Retract 1.0, publish 2.0, then re-publish 1.0: 1.0 is now the entry added last but must not be "latest".
+        var json = Svc.BuildOrMerge("app", Ver("2.0", PackageType.Full), "https://cdn/app/2.0/app.ftu", null);
+        json = Svc.BuildOrMerge("app", Ver("1.0", PackageType.Full), "https://cdn/app/1.0/app.ftu", json);
+
+        var root = JsonNode.Parse(json)!.AsObject();
+        Assert.Equal("2.0", root["app"]!.GetValue<string>());
+        Assert.Equal("2.0", root["channels"]!["stable"]!["version"]!.GetValue<string>());
+        Assert.Equal("2.0", root["latestFull"]!["version"]!.GetValue<string>());
+        Assert.Equal(["1.0", "2.0"], root["versions"]!.AsObject().Select(kv => kv.Key));   // stored oldest → newest
+    }
+
+    [Fact]
+    public void SortByVersion_ComparesNumerically_AndLeavesSortedCatalogsUntouched()
+    {
+        var versions = new JsonObject { ["0.0.7"] = 1, ["0.0.17"] = 2, ["0.0.11"] = 3, ["0.0.12"] = 4 };
+        UpdateCatalogService.SortByVersion(versions);
+        Assert.Equal(["0.0.7", "0.0.11", "0.0.12", "0.0.17"], versions.Select(kv => kv.Key));   // 17 > 12, not "1" < "7"
+
+        var sorted = new JsonObject { ["0.1.31"] = 1, ["0.1.37"] = 2, ["0.1.60"] = 3 };
+        var before = sorted.ToJsonString();
+        UpdateCatalogService.SortByVersion(sorted);
+        Assert.Equal(before, sorted.ToJsonString());
+    }
 }

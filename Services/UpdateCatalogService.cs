@@ -67,6 +67,10 @@ public class UpdateCatalogService : IUpdateCatalogService
         string? anyKey = null, anyUrl = null;
         string? fullKey = null, fullUrl = null;
 
+        // "Newest" means the highest version number, not the entry added last (re-publishing an older
+        // version after a retract would otherwise become "latest"). Keep the stored order the same.
+        SortByVersion(versionsObj);
+
         foreach (var kv in versionsObj)
         {
             if (kv.Value is not JsonObject entry) continue;
@@ -158,5 +162,33 @@ public class UpdateCatalogService : IUpdateCatalogService
                 $"The existing update catalog couldn't be read ({ex.Message}). It was left unchanged — fix or " +
                 "replace it on the server, then try again.", ex);
         }
+    }
+
+    /// <summary>Reorders the version entries by version number (lowest first). Keys that aren't version-like
+    /// sort first, and ties keep their existing order; an already-sorted catalog is left exactly as it is.</summary>
+    public static void SortByVersion(JsonObject versionsObj)
+    {
+        var ordered = versionsObj
+            .Select((kv, index) => (kv.Key, kv.Value, Index: index, Number: VersionNumberOf(kv.Key)))
+            .OrderBy(e => e.Number is null ? 0 : 1)
+            .ThenBy(e => e.Number ?? new Version(0, 0))
+            .ThenBy(e => e.Index)
+            .ToList();
+
+        if (ordered.Select(e => e.Key).SequenceEqual(versionsObj.Select(kv => kv.Key)))
+            return;
+
+        versionsObj.Clear();   // detaches the nodes so they can be re-added in order
+        foreach (var e in ordered)
+            versionsObj[e.Key] = e.Value;
+    }
+
+    // "1.2.3", "v1.2.3", "1.2.3-beta" → 1.2.3 (numeric part only); null when there's no leading number.
+    private static Version? VersionNumberOf(string key)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(key.Trim(), @"^[vV]?(\d+(?:\.\d+){0,3})");
+        if (!m.Success) return null;
+        var digits = m.Groups[1].Value;
+        return Version.TryParse(digits.Contains('.') ? digits : digits + ".0", out var v) ? v : null;
     }
 }
