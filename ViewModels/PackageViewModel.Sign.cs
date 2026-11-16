@@ -114,9 +114,26 @@ public partial class PackageViewModel
             IsSigningComplete = true;
             _main.RefreshSidebar(_entry);
         }
-        catch (OperationCanceledException) { Log.Add("Signing stopped."); }
-        catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); }
+        catch (OperationCanceledException) { Log.Add("Signing stopped."); RefreshAfterPartialSigning(selected); }
+        catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); RefreshAfterPartialSigning(selected); }
         finally { _cts.Dispose(); _cts = null; IsSigning = false; }
+    }
+
+    // Files signed before a failure or cancel have new bytes on disk. Record their checksums now, so the
+    // version keeps describing what is actually there (packaging refuses files that don't match). Unsigned
+    // files hash the same as before, so recomputing every selected file is harmless.
+    private void RefreshAfterPartialSigning(IReadOnlyList<string> selected)
+    {
+        try
+        {
+            RecomputeSignedChecksums(selected);
+            _storage.Update(_entry);
+            Log.Add("Checksums updated for the files signed before it stopped.");
+        }
+        catch (Exception ex)
+        {
+            Log.Add($"⚠  Could not update checksums ({ex.Message}) — rescan this version before packaging.");
+        }
     }
 
     private void RecomputeSignedChecksums(IReadOnlyList<string> signedPaths)
