@@ -315,8 +315,10 @@ public class FtpService : IFtpService
         try
         {
             await client.AutoConnect(ct);
-            await client.UploadBytes(bytes, remotePath,
+            var status = await client.UploadBytes(bytes, remotePath,
                 FtpRemoteExists.Overwrite, createRemoteDir: true, token: ct);
+            if (status == FtpStatus.Failed)
+                throw new IOException($"Upload of {remotePath} failed (server returned: {status}).");
         }
         finally
         {
@@ -345,10 +347,8 @@ public class FtpService : IFtpService
             var bytes = await client.DownloadBytes(remotePath, ct);
             return bytes is { Length: > 0 } ? Encoding.UTF8.GetString(bytes) : null;
         }
-        catch
-        {
-            return null;
-        }
+        // No catch-all: a connection or read failure must surface. Callers merge into / roll back the live
+        // catalog, and treating "couldn't read it" as "there is none" would replace or orphan it.
         finally
         {
             using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);

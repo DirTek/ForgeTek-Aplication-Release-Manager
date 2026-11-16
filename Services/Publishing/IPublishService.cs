@@ -23,7 +23,8 @@ public interface IPublishService
 
     Task<string> TestAsync(AppSettings s, CancellationToken ct = default);
 
-    /// <summary>Downloads the current update catalog from the provider, or null if none exists.</summary>
+    /// <summary>Downloads the current update catalog from the provider, or null if none exists.
+    /// Throws when the provider can't be read, so a failed read is never mistaken for "no catalog".</summary>
     Task<string?> TryGetCatalogAsync(AppSettings s, string appKey, string catalogFileName, CancellationToken ct = default);
 
     /// <summary>Uploads the package and the update catalog to the provider.</summary>

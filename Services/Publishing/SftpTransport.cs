@@ -72,15 +72,12 @@ internal sealed class SftpTransport : IFileTransport
     public Task<string?> TryDownloadTextAsync(string remotePath, CancellationToken ct = default)
         => Task.Run<string?>(() =>
         {
-            try
-            {
-                using var client = Connect();
-                if (!client.Exists(remotePath)) return null;
-                using var ms = new MemoryStream();
-                client.DownloadFile(remotePath, ms);
-                return Encoding.UTF8.GetString(ms.ToArray());
-            }
-            catch { return null; }
+            // Failures propagate: a failed read must not be mistaken for "no catalog".
+            using var client = Connect();
+            if (!client.Exists(remotePath)) return null;
+            using var ms = new MemoryStream();
+            client.DownloadFile(remotePath, ms);
+            return Encoding.UTF8.GetString(ms.ToArray());
         }, ct);
 
     public Task DeleteFileAsync(string remotePath, CancellationToken ct = default)

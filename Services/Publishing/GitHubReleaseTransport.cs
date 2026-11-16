@@ -133,7 +133,8 @@ internal sealed class GitHubReleaseTransport : IFileTransport
         req.Headers.Accept.Clear();
         req.Headers.Accept.ParseAdd("application/octet-stream");
         using var resp = await Http.SendAsync(req, ct);
-        if (!resp.IsSuccessStatusCode) return null;
+        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+        resp.EnsureSuccessStatusCode();
         return await resp.Content.ReadAsStringAsync(ct);
     }
 
@@ -200,7 +201,7 @@ internal sealed class GitHubReleaseTransport : IFileTransport
         using var resp = await Http.SendAsync(
             Req(HttpMethod.Get, $"https://api.github.com/repos/{_owner}/{_name}/releases/tags/{tag}"), ct);
         if (resp.StatusCode == HttpStatusCode.NotFound) return null;
-        if (!resp.IsSuccessStatusCode) return null;
+        resp.EnsureSuccessStatusCode();   // auth/rate-limit/server errors aren't "no such release"
         using var doc = await JsonDocument.ParseAsync(await resp.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
         return doc.RootElement.Clone();
     }

@@ -105,7 +105,7 @@ internal sealed class S3Transport : IFileTransport
         {
             return null;
         }
-        catch { return null; }
+        // Any other failure propagates: a failed read must not be mistaken for "no catalog".
     }
 
     public async Task DeleteFileAsync(string remotePath, CancellationToken ct = default)

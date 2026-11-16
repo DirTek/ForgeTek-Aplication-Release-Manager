@@ -15,16 +15,9 @@ public class UpdateCatalogService : IUpdateCatalogService
     /// </summary>
     public string BuildOrMerge(string appKey, AppVersion version, string packageUrl, string? existingJson)
     {
-        JsonObject root;
-        if (existingJson is not null)
-        {
-            try { root = JsonNode.Parse(existingJson)!.AsObject(); }
-            catch { root = new JsonObject(); }
-        }
-        else
-        {
-            root = new JsonObject();
-        }
+        // An existing catalog we can't read is never silently replaced: that would publish a catalog with
+        // only this version in it and drop every other version clients rely on.
+        var root = string.IsNullOrWhiteSpace(existingJson) ? new JsonObject() : ParseCatalog(existingJson);
 
         // Current version pointer
         root[appKey] = version.VersionNumber;
@@ -131,12 +124,12 @@ public class UpdateCatalogService : IUpdateCatalogService
     /// </summary>
     public string? RemoveVersion(string appKey, string versionNumber, string existingJson, string? rollbackToVersion = null)
     {
-        JsonObject root;
-        try { root = JsonNode.Parse(existingJson)!.AsObject(); }
-        catch { return null; }
-
+        // Null means "no versions remain — delete the catalog". A catalog we can't read or that has no version
+        // list is an error instead: deleting it would cut every client off from updates.
+        var root = ParseCatalog(existingJson);
         if (root["versions"] is not JsonObject versionsObj)
-            return null;
+            throw new InvalidOperationException(
+                "The catalog has no \"versions\" list, so this version can't be removed from it. It was left unchanged.");
 
         versionsObj.Remove(versionNumber);
 
@@ -150,5 +143,20 @@ public class UpdateCatalogService : IUpdateCatalogService
         RecomputeChannels(root, appKey, versionsObj, pin);
 
         return root.ToJsonString(_writeOptions);
+    }
+
+    private static JsonObject ParseCatalog(string json)
+    {
+        try
+        {
+            return JsonNode.Parse(json) as JsonObject
+                   ?? throw new InvalidOperationException("The catalog isn't a JSON object.");
+        }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException)
+        {
+            throw new InvalidOperationException(
+                $"The existing update catalog couldn't be read ({ex.Message}). It was left unchanged — fix or " +
+                "replace it on the server, then try again.", ex);
+        }
     }
 }

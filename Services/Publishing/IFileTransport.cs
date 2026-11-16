@@ -15,6 +15,8 @@ public interface IFileTransport
     Task UploadFileAsync(string localPath, string remotePath, IProgress<string> progress,
         CancellationToken ct = default, IProgress<long>? bytesProgress = null);
     Task UploadTextAsync(string content, string remotePath, CancellationToken ct = default);
+    /// <summary>Downloads a text file, or returns null when it doesn't exist. Throws when it can't be read
+    /// (connection, auth, server error) — callers must not mistake a failed read for a missing file.</summary>
     Task<string?> TryDownloadTextAsync(string remotePath, CancellationToken ct = default);
     Task DeleteFileAsync(string remotePath, CancellationToken ct = default);
     /// <summary>Removes a "folder" (FTP/SFTP directory, S3 prefix, or GitHub per-version release).</summary>

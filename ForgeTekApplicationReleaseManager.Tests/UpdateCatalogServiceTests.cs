@@ -53,4 +53,26 @@ public class UpdateCatalogServiceTests
         Assert.Equal("2.0", root["latestFull"]!["version"]!.GetValue<string>());
         Assert.Equal("2.0", root["versions"]!["2.1"]!["base"]!.GetValue<string>());
     }
+
+    [Theory]
+    [InlineData("{ not json")]
+    [InlineData("[1, 2, 3]")]
+    public void BuildOrMerge_UnreadableExistingCatalog_Throws_InsteadOfReplacingIt(string existing)
+        => Assert.Throws<InvalidOperationException>(() =>
+            Svc.BuildOrMerge("app", Ver("1.0", PackageType.Full), "https://cdn/app/1.0/app.ftu", existing));
+
+    [Fact]
+    public void RemoveVersion_UnreadableCatalog_Throws_InsteadOfDeletingIt()
+        => Assert.Throws<InvalidOperationException>(() => Svc.RemoveVersion("app", "1.0", "{ not json"));
+
+    [Fact]
+    public void RemoveVersion_CatalogWithoutVersionList_Throws()
+        => Assert.Throws<InvalidOperationException>(() => Svc.RemoveVersion("app", "1.0", """{ "app": "1.0" }"""));
+
+    [Fact]
+    public void RemoveVersion_LastVersion_ReturnsNull()
+    {
+        var json = Svc.BuildOrMerge("app", Ver("1.0", PackageType.Full), "https://cdn/app/1.0/app.ftu", null);
+        Assert.Null(Svc.RemoveVersion("app", "1.0", json));
+    }
 }
