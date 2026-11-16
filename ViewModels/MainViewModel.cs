@@ -117,34 +117,95 @@ public partial class MainViewModel : ObservableObject
             vm.PrimaryActionCommand.Execute(null);
     }
 
-    /// <summary>After a scan, if the app is connected to GitHub and its changelog has no entry for
-    /// <paramref name="versionNumber"/>, offer to document the changes (opens the release-notes editor,
-    /// which can prepend the new section to the changelog).</summary>
-    public void PromptChangelogIfNeeded(AppEntry entry, string versionNumber)
+    /// <summary>Runs while a new version is being approved, BEFORE it is saved: if the app is connected to
+    /// GitHub and its changelog has no entry for <paramref name="versionNumber"/>, offers to document the
+    /// changes (the release-notes editor writes the changelog). Then re-reads the changelog in the scanned
+    /// folder so the saved version records the file as it is now — otherwise a changelog written after the
+    /// scan keeps its stale checksum (and an incremental package skips it) or, if it was just created, is
+    /// missing from the version entirely. Returns the changelog's record when it changed, else null.</summary>
+    public FileRecord? DocumentChangesBeforeSave(AppEntry entry, string versionNumber, List<FileRecord> files)
     {
         var settings = _services.GetRequiredService<ISettingsService>();
         var s = settings.LoadAppSettings(entry.Name);
-        if (string.IsNullOrWhiteSpace(s.GitHubRepo)) return;   // only for GitHub-connected apps
+        if (!string.IsNullOrWhiteSpace(s.GitHubRepo))   // only GitHub-connected apps get the prompt
+        {
+            var changelog = _services.GetRequiredService<IChangelogService>();
+            var path = changelog.FindChangelogFile(entry.FolderPath);
+            if ((path is null || !changelog.HasChangelogEntry(path, versionNumber)) &&
+                _dialog.Confirm(_loc.Get("Str.MainVm.UpdateChangelogTitle"),
+                    _loc.Get("Str.MainVm.UpdateChangelogMsg", versionNumber), _loc.Get("Str.MainVm.AddChanges")))
+            {
+                OpenReleaseNotes(entry, versionNumber, VersionBefore(entry, versionNumber));
+            }
+        }
+        return RefreshChangelogRecord(entry, files);
+    }
 
-        var changelog = _services.GetRequiredService<IChangelogService>();
-        var path = changelog.FindChangelogFile(entry.FolderPath);
-        if (path is not null && changelog.HasChangelogEntry(path, versionNumber))
-            return;   // already documented
-
-        if (!_dialog.Confirm(_loc.Get("Str.MainVm.UpdateChangelogTitle"),
-                _loc.Get("Str.MainVm.UpdateChangelogMsg", versionNumber), _loc.Get("Str.MainVm.AddChanges")))
-            return;
+    /// <summary>Opens the release-notes editor for <paramref name="entry"/>, prefilled for
+    /// <paramref name="versionNumber"/> with the range starting at <paramref name="previous"/>.
+    /// Returns true when the editor wrote the changelog.</summary>
+    public bool OpenReleaseNotes(AppEntry entry, string? versionNumber, AppVersion? previous)
+    {
+        var settings = _services.GetRequiredService<ISettingsService>();
+        var s = settings.LoadAppSettings(entry.Name);
+        if (string.IsNullOrWhiteSpace(s.GitHubRepo)) return false;
 
         var token = string.IsNullOrWhiteSpace(s.GitHubToken) ? settings.Global.GitHubToken : s.GitHubToken;
         var slnFolder = !string.IsNullOrWhiteSpace(entry.SolutionPath)
             && ProjectLocator.Resolve(entry.SolutionPath) is { } t
             ? System.IO.Path.GetDirectoryName(t) : null;
-        new ReleaseNotesWindow(
-            _services.GetRequiredService<IGitHubService>(), changelog,
-            s.GitHubRepo!, token, entry.FolderPath, entry.Name, versionNumber, solutionFolder: slnFolder)
+        var window = new ReleaseNotesWindow(
+            _services.GetRequiredService<IGitHubService>(), _services.GetRequiredService<IChangelogService>(),
+            s.GitHubRepo!, token, entry.FolderPath, entry.Name, versionNumber, solutionFolder: slnFolder,
+            previousVersion: previous?.VersionNumber, previousVersionDate: previous?.ScanDate)
         {
             Owner = Application.Current.MainWindow,
-        }.ShowDialog();
+        };
+        window.ShowDialog();
+        return window.ChangelogWritten;
+    }
+
+    /// <summary>The live (not retracted/scrapped) version released before <paramref name="versionNumber"/>.</summary>
+    public static AppVersion? VersionBefore(AppEntry entry, string? versionNumber) => entry.Versions
+        .Where(v => v.Status != VersionStatus.Retracted && v.Status != VersionStatus.Scrapped)
+        .LastOrDefault(v => !string.Equals(v.VersionNumber, versionNumber?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Updates (or adds) the changelog's record in <paramref name="files"/> from the file currently in
+    /// the app folder, and stores its content for networked packaging. Returns the record when it changed.</summary>
+    public FileRecord? RefreshChangelogRecord(AppEntry entry, List<FileRecord> files)
+    {
+        var log = _services.GetRequiredService<ILogService>();
+        try
+        {
+            var path = _services.GetRequiredService<IChangelogService>().FindChangelogFile(entry.FolderPath);
+            if (path is null) return null;
+
+            var rel = System.IO.Path.GetRelativePath(entry.FolderPath, path);
+            var checksum = ScannerService.ComputeChecksum(path);
+            var record = files.FirstOrDefault(f => string.Equals(f.Path, rel, StringComparison.OrdinalIgnoreCase));
+            if (record is not null && record.Checksum == checksum) return null;
+
+            if (record is null) { record = new FileRecord { Path = rel }; files.Add(record); }
+            record.Checksum = checksum;
+            record.DateModified = System.IO.File.GetLastWriteTime(path);
+            log.Write("Changelog", $"{entry.Name}: {rel} updated after the scan — version now records the new content.");
+
+            // Networked: the scan already stored the old content; store the new one so other machines can package it.
+            var blobs = _services.GetRequiredService<Services.Storage.IFileBlobStore>();
+            var folder = entry.FolderPath;
+            var stored = record;
+            _ = Task.Run(async () =>
+            {
+                try { await blobs.StoreAsync(folder, [stored]); }
+                catch (Exception ex) { log.Write("Blobs", $"Storing the updated changelog failed: {ex.Message}"); }
+            });
+            return record;
+        }
+        catch (Exception ex)
+        {
+            log.Write("Changelog", $"{entry.Name}: could not re-read the changelog: {ex.Message}");
+            return null;
+        }
     }
 
     public void NavigateToScan(AppEntry entry, IReadOnlyList<FileRecord> files, string? detectedVersion = null)

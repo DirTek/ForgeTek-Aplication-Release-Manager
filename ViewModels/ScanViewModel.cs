@@ -160,19 +160,22 @@ public partial class ScanViewModel : ObservableObject
                     _loc.Get("Str.Common.SaveAnyway"))) return;
         }
 
+        // Document the changes before saving, so a changelog written now is part of this version.
+        var files = FileTreeNodeViewModel.CollectFiles(FileTree).ToList();
+        _main.DocumentChangesBeforeSave(_entry, trimmed, files);
+
         var version = new AppVersion
         {
             VersionNumber = trimmed,
             ScanDate      = DateTime.Now,
             IsInitial     = true,
             Channel       = IsBeta ? UpdateChannel.Beta : UpdateChannel.Stable,
-            Files         = FileTreeNodeViewModel.CollectFiles(FileTree).ToList(),
+            Files         = files,
         };
 
         _entry.Versions.Add(version);
         _main.NavigateToDetail(_entry);
         PromptGenerateUpdaterIfMissing(version);
-        _main.PromptChangelogIfNeeded(_entry, trimmed);
     }
 
     // On the initial scan, offer to generate an updater when the app doesn't already ship one.
