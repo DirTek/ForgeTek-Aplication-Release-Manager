@@ -75,7 +75,8 @@ public partial class PackageViewModel
 
         var files = SelectedPackageType == PackageType.Incremental ? _incrementalFiles : _fullFiles;
 
-        // A Full has no baseline; an Incremental is cumulative since the last full.
+        // A Full has no baseline; an Incremental is cumulative since the last full. (WriteManifestAsync below
+        // sets this too; set it here first so the size warning reads right.)
         _version.BaseVersion = SelectedPackageType == PackageType.Incremental ? _baselineVersion : null;
 
         // Cumulative patches grow as more changes accrue since the baseline; nudge a fresh Full when large.
@@ -86,19 +87,29 @@ public partial class PackageViewModel
                     $"{_incrementalFiles.Count} of {_fullFiles.Count} files. Consider a Full to reset the baseline.");
         }
 
+        // A staged self-replacement ships but isn't required afterwards (the app renames it on launch).
+        foreach (var staged in _fullFiles.Except(_expectedFiles))
+            Log.Add($"ℹ  {staged.Path} ships but isn't expected after install (the app promotes it on launch) — " +
+                    "left out of self-heal.");
+
         _cts = new CancellationTokenSource();
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
-            // Incremental: baseline-relative removed set (genuinely-gone since the last full + files the
-            // user marked for removal). Full: self-contained, so only the explicit removals are carried.
-            var removedFiles = SelectedPackageType == PackageType.Incremental
-                ? _packageRemovedFiles
-                : _version.RemovedMarkedFiles.Select(f => f.Path).ToList();
+            // Rewrite the manifest for the type actually being built, so the copy embedded in the package
+            // matches its header (baseline + removed files). Only its warnings are logged.
+            string? lastLine = null;
+            var manifestProgress = new Progress<string>(msg =>
+            {
+                if (msg.Contains('⚠')) { if (lastLine is not null) Log.Add(lastLine); Log.Add(msg); }
+                lastLine = msg;
+            });
+            await WriteManifestAsync(manifestProgress, _cts.Token);
+
             var sha256 = await _packaging.BuildAsync(
                 _entry, _version, files, SelectedPackageType,
-                PackageOutputPath, ManifestOutputPath, removedFiles, progress, _cts.Token,
-                expectedFiles: _fullFiles);
+                PackageOutputPath, ManifestOutputPath, CurrentRemovedFiles(), progress, _cts.Token,
+                expectedFiles: _expectedFiles);
 
             Log.Add(string.Empty);
             Log.Add($"Package SHA-256: {sha256}");

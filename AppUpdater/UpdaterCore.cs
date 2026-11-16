@@ -270,13 +270,14 @@ internal sealed class UpdaterCore(UpdaterConfig config, IUpdaterUi ui)
         foreach (var ef in header.ExpectedFiles)
         {
             var fullPath = Path.Combine(installDir, ef.Path.Replace('/', Path.DirectorySeparatorChar));
+            var expected = NormalizeHash(ef.Hash);
             if (!File.Exists(fullPath))
             {
-                missing.Add(ef);
+                if (!IsPromotedReplacement(fullPath, expected))
+                    missing.Add(ef);
                 continue;
             }
 
-            var expected = NormalizeHash(ef.Hash);
             if (string.IsNullOrEmpty(expected))
                 continue; // nothing to compare against — presence is enough
 
@@ -284,6 +285,26 @@ internal sealed class UpdaterCore(UpdaterConfig config, IUpdaterUi ui)
                 missing.Add(ef);
         }
         return missing;
+    }
+
+    // "X_new.exe" is a staged self-replacement that the app renames to "X.exe" on its next launch, so once
+    // promoted it no longer exists under the staged name. Older packages still list it as expected — count it
+    // as present when "X.exe" carries the expected bytes, instead of re-downloading the baseline to restore it.
+    private static bool IsPromotedReplacement(string stagedPath, string expectedHash)
+    {
+        const string suffix = "_new.exe";
+        var name = Path.GetFileName(stagedPath);
+        if (name.Length <= suffix.Length || !name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var promoted = Path.Combine(Path.GetDirectoryName(stagedPath) ?? string.Empty, name[..^suffix.Length] + ".exe");
+        try
+        {
+            return File.Exists(promoted) &&
+                   (string.IsNullOrEmpty(expectedHash) ||
+                    string.Equals(Sha256Hex(promoted), expectedHash, StringComparison.OrdinalIgnoreCase));
+        }
+        catch { return false; }   // unreadable → treat as missing, the normal repair path takes over
     }
 
     private static string NormalizeHash(string hash) =>

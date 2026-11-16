@@ -30,6 +30,8 @@ public partial class PackageViewModel : ObservableObject
     private bool _isDiffVersion;
     private IReadOnlyList<FileRecord> _incrementalFiles = [];
     private IReadOnlyList<FileRecord> _fullFiles = [];
+    // What a client must have after applying this version (manifest + package ExpectedFiles, for self-heal).
+    private IReadOnlyList<FileRecord> _expectedFiles = [];
     // Files present in the baseline full but gone in this version (baseline-relative, for the payload).
     private IReadOnlyList<string> _packageRemovedFiles = [];
     // The full baseline this version is cumulative from (null for the initial / when packaged as Full).
@@ -99,6 +101,7 @@ public partial class PackageViewModel : ObservableObject
         _isDiffVersion = baseVersion is not null;
 
         _fullFiles           = version.NonDebugFiles.ToList();
+        _expectedFiles       = ComputeExpectedFiles(version);
         _incrementalFiles    = ComputeIncrementalFiles(version, baseVersion);
         _packageRemovedFiles = ComputeRemovedFiles(version, baseVersion);
         _baselineVersion     = baseVersion?.VersionNumber;
@@ -192,6 +195,38 @@ public partial class PackageViewModel : ObservableObject
         var baseMap = baseVersion.NonDebugFiles.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
         return nonDebug.Where(f => !baseMap.TryGetValue(f.Path, out var bf) || bf.Checksum != f.Checksum).ToList();
     }
+
+    /// <summary>The files a client must have once this version is installed — the package's ExpectedFiles and
+    /// the manifest, which updaters self-heal against. Every shipped file EXCEPT a staged self-replacement
+    /// ("X_new.exe"): the app consumes it on its next launch (renames it to "X.exe"), so expecting it would
+    /// make every later update see it as missing and re-download the full baseline to "repair" it. The file
+    /// is still shipped in the payload; it just isn't required to stay on disk.</summary>
+    public static IReadOnlyList<FileRecord> ComputeExpectedFiles(AppVersion version)
+    {
+        var allPaths = version.Files.Select(f => f.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return version.NonDebugFiles.Where(f => !IsStagedSelfReplacement(f.Path, allPaths)).ToList();
+    }
+
+    /// <summary>True for "X_new.exe" when it stages a replacement for "X.exe" — the version also contains
+    /// "X.exe" (shipped or excluded), or X is an updater ("{App}.Updater"), the convention FARM generates.</summary>
+    public static bool IsStagedSelfReplacement(string path, IReadOnlySet<string> allPaths)
+    {
+        const string suffix = "_new.exe";
+        var name = Path.GetFileName(path);
+        if (name.Length <= suffix.Length || !name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var baseName = name[..^suffix.Length];
+        var target = Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, baseName + ".exe");
+        return allPaths.Contains(target) || baseName.EndsWith(".Updater", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>RemovedFiles for the package type being built — the same list goes in the package header
+    /// and the manifest. Incremental: baseline-relative (genuinely gone since the last full + explicit
+    /// removals). Full: self-contained, so only the files the user explicitly marked for removal.</summary>
+    private IReadOnlyList<string> CurrentRemovedFiles() => SelectedPackageType == PackageType.Incremental
+        ? _packageRemovedFiles
+        : _version.RemovedMarkedFiles.Select(f => f.Path).ToList();
 
     /// <summary>The most recent full baseline at or before <paramref name="idx"/> (an incremental's
     /// payload is cumulative since this version). Treats the initial scan and any version packaged as
