@@ -61,20 +61,29 @@ public class FtpService : IFtpService
 
                 // Some shared-hosting FTP servers complete the data transfer but never send
                 // the "226 Transfer Complete" ACK on the control channel, hanging indefinitely.
+                // So: once every byte is sent, give the ACK AckTimeout and then move on. Before
+                // that, the transfer may take as long as it needs — it only fails if it stalls
+                // (no progress for StallTimeout). A timeout is never mistaken for a finished upload.
                 using var fileCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                fileCts.CancelAfter(TimeSpan.FromSeconds(60));
+                var transferComplete = false;
+                var stalled          = false;
+                var lastActivityTick = Environment.TickCount64;
 
                 // ── Throttled progress ────────────────────────────────────────────
                 // Progress<T> marshals every callback to the UI thread via Dispatcher.
                 // At ~200+ callbacks/second the dispatcher queue floods and the UI
                 // freezes. We throttle to one UI update per 250 ms maximum.
-                var transferComplete = false;
                 var lastReportTick   = 0L;           // Environment.TickCount64
                 var lastPct          = -1.0;
 
                 var ftpProgress = new Progress<FtpProgress>(p =>
                 {
-                    if (p.Progress >= 100) transferComplete = true;
+                    Volatile.Write(ref lastActivityTick, Environment.TickCount64);
+                    if (p.Progress >= 100 && !transferComplete)
+                    {
+                        transferComplete = true;
+                        try { fileCts.CancelAfter(AckTimeout); } catch (ObjectDisposedException) { }
+                    }
 
                     var now = Environment.TickCount64;
                     // Always report the very first tick, every 250 ms after that,
@@ -102,6 +111,14 @@ public class FtpService : IFtpService
                     {
                         await Task.Delay(5_000, fileCts.Token).ConfigureAwait(false);
                         if (fileCts.Token.IsCancellationRequested) break;
+                        if (!transferComplete &&
+                            Environment.TickCount64 - Volatile.Read(ref lastActivityTick) > (long)StallTimeout.TotalMilliseconds)
+                        {
+                            stalled = true;
+                            progress.Report($"  No progress for {StallTimeout.TotalSeconds:F0} s — giving up.");
+                            fileCts.Cancel();
+                            break;
+                        }
                         progress.Report(transferComplete
                             ? "  Waiting for server confirmation…"
                             : "  Uploading…");
@@ -111,15 +128,27 @@ public class FtpService : IFtpService
                 try
                 {
                     var status = await uploadTask;
-                    progress.Report(status == FtpStatus.Success
-                        ? $"✔  {name} → {remotePath}"
-                        : $"⚠  {name} uploaded (server returned: {status})");
+                    if (status == FtpStatus.Failed)   // not an IOException: the timeout handlers below don't apply
+                        throw new InvalidOperationException($"Upload of {name} failed (server returned: {status}).");
+                    progress.Report($"✔  {name} → {remotePath}");
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested && transferComplete && !stalled &&
+                    (ex is OperationCanceledException || ex is TimeoutException || ex is IOException))
+                {
+                    // Every byte was sent; the server just didn't ACK in time. The size check below confirms it.
+                    progress.Report($"✔  {name} → {remotePath} (ACK timeout — file transferred)");
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested &&
                     (ex is OperationCanceledException || ex is TimeoutException || ex is IOException))
                 {
-                    // Data was fully sent; server just didn't ACK before timeout.
-                    progress.Report($"✔  {name} → {remotePath} (ACK timeout — file transferred)");
+                    // Progress never reached 100% (or stalled). The server may still hold the whole file if its
+                    // last progress report fell just short — trust only a matching remote size, never the timeout.
+                    var remoteSize = await TryGetRemoteSizeAsync(remotePath, host, port, username, password, ct);
+                    if (remoteSize != new FileInfo(localPath).Length)
+                        throw new IOException(stalled
+                            ? $"Upload of {name} stalled (no progress for {StallTimeout.TotalSeconds:F0} s)."
+                            : $"Upload of {name} did not complete.", ex);
+                    progress.Report($"✔  {name} → {remotePath} (no server confirmation — remote size matches)");
                 }
                 finally
                 {
@@ -127,7 +156,8 @@ public class FtpService : IFtpService
                     try { await heartbeatTask; } catch { }
                 }
 
-                // Size integrity check — fresh connection so upload client state doesn't matter.
+                // Size integrity check — fresh connection so upload client state doesn't matter. A mismatch
+                // aborts the publish, so a truncated package is never followed by a catalog that points at it.
                 if (!ct.IsCancellationRequested)
                     await VerifyRemoteSizeAsync(localPath, remotePath, host, port, username, password, progress, ct);
 
@@ -145,10 +175,42 @@ public class FtpService : IFtpService
         progress.Report($"[FTP] all files processed");
     }
 
+    /// <summary>How long to wait for the server's "transfer complete" reply once every byte has been sent.</summary>
+    private static readonly TimeSpan AckTimeout = TimeSpan.FromSeconds(60);
+
+    /// <summary>A transfer with no progress for this long is treated as failed.</summary>
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(60);
+
+    // Remote file size on a fresh connection, or null when it can't be determined.
+    private async Task<long?> TryGetRemoteSizeAsync(
+        string remotePath, string host, int port, string username, string password, CancellationToken ct)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(15));
+        var client = CreateClient(host, port, username, password);
+        try
+        {
+            await client.AutoConnect(cts.Token);
+            var size = await client.GetFileSize(remotePath, -1L, cts.Token);
+            return size >= 0 ? size : null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            return null;
+        }
+        finally
+        {
+            using var discCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            discCts.CancelAfter(TimeSpan.FromSeconds(5));
+            try { await client.Disconnect(discCts.Token); } catch { }
+            await client.DisposeAsync();
+        }
+    }
+
     // Connects a dedicated short-lived client and compares the remote file size to the
-    // local file. A mismatch after a binary upload is a strong signal of corruption.
-    // Reported as a warning rather than an exception — the upload already succeeded and
-    // some servers report wrong sizes for ASCII-mode or compressed transfers.
+    // local file. Uploads are binary, so a mismatch means the remote file is incomplete or
+    // corrupt: that throws, stopping the publish before the catalog is uploaded. A server
+    // that can't report sizes, or a failed check connection, is only a warning.
     private async Task VerifyRemoteSizeAsync(
         string localPath, string remotePath,
         string host, int port, string username, string password,
@@ -159,21 +221,16 @@ public class FtpService : IFtpService
         cts.CancelAfter(TimeSpan.FromSeconds(15));
 
         var client = CreateClient(host, port, username, password);
+        long remoteSize;
         try
         {
             await client.AutoConnect(cts.Token);
-            var remoteSize = await client.GetFileSize(remotePath, -1L, cts.Token);
-
-            if (remoteSize < 0)
-                progress.Report("  —  Server does not support SIZE — integrity check skipped");
-            else if (remoteSize == localSize)
-                progress.Report($"  ✔  Integrity: {remoteSize:N0} bytes match");
-            else
-                progress.Report($"  ⚠  Size mismatch — local: {localSize:N0} B, remote: {remoteSize:N0} B");
+            remoteSize = await client.GetFileSize(remotePath, -1L, cts.Token);
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
             progress.Report($"  ⚠  Could not verify upload size: {ex.Message}");
+            return;
         }
         finally
         {
@@ -182,6 +239,15 @@ public class FtpService : IFtpService
             try { await client.Disconnect(discCts.Token); } catch { }
             await client.DisposeAsync();
         }
+
+        if (remoteSize < 0)
+            progress.Report("  —  Server does not support SIZE — integrity check skipped");
+        else if (remoteSize == localSize)
+            progress.Report($"  ✔  Integrity: {remoteSize:N0} bytes match");
+        else
+            throw new IOException(
+                $"{Path.GetFileName(localPath)} arrived incomplete — local {localSize:N0} B, remote {remoteSize:N0} B. " +
+                "Publish stopped before the catalog was updated; publish again.");
     }
 
     /// <summary>
