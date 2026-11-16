@@ -34,18 +34,11 @@ public partial class PackageViewModel
         Log.Add(string.Empty);
         Log.Add($"Building manifest for v{_version.VersionNumber}…");
 
-        // A Full has no baseline; an Incremental is cumulative since the last full.
-        _version.BaseVersion = SelectedPackageType == PackageType.Incremental ? _baselineVersion : null;
-
         _cts = new CancellationTokenSource();
         var progress = new Progress<string>(msg => Log.Add(msg));
         try
         {
-            // The manifest records the FULL expected state (every non-debug file + hash) for client
-            // self-heal, with baseline-relative removed files; the package payload stays incremental.
-            var json = await _manifest.GenerateAsync(_entry, _version, _fullFiles, _packageRemovedFiles, progress, _cts.Token);
-            Directory.CreateDirectory(Path.GetDirectoryName(ManifestOutputPath) ?? ".");
-            await File.WriteAllTextAsync(ManifestOutputPath, json, _cts.Token);
+            await WriteManifestAsync(progress, _cts.Token);
             Log.Add(string.Empty);
             Log.Add($"✔  Manifest saved → {ManifestOutputPath}");
             _version.HasManifest = true;
@@ -59,6 +52,19 @@ public partial class PackageViewModel
         catch (OperationCanceledException) { Log.Add("Manifest generation stopped."); }
         catch (Exception ex)              { Log.Add($"✗ {ex.Message}"); }
         finally { _cts.Dispose(); _cts = null; IsGenerating = false; }
+    }
+
+    /// <summary>Writes the manifest for the currently selected package type: the full expected state (every
+    /// file a client must have afterwards + hash) and the same RemovedFiles/baseline as the package header.
+    /// Also run at packaging time, because the package type can change after the Manifest step.</summary>
+    private async Task WriteManifestAsync(IProgress<string> progress, CancellationToken ct)
+    {
+        // A Full has no baseline; an Incremental is cumulative since the last full.
+        _version.BaseVersion = SelectedPackageType == PackageType.Incremental ? _baselineVersion : null;
+
+        var json = await _manifest.GenerateAsync(_entry, _version, _expectedFiles, CurrentRemovedFiles(), progress, ct);
+        Directory.CreateDirectory(Path.GetDirectoryName(ManifestOutputPath) ?? ".");
+        await File.WriteAllTextAsync(ManifestOutputPath, json, ct);
     }
 
     private bool CanGenerateManifest()

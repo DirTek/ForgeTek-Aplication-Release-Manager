@@ -155,6 +155,39 @@ public class PackageHelperTests
         Assert.Contains("obsolete.dll", removed);
     }
 
+    [Fact]
+    public void ComputeExpectedFiles_LeavesOutStagedUpdaterButKeepsItShipped()
+    {
+        // STLVerse layout: live updater excluded (on disk), new updater staged as *_new.exe and shipped.
+        // The app renames *_new.exe on launch, so clients must not be required to keep it.
+        var version = new AppVersion { VersionNumber = "2.0",
+            Files =
+            [
+                new FileRecord { Path = "App.exe", Checksum = "A" },
+                new FileRecord { Path = "App.Updater.exe", Checksum = "U1", IsDebug = true },
+                new FileRecord { Path = "App.Updater_new.exe", Checksum = "U2" },
+            ] };
+
+        var expected = PackageViewModel.ComputeExpectedFiles(version);
+        Assert.Contains(expected, f => f.Path == "App.exe");
+        Assert.DoesNotContain(expected, f => f.Path == "App.Updater_new.exe");
+        Assert.Contains(version.NonDebugFiles, f => f.Path == "App.Updater_new.exe");   // still in the payload
+    }
+
+    [Theory]
+    [InlineData("Tool_new.exe", new[] { "Tool.exe" }, true)]                     // replaces a file in the version
+    [InlineData("sub\\Tool_new.exe", new[] { "sub\\Tool.exe" }, true)]           // same folder only
+    [InlineData("sub\\Tool_new.exe", new[] { "Tool.exe" }, false)]
+    [InlineData("My App.Updater_new.exe", new string[0], true)]                 // FARM's updater naming
+    [InlineData("render_new.exe", new string[0], false)]                        // an ordinary file that ends in _new
+    [InlineData("_new.exe", new string[0], false)]
+    [InlineData("Tool_new.dll", new[] { "Tool.dll" }, false)]
+    public void IsStagedSelfReplacement_RecognizesOnlyStagedReplacements(string path, string[] others, bool expected)
+    {
+        var all = new HashSet<string>(others.Append(path), StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(expected, PackageViewModel.IsStagedSelfReplacement(path, all));
+    }
+
     private static AppVersion? InvokeSelectBaselineFull(IReadOnlyList<AppVersion> versions, int idx)
     {
         var method = typeof(PackageViewModel).GetMethod("SelectBaselineFull",

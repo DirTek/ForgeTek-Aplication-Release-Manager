@@ -368,11 +368,13 @@ public class PackagingService(Storage.IFileBlobStore blobs) : IPackagingService
                 ? new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, true)
                 : await blobs.GetAsync(record.Checksum, ct) is { } bytes ? new MemoryStream(bytes) : null;
 
+            // The header promises clients this file with this hash (and self-heal enforces it). Shipping a
+            // package without it — or with different bytes — leaves an install that can never verify: a Full
+            // is its own repair baseline, so every update would "repair" and fail again. Refuse instead.
             if (src is null)
-            {
-                progress.Report("    ⚠ File not found on disk or in the database — skipped");
-                continue;
-            }
+                throw new InvalidOperationException(
+                    $"{record.Path} is gone from {entry.FolderPath} (and isn't in the database) since the scan. " +
+                    "Rescan the version, then package again.");
 
             var zipEntry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
             // DateModified is stored as a plain DateTime (unspecified kind). Treat it as UTC
@@ -381,11 +383,26 @@ public class PackagingService(Storage.IFileBlobStore blobs) : IPackagingService
                 ? new DateTimeOffset(DateTime.SpecifyKind(record.DateModified, DateTimeKind.Utc))
                 : DateTimeOffset.UtcNow;
 
+            string actual;
             await using (src)
             {
                 await using var dest = zipEntry.Open();
-                await src.CopyToAsync(dest, ct);
+                using var sha = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await src.ReadAsync(buffer, ct)) > 0)
+                {
+                    sha.AppendData(buffer, 0, read);
+                    await dest.WriteAsync(buffer.AsMemory(0, read), ct);
+                }
+                actual = Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant();
             }
+
+            if (!string.IsNullOrWhiteSpace(record.Checksum) &&
+                !string.Equals(actual, record.Checksum, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    $"{record.Path} changed on disk since the scan (its content no longer matches the scanned " +
+                    "checksum). Rescan the version, then package again.");
         }
     }
 
