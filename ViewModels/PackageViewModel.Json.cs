@@ -31,28 +31,51 @@ public partial class PackageViewModel
         try
         {
             string? existingJson = null;
+            var localJson = File.Exists(_catalogOutputPath)
+                ? await File.ReadAllTextAsync(_catalogOutputPath, _cts.Token)
+                : null;
 
-            if (File.Exists(_catalogOutputPath))
+            if (HasFtpSettings)
             {
-                existingJson = await File.ReadAllTextAsync(_catalogOutputPath, _cts.Token);
-                Log.Add($"Loaded existing local catalog.");
-            }
-            else if (HasFtpSettings)
-            {
-                Log.Add($"Checking {_publish.ProviderName(_appSettings)} for existing catalog…");
+                // The server's catalog is what clients read, so it is the one to merge into. The local file is
+                // only a copy of what was last uploaded from this machine: it misses retractions and anything
+                // published from another machine or an older workspace, and uploading a merge of it would
+                // overwrite those. If the server can't be read, stop rather than guess.
+                var provider = _publish.ProviderName(_appSettings);
+                Log.Add($"Reading the current catalog from {provider}…");
                 using var checkCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
-                checkCts.CancelAfter(TimeSpan.FromSeconds(30));
+                checkCts.CancelAfter(TimeSpan.FromSeconds(60));
                 try
                 {
-                    existingJson = await _publish.TryGetCatalogAsync(_appSettings, _appKey, CatalogFileName, checkCts.Token);
-                    Log.Add(existingJson is not null
-                        ? "Downloaded existing catalog from the publish target."
-                        : "No existing catalog at the publish target — creating new.");
+                    var token = checkCts.Token;
+                    existingJson = await Task.Run(
+                        () => _publish.TryGetCatalogAsync(_appSettings, _appKey, CatalogFileName, token), token);
                 }
                 catch (OperationCanceledException) when (!_cts.IsCancellationRequested)
                 {
-                    Log.Add("Catalog check timed out — creating new catalog.");
+                    throw new InvalidOperationException(
+                        $"Timed out reading the current catalog from {provider}. Nothing was changed — try again.");
                 }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new InvalidOperationException(
+                        $"Couldn't read the current catalog from {provider}: {ex.Message} Nothing was changed — " +
+                        "try again once the server is reachable.", ex);
+                }
+
+                if (existingJson is null)
+                    Log.Add(localJson is null
+                        ? "No catalog on the server yet — starting a new one."
+                        : "No catalog on the server — starting a new one (the local copy is ignored; it isn't what clients see).");
+                else
+                    Log.Add(localJson is not null && localJson != existingJson
+                        ? "Loaded the live catalog from the server (the local copy was out of date and will be replaced)."
+                        : "Loaded the live catalog from the server.");
+            }
+            else if (localJson is not null)
+            {
+                existingJson = localJson;
+                Log.Add("No publish target configured — merging into the local catalog copy.");
             }
             else
             {
