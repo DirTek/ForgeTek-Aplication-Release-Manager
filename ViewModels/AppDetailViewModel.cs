@@ -30,6 +30,7 @@ public partial class AppDetailViewModel : ObservableObject
     private readonly IApprovalService _approval;
     private readonly Services.Storage.IFileBlobStore _blobs;
     private readonly IUpdaterService _updater;
+    private readonly Services.Storage.IDatabaseSnapshotService _snapshots;
     private AppEntry _entry = null!;
 
     public ISessionService Session => _session;
@@ -136,8 +137,10 @@ public partial class AppDetailViewModel : ObservableObject
         ISigningService signing, ISettingsService settings, ISessionService session, IGitHubService github,
         IVulnerabilityScanService vulnScan, ILicenseScanService licenseScan,
         ISourceCompareService sourceCompare, ISetupStorageService setupStorage, IApprovalService approval,
-        Services.Storage.IFileBlobStore blobs, ILocalizationService loc, IUpdaterService updater)
+        Services.Storage.IFileBlobStore blobs, ILocalizationService loc, IUpdaterService updater,
+        Services.Storage.IDatabaseSnapshotService snapshots)
     {
+        _snapshots = snapshots;
         _loc = loc;
         _updater = updater;
         _storage = storage;
@@ -853,6 +856,7 @@ public partial class AppDetailViewModel : ObservableObject
                 _loc.Get("Str.AppDetail.Retract"))) return;
 
         _log.Write("Retract", $"Retraction started — {_entry.Name} v{v.VersionNumber}");
+        _snapshots.TrySnapshot($"retract {_entry.Name} {v.VersionNumber}");
 
         IsRetracting = true;
         try
@@ -1151,6 +1155,7 @@ public partial class AppDetailViewModel : ObservableObject
         if (!_dialog.Confirm(_loc.Get("Str.AppDetailVm.DeleteAppTitle"),
                 _loc.Get("Str.AppDetailVm.DeleteAppMsg", _entry.Name),
                 _loc.Get("Str.AppDetailVm.DeleteAppBtn"))) return;
+        _snapshots.TrySnapshot($"delete {_entry.Name}");   // deleting an app can't be undone in the UI
         _storage.Delete(_entry.Id);
         CollectBlobGarbage();   // the deleted app's source blobs are now unreferenced
         _main.NavigateToWelcome();

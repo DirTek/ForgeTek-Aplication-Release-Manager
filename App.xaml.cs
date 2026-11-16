@@ -98,6 +98,7 @@ public partial class App : Application
         services.AddTransient<IPublishService, PublishService>();
         services.AddTransient<ICertificateService, CertificateService>();
         services.AddTransient<IBackupService, BackupService>();
+        services.AddTransient<Services.Storage.IDatabaseSnapshotService, Services.Storage.DatabaseSnapshotService>();
         services.AddTransient<IChangelogService, ChangelogService>();
 
         // Setup services
